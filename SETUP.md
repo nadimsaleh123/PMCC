@@ -62,6 +62,29 @@ You will also need a GitHub account, for the code and for the Ledger's off-site 
 
 ## Part 1 · GitHub
 
+### Step 0. Merge the work into `main`
+
+**Do this first.** All of the agent code lives on a branch called
+`claude/construction-automation-usecases-pucblv`. Your `main` branch still contains
+only the original marketing website. Clone the repo before doing this and you get a
+website with no bot.
+
+1. Go to `https://github.com/nadimsaleh123/Construction-React/branches`
+2. Find `claude/construction-automation-usecases-pucblv` and click **New pull request**
+3. Confirm it reads **base: `main` ← compare: `claude/construction-automation-…`**
+4. **Create pull request**, then **Merge pull request**, then **Confirm merge**
+
+**Check:** go to the repository home page. You should now see a `pm-agent` folder and
+a `SETUP.md` file in the file list. If you only see `src`, `index.html` and
+`package.json`, the merge did not happen.
+
+> Prefer the command line? From a clone of the repo:
+> ```bash
+> git checkout main
+> git merge origin/claude/construction-automation-usecases-pucblv
+> git push origin main
+> ```
+
 ### Step 1. Rename this repository
 
 It is called `Construction-React` after the template it started from. It now holds the
