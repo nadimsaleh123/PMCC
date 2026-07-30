@@ -254,6 +254,29 @@ function provenance(model, brand) {
     notes.push(`Planned progress is straight-line within each baseline activity.`);
   }
 
+  // The basis on which the client is being reported to. A report that states the
+  // contract it is measured against is answerable; one that does not invites the
+  // argument about which dates were being used.
+  const contract = model.meta.contract ?? {};
+  const basis = [
+    contract.form ? `Reported under ${contract.form}` : null,
+    model.kpis.completion.contractDate
+      ? `against a contract completion date of ${formatHuman(model.kpis.completion.contractDate)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  if (basis) notes.push(`${basis}.`);
+
+  const periods = [
+    contract.rfiResponseDays ? `RFIs ${contract.rfiResponseDays} days` : null,
+    contract.submittalResponseDays ? `submittals ${contract.submittalResponseDays} days` : null,
+    contract.delayNoticeDays ? `delay notices ${contract.delayNoticeDays} days` : null,
+  ].filter(Boolean);
+  if (periods.length) {
+    notes.push(`Response periods applied throughout: ${periods.join(', ')}.`);
+  }
+
   for (const warning of model.warnings) notes.push(warning);
 
   notes.push(

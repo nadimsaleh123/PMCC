@@ -38,12 +38,22 @@ export async function generateWeeklyReport(projectCode, options = {}) {
   const warnings = [...brand.warnings, ...model.warnings, ...renderWarnings];
   let pdfResult = null;
 
+  let pdfError = null;
+
   if (options.pdf) {
     // Imported lazily so the whole report path works without a browser installed.
     const { htmlToPdf } = await import('./pdf.js');
     const pdfFile = path.join(paths.reports, `${stem}.pdf`);
-    pdfResult = await htmlToPdf(html, pdfFile, model, brand);
-    written.push(pdfFile);
+    try {
+      pdfResult = await htmlToPdf(html, pdfFile, model, brand);
+      written.push(pdfFile);
+    } catch (error) {
+      // The report itself succeeded - only the rendering of it failed. Losing a
+      // week's report because a browser is missing on the machine would be a far
+      // worse failure than handing over the HTML and saying so.
+      pdfError = error;
+      warnings.push(`PDF not rendered: ${summarisePdfError(error)}`);
+    }
   }
 
   let png = null;
@@ -74,5 +84,24 @@ export async function generateWeeklyReport(projectCode, options = {}) {
     );
   }
 
-  return { model, brand, html, htmlFile, pdf: pdfResult, png, warnings, sha, written };
+  return { model, brand, html, htmlFile, pdf: pdfResult, pdfError, png, warnings, sha, written };
+}
+
+/**
+ * Playwright's launch failure is a twelve-line ASCII box aimed at a developer in
+ * a terminal. On a phone it is unreadable and it buries the one sentence that
+ * matters, so reduce it to the instruction and drop the box.
+ */
+export function summarisePdfError(error) {
+  const message = String(error?.message ?? error ?? '');
+
+  if (error?.code === 'PLAYWRIGHT_MISSING') {
+    return 'Playwright is not installed on the machine running this. Run `npm install` in pm-agent.';
+  }
+  if (/Executable doesn't exist|playwright install/i.test(message)) {
+    return "the browser is not installed on the machine running this. Run `npx playwright install chromium` in pm-agent (add `--with-deps` on Linux).";
+  }
+
+  // Anything else: first line only, so an unexpected fault is still diagnosable.
+  return message.split('\n')[0].slice(0, 200);
 }

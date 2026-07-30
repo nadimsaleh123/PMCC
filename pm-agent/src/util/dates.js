@@ -54,7 +54,16 @@ export function addDays(isoDay, days) {
 export function formatHuman(iso) {
   const day = dayOf(iso);
   if (!day) return '-';
+
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const [y, m, d] = day.split('-');
-  return `${Number(d)} ${months[Number(m) - 1]} ${y}`;
+
+  // A register is a hand-editable file, so a value that is not a date can always
+  // reach this. Show it verbatim rather than composing "NaN undefined friday" -
+  // these strings print on documents that go to a client, and a visibly wrong
+  // date invites a correction, where a mangled one invites a phone call.
+  const parsed = [Number(d), Number(m), Number(y)];
+  if (parsed.some(Number.isNaN) || !months[parsed[1] - 1]) return String(iso);
+
+  return `${parsed[0]} ${months[parsed[1] - 1]} ${parsed[2]}`;
 }

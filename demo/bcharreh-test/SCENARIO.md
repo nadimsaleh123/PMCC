@@ -50,10 +50,20 @@ Telegram, tell it which project you're practising on:
 
 Do these in order. Each step shows what the bot should come back with.
 
-### 1. `/status` — the one-screen picture
+### 1. `/today` — the one screen
 
-Forecast completion vs contract date, the 5-day slip, critical activities,
-and the open-item counts. This is the "what am I walking into" screen.
+Forecast completion against the contract date, what the contract has running
+against you, what is flagged, and who owes you what. This is the only command
+you need in the morning:
+
+```
+Forecast completion 2 Dec 2026
+🔴 5 days beyond the contract date — USD 7,500 at stake if not excused
+```
+
+That figure is the delay damages rate from your contract multiplied by the
+overrun. It is what is at stake *if the overrun is not excused* — responsibility
+for each delay event is answered by you, never derived.
 
 ### 2. `/alerts` — what's on fire
 
@@ -68,7 +78,14 @@ Expect every tier to fire:
 Alerts fire once and stay quiet until things worsen — run `/alerts` twice and
 the second run should say so.
 
-### 3. `/chase` — the site update, conversationally
+### 2b. `/contract` — what it is measuring you against
+
+The terms as configured, every exposure with your own clause numbers cited
+(Art. 9.2, Art. 11.1 …), and — importantly — a list of any terms that are *not*
+set, because an unset term is not being watched and that must never look like
+all-clear.
+
+### 3. `/update` — the site update, conversationally
 
 The bot asks about the highest-priority unknowns (max 6). Answer naturally,
 as the foreman would. Try these:

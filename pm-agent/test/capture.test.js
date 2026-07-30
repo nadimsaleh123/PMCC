@@ -11,7 +11,7 @@ const { parseCapture, captureEntry, CAPTURE_KINDS } = await import('../src/bot/c
 const { scaffoldProject } = await import('../src/ledger/scaffold.js');
 const { readYaml } = await import('../src/ledger/store.js');
 const { projectPaths } = await import('../src/ledger/paths.js');
-const { COMMAND_MENU } = await import('../src/bot/server.js');
+const { COMMAND_MENU, CAPTURE_BUTTONS } = await import('../src/bot/server.js');
 
 await scaffoldProject('CAP', { name: 'Capture test' });
 
@@ -112,8 +112,14 @@ test('every menu command is a valid Telegram command with a description', () => 
 });
 
 test('every register that can be captured is reachable from the menu', () => {
+  // The menu deliberately carries one way in - /log - rather than one command
+  // per register: nobody standing on a site remembers which register a thought
+  // belongs in. The buttons /log offers are what must stay exhaustive.
   const commands = new Set(COMMAND_MENU.map((c) => c.command));
+  assert.ok(commands.has('log'), '/log is missing from the Telegram menu');
+
+  const reachable = new Set(CAPTURE_BUTTONS.flat().map((b) => b.send.replace('/logas ', '')));
   for (const kind of Object.keys(CAPTURE_KINDS)) {
-    assert.ok(commands.has(kind), `/${kind} is missing from the Telegram menu`);
+    assert.ok(reachable.has(kind), `${kind} cannot be reached from the /log buttons`);
   }
 });

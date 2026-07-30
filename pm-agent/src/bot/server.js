@@ -30,8 +30,9 @@ import { loadLatestProgramme, loadLastTwoProgrammes } from '../programme/ingest.
 import { diffProgrammes } from '../analysis/diff.js';
 import { checkProgrammeHealth } from '../analysis/health.js';
 import { computeExceptions } from '../analysis/exceptions.js';
+import { contractPosition, formatContract, formatMoney } from '../analysis/contract.js';
 import { renderDiff, renderHealth, renderExceptions } from '../report/render.js';
-import { generateWeeklyReport } from '../report/generate.js';
+import { generateWeeklyReport, summarisePdfError } from '../report/generate.js';
 import { runAlerts, formatAlertBatch, formatOpenAlerts } from '../alerts/index.js';
 import { commitLedger } from '../ledger/git.js';
 import { writeFile, readFile } from 'node:fs/promises';
@@ -101,24 +102,13 @@ function authorOf(message) {
  * command itself at 32, lowercase.
  */
 export const COMMAND_MENU = [
-  { command: 'menu', description: 'Everything I can do, as buttons' },
-  { command: 'chase', description: 'Daily site update — I ask, you answer' },
-  { command: 'status', description: 'Where the project stands right now' },
-  { command: 'alerts', description: 'What is currently flagged' },
-  { command: 'open', description: 'Decisions, actions and RFIs waiting on someone' },
-  { command: 'report', description: "This week's client report as a PDF" },
-  { command: 'diff', description: 'What changed between the last two programmes' },
-  { command: 'health', description: 'DCMA 14-point check on the programme' },
-  { command: 'lookahead', description: 'What is coming up, ready or blocked' },
-  { command: 'risk', description: 'Log a risk — just write it plainly' },
-  { command: 'decision', description: 'Log a decision needed — owner and date read from the sentence' },
-  { command: 'action', description: 'Log an action — e.g. order tiles owner Jihad due 1 aug' },
-  { command: 'set', description: 'Fill in a field — /set ACT-003 due friday' },
-  { command: 'nudge', description: 'Draft a chase letter — /nudge DEC-001' },
+  { command: 'today', description: 'Where the project stands and what needs you' },
+  { command: 'update', description: 'The site update — I ask, you answer' },
+  { command: 'log', description: 'Record anything — /log order tiles owner Jihad due 1 aug' },
+  { command: 'contract', description: 'The contract I am working to, and where you are exposed' },
+  { command: 'report', description: "This week's client report" },
   { command: 'ask', description: 'Ask anything about the project record' },
-  { command: 'brief', description: 'Show the project brief the agent is working to' },
-  { command: 'projects', description: 'List projects, or /project CODE to switch' },
-  { command: 'help', description: 'What I can do' },
+  { command: 'help', description: 'Everything else I can do' },
 ];
 
 /**
@@ -127,24 +117,31 @@ export const COMMAND_MENU = [
  */
 const MENU_ROWS = [
   [
-    { label: '📋 Status', send: '/status' },
-    { label: '🔔 Alerts', send: '/alerts' },
+    { label: '📋 Today', send: '/today' },
+    { label: '🎙 Site update', send: '/update' },
   ],
   [
-    { label: '🎙 Daily update', send: '/chase' },
-    { label: '📮 Open items', send: '/open' },
-  ],
-  [
-    { label: '⚠️ Log a risk', send: '/risk' },
-    { label: '📌 Log a decision', send: '/decision' },
+    { label: '📝 Record something', send: '/log' },
+    { label: '📜 Contract', send: '/contract' },
   ],
   [
     { label: '📄 Weekly report', send: '/report' },
+    { label: '📮 Open items', send: '/open' },
+  ],
+  [
+    { label: '⋯ More', send: '/more' },
+  ],
+];
+
+/** The commands that are not on the menu but still work. */
+const MORE_ROWS = [
+  [
     { label: '📈 Programme change', send: '/diff' },
+    { label: '🩺 Programme health', send: '/health' },
   ],
   [
     { label: '🔭 Look-ahead', send: '/lookahead' },
-    { label: '🩺 Programme health', send: '/health' },
+    { label: '🔔 All alerts', send: '/alerts' },
   ],
   [
     { label: '📖 Project brief', send: '/brief' },
@@ -168,6 +165,17 @@ const DUE_CHOICES = [
   { label: 'End of month', value: 'end of month' },
 ];
 
+/**
+ * The classification offered after `/log`. Derived from CAPTURE_KINDS so a new
+ * register cannot be added without becoming reachable from the phone.
+ */
+export const CAPTURE_BUTTONS = [
+  Object.entries(CAPTURE_KINDS).map(([kind, spec]) => ({
+    label: `${spec.icon ?? '•'} ${spec.buttonLabel ?? spec.label}`,
+    send: `/logas ${kind}`,
+  })),
+];
+
 /** Button rows for whatever a just-logged entry is still missing. */
 function fillRows(ref, missing = []) {
   const rows = [];
@@ -182,36 +190,21 @@ function fillRows(ref, missing = []) {
 
 const HELP = `*Construction PM agent*
 
-Tap *Menu* beside the message box for the full list, or \`/menu\` for buttons.
+Six things, and you only need the first three.
 
-*Look*
-\`/status\` — where the project stands right now
-\`/alerts\` — what is currently flagged
-\`/open\` — decisions, actions and RFIs waiting on someone
-\`/lookahead [days]\` — what is coming up, ready or blocked
+\`/today\` — where the project stands, what the contract has running
+against you, and what is waiting on someone else
+\`/update\` — the site update: I ask, you answer
+\`/log <anything>\` — record it, I ask what kind it is
+\`/contract\` — the terms I am working to, and where you are exposed
+\`/report\` — this week's client report
+\`/ask <question>\` — or just start a message with ?
 
-*Record*
-\`/chase\` — the daily update (I ask, you answer)
-\`/risk\`, \`/decision\`, \`/action\` — just write it plainly:
-\`/action order concrete batch owner Jihad due 1 aug\`
-I read the owner and the date out of the sentence, show you what I
-understood, and offer buttons for anything still missing.
-\`/set ACT-003 due friday\` fills one in afterwards.
 Send a photo or a document and I file it as evidence.
 
-*Produce*
-\`/report\` — this week's client report as a PDF
-\`/nudge REF\` — draft a chase letter for that reference
-\`/diff\` — what changed between the last two programmes
-\`/health\` — DCMA 14-point check on the programme
-
-*Ask*
-\`/ask <question>\` — anything about the project record (or just start with \`?\`)
-\`/brief\` — the brief I am working to
-\`/projects\` — list projects · \`/project CODE\` — switch
-
-During a chase: answer naturally, or \`skip\` / \`stop\`.
-Anything else I treat as an answer to the question on the table.`;
+_Also available:_ \`/open\` \`/alerts\` \`/diff\` \`/health\` \`/lookahead\`
+\`/nudge REF\` \`/set REF field value\` \`/brief\` \`/projects\`
+Tap *⋯ More* on \`/menu\` for those as buttons.`;
 
 async function resolveProject(state, chatId) {
   const perChat = state.chats?.[chatId]?.activeProject;
@@ -240,6 +233,10 @@ async function handleCommand(tg, chatId, text, state, author) {
       );
       return true;
 
+    case '/more':
+      await tg.send(chatId, 'Everything else:', keyboard(MORE_ROWS));
+      return true;
+
     /**
      * The brief is the contract context every skill reads before it writes a word.
      * Being able to see it from the phone is what stops it silently going stale.
@@ -264,6 +261,58 @@ async function handleCommand(tg, chatId, text, state, author) {
       for (const part of chunk(brief)) await tg.send(chatId, part);
       await tg.send(chatId, '_Edit this in `CLAUDE.md` in the project folder._');
       return true;
+    }
+
+    /**
+     * One way in for anything worth recording.
+     *
+     * The three registers still have their own commands, but nobody standing on
+     * a site remembers which of them a thought belongs in. So take the words
+     * first and ask the one question that decides where they land.
+     */
+    case '/log': {
+      if (!project) return true;
+      const body = args.join(' ').trim();
+
+      if (!body) {
+        await tg.send(
+          chatId,
+          '*Record something*\n\nWrite it the way you would say it:\n' +
+            '`/log order the ridge tiles owner Jihad due 1 aug`\n\n' +
+            'I read the owner and the date out of the sentence, then ask what kind of thing it is.',
+        );
+        return true;
+      }
+
+      // Held rather than filed: the register is not known yet, and writing to the
+      // wrong one then moving it would leave two entries in the git history.
+      state.chats ??= {};
+      state.chats[chatId] ??= {};
+      state.chats[chatId].pendingCapture = body;
+      await writeState(state);
+
+      await tg.send(
+        chatId,
+        `*${body}*\n\nWhat is this?`,
+        keyboard(CAPTURE_BUTTONS),
+      );
+      return true;
+    }
+
+    case '/logas': {
+      if (!project) return true;
+      const kind = (args[0] ?? '').toLowerCase();
+      const held = state.chats?.[chatId]?.pendingCapture;
+
+      if (!CAPTURE_KINDS[kind] || !held) {
+        await tg.send(chatId, 'Nothing waiting to be filed. Start with `/log <what happened>`.');
+        return true;
+      }
+
+      delete state.chats[chatId].pendingCapture;
+      await writeState(state);
+
+      return handleCommand(tg, chatId, `/${kind} ${held}`, state, author);
     }
 
     case '/risk':
@@ -379,6 +428,9 @@ async function handleCommand(tg, chatId, text, state, author) {
       return true;
     }
 
+    // "Update" is what this is called on site. /chase is kept because it is what
+    // the cron job and the CLI have always sent.
+    case '/update':
     case '/chase': {
       if (!project) {
         await tg.send(chatId, 'No project set. `/projects` to see what is available.');
@@ -388,6 +440,117 @@ async function handleCommand(tg, chatId, text, state, author) {
       await tg.send(chatId, result.message);
       if (result.question) {
         await tg.send(chatId, `*1/${result.session.queue.length}* — ${result.question}`);
+      }
+      return true;
+    }
+
+    /**
+     * The one screen.
+     *
+     * Where the project stands, what the contract has running against you, and
+     * what is waiting on someone else - in that order, because that is the order
+     * it matters in. This exists so that the answer to "what do I open in the
+     * morning" is a single command rather than four.
+     */
+    case '/today': {
+      if (!project) return true;
+
+      const latest = await loadLatestProgramme(project);
+      const paths = projectPaths(project);
+      const config = (await readYaml(paths.config)) ?? {};
+      const lines = [`*${project}* — ${formatHuman(today())}`, ''];
+
+      if (!latest) {
+        lines.push('No programme ingested yet, so nothing can be measured against a date.');
+      } else {
+        const s = latest.programme.stats;
+        const position = contractPosition({
+          contract: config.contract ?? {},
+          programme: latest.programme,
+          events: await readYaml(paths.events),
+          rfi: await readYaml(paths.rfi),
+          submittals: await readYaml(paths.submittals),
+          asOf: today(),
+        });
+
+        lines.push(`Forecast completion *${formatHuman(s.forecastFinish)}*`);
+        if (position.damages && position.damages.days > 0) {
+          lines.push(
+            `🔴 ${position.damages.days} days beyond the contract date` +
+              (position.damages.amount
+                ? ` — ${formatMoney(position.damages.amount, position.damages.currency)} at stake if not excused`
+                : ''),
+          );
+        } else if (config.contract?.completionDate) {
+          lines.push(`Inside the contract date of ${formatHuman(config.contract.completionDate)}`);
+        }
+        lines.push(`${s.complete}/${s.activityCount} activities complete · ${s.criticalCount} critical`);
+
+        // Contract exposures first: they are the ones with a deadline attached.
+        const running = position.exposures.filter((e) => e.kind !== 'damages').slice(0, 3);
+        if (running.length) {
+          lines.push('', '*Running against you*');
+          for (const item of running) lines.push(`• ${item.title}`);
+        }
+      }
+
+      const { open } = await runAlerts(project, { commit: false });
+      const urgent = open.filter((a) => a.severity === 'critical' || a.severity === 'high');
+      if (urgent.length) {
+        lines.push('', `*Flagged* — ${urgent.length}`);
+        for (const alert of urgent.slice(0, 4)) lines.push(`• ${alert.title}`);
+      }
+
+      const waiting = await openItems(project);
+      if (waiting.length) {
+        lines.push('', `*Waiting on someone else* — ${waiting.length}`);
+        for (const item of waiting.slice(0, 4)) {
+          lines.push(`• \`${item.ref}\` ${item.subject} — ${item.owner ?? 'unassigned'}`);
+        }
+      }
+
+      if (lines.length === 2) lines.push('Nothing needs you today.');
+
+      await tg.send(
+        chatId,
+        lines.join('\n'),
+        keyboard([
+          [
+            { label: '🎙 Site update', send: '/update' },
+            { label: '📄 Report', send: '/report' },
+          ],
+          [
+            { label: '📜 Contract', send: '/contract' },
+            { label: '📮 All open items', send: '/open' },
+          ],
+        ]),
+      );
+      return true;
+    }
+
+    /**
+     * What the agent believes the contract says, and where it currently bites.
+     *
+     * Also states which terms are not configured - a term that is not set is not
+     * watched, and that has to be visible rather than looking like all-clear.
+     */
+    case '/contract': {
+      if (!project) return true;
+      const paths = projectPaths(project);
+      const config = (await readYaml(paths.config)) ?? {};
+      const latest = await loadLatestProgramme(project);
+
+      const position = contractPosition({
+        contract: config.contract ?? {},
+        programme: latest?.programme ?? null,
+        events: await readYaml(paths.events),
+        rfi: await readYaml(paths.rfi),
+        submittals: await readYaml(paths.submittals),
+        asOf: today(),
+      });
+
+      for (const part of chunk(formatContract(project, position, { asOf: today() }))) {
+        await tg.send(chatId, part);
       }
       return true;
     }
@@ -509,22 +672,28 @@ async function handleCommand(tg, chatId, text, state, author) {
         const { readFile } = await import('node:fs/promises');
         const file = result.pdf?.file ?? result.htmlFile;
 
-        await tg.sendDocument(
-          chatId,
-          path.basename(file),
-          await readFile(file),
-          `Weekly report no. ${result.model.meta.reportNo}. Review it, then issue it yourself.`,
-        );
+        // The HTML is a complete, self-contained report - it opens in any browser
+        // and prints to PDF. So a missing browser costs a step, never the report.
+        const caption = result.pdf
+          ? `Weekly report no. ${result.model.meta.reportNo}. Review it, then issue it yourself.`
+          : `Weekly report no. ${result.model.meta.reportNo}, as HTML — open it and print to PDF (A4, background graphics on).`;
 
-        if (result.warnings.length > 0) {
+        await tg.sendDocument(chatId, path.basename(file), await readFile(file), caption);
+
+        if (result.pdfError) {
           await tg.send(
             chatId,
-            `Before this goes to a client:\n${result.warnings.map((w) => `- ${w}`).join('\n')}`,
+            `_No PDF this time: ${summarisePdfError(result.pdfError)}_\n\n` +
+              'Once that is done, `/report` gives you the PDF again.',
           );
         }
+
+        const other = result.warnings.filter((w) => !w.startsWith('PDF not rendered'));
+        if (other.length > 0) {
+          await tg.send(chatId, `Before this goes to a client:\n${other.map((w) => `- ${w}`).join('\n')}`);
+        }
       } catch (error) {
-        // Most likely Playwright missing; the HTML was still written.
-        await tg.send(chatId, `Could not build the PDF: ${error.message}`);
+        await tg.send(chatId, `Could not build the report: ${error.message.split('\n')[0]}`);
       }
       return true;
     }
@@ -1065,3 +1234,12 @@ export async function pushAlerts(projectCode, { token = process.env.TELEGRAM_BOT
 
   return result;
 }
+
+/**
+ * Test seam.
+ *
+ * A conversation is the product here, so the parts worth checking are the ones
+ * that decide what comes back - not the parts that talk to Telegram. Exposing
+ * the command handler lets a test drive a whole exchange against a fake client.
+ */
+export const _internals = { handleCommand, MENU_ROWS, MORE_ROWS };

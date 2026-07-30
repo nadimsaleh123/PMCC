@@ -271,54 +271,74 @@ node bin/pm.js bot
 
 ### What it does
 
-Every command is listed in Telegram's own **Menu** button — the bot registers it with
-`setMyCommands` on startup, so there is nothing to memorise at a site gate. `/menu`
-gives the same list as tappable buttons.
+Six things carry the whole job, and they are what Telegram's **Menu** button lists.
+The rest still work; they are just not in your way.
 
 | Command | |
 |---|---|
-| `/menu` | everything, as buttons |
-| `/chase` | the daily update — it asks, you answer |
-| `/status` | forecast completion, progress, critical path count |
-| `/alerts` | everything currently flagged |
-| `/open` | decisions, actions and RFIs waiting on someone else |
-| `/risk`, `/decision`, `/action` | log one from the phone — see below |
-| `/report` | this week's client report as a PDF |
-| `/nudge REF` | draft a chase letter for that reference |
-| `/diff` | what changed between the last two programme updates |
-| `/health` | DCMA 14-point check |
-| `/lookahead [days]` | what is coming up and what is at risk |
+| `/today` | the one screen — where the project stands, what the contract has running against you, what is waiting on someone else |
+| `/update` | the site update — it asks, you answer |
+| `/log <anything>` | record it; it asks whether that is an action, a decision or a risk |
+| `/contract` | the terms it is measuring you against, and where you are exposed |
+| `/report` | this week's client report |
 | `/ask <question>` | anything about the project record (or start a message with `?`) |
-| `/brief` | the project brief the agent is working to |
-| `/projects`, `/project CODE` | list and switch |
 
-### Logging a risk, decision or action from the phone
+Also available, and on the **⋯ More** panel of `/menu`: `/open` `/alerts` `/diff`
+`/health` `/lookahead` `/nudge REF` `/set REF field value` `/brief` `/projects`
+`/status` `/risk` `/decision` `/action`.
+
+### The contract is the thing it measures against
+
+`project.yaml` carries the terms — completion date, delay damages rate and cap,
+notice and response periods, and optionally your contract's own clause numbers.
+`/contract` reads them back with the exposure they currently produce:
 
 ```
-/risk Snow closes the Bcharreh road in December | owner: PMCC | impact: 2 weeks lost on external works
-/decision Approve balcony tile sample | owner: Client | due: 2026-08-20
-/action Issue revised setting-out drawing | owner: Consultant | due: 2026-08-12
+🔴 5 days beyond contract completion
+Forecast 2 Dec 2026 against a contract date of 27 Nov 2026. At USD 1,500 per
+day (Art. 11.1) that is USD 7,500 at stake if the overrun is not excused.
+
+🟡 RFI RFI-001 — 7d beyond the contract period
+With Eng. Malek Salameh (Consultant) for 14 days against a 7-day period
+(Art. 5.4). Recorded as evidence of late information.
 ```
 
-The subject is the only required part; the pipe-separated fields are optional, because
-the alternative to a badly-recorded risk at 19:00 is no risk recorded at all. Whatever
-you leave out is **named back to you as missing, never filled in** — an invented owner
-or deadline would flow straight into an alert and a chase letter. A segment this parser
-does not recognise as `key: value` is kept verbatim rather than dropped.
+Three rules govern that output, and they are the reason it can be shown to a
+client. It never infers entitlement — the damages figure is arithmetic on a
+recorded date and a recorded rate, stated as what is at stake *if* the overrun is
+not excused, and whether it is excused is answered by a human against each event.
+It never invents a term — a clause is cited only where you configured one. And it
+names every term you have *not* set, because an unwatched term must never look
+like all-clear.
 
-Entries land in `03-registers/risk.yaml`, `02-ledger/decisions.yaml` and
-`03-registers/actions.yaml` with the next sequential reference, your name against them,
-and a git commit. They then drive the alerts, the `/open` list, the chase letters and
-the Risks and Decisions sections of the weekly report — the same as anything typed on
-the laptop.
+The weekly report states the same basis in its provenance footnote, so the client
+can see which contract dates and periods the figures were measured against.
 
-During a chase, answer naturally — *"started tuesday, about 30%, block delivery came
-up short"*. It extracts the date, the percentage, and recognises the delay. `skip` and
-`stop` work at any point.
+### Recording something from the phone
 
-Send a photo with an activity code in the caption and it files it as evidence against
-that activity. Voice notes are filed as evidence too, and become diary entries if you
-switch transcription on — see below.
+Write it the way you would say it. The owner and the date are read out of the
+sentence — `1 aug`, `friday`, `tomorrow`, `end of month`, `in 2 weeks`, `1/8` and
+ISO all parse:
+
+```
+/log order the ridge tiles owner Jihad due 1 aug
+```
+
+It shows what it understood, asks whether that is an action, a decision or a
+risk, and files it. Anything still missing comes back as buttons —
+Client/Consultant/PMCC/Subcontractor, Today/Friday/Next week/End of month — and
+`/set ACT-003 due friday` fills one in afterwards or fixes a typo.
+
+The parser stays conservative where being wrong is expensive. A keyword only
+counts as a field when what follows it reads like a value, so "lift the beams
+**by crane**" is not a deadline and "agree **impact of** the stoppage" is not an
+impact. An unreadable date is reported rather than approximated — an invented
+deadline would flow straight into an alert and a chase letter. And `/set` can
+only touch owner, due, impact, mitigation and consequence: it cannot close an
+entry, and it cannot set responsibility on a delay event.
+
+The pipe syntax still works, and an explicit `| owner: X` always beats whatever
+the sentence happened to say.
 
 ### How the chase decides what to ask
 
@@ -474,9 +494,13 @@ always better than a plausible invention.
 Cmd+P. `--pdf` additionally needs a browser:
 
 ```bash
-npm install --save-dev playwright
-npx playwright install chromium
+npm install                              # playwright is a devDependency
+npx playwright install chromium          # add --with-deps on Linux
 ```
+
+A missing browser never costs you the report. The PDF step is caught, the failure
+is reported as a warning naming the one command to run, and the HTML — which is
+the same report — is what `/report` sends instead.
 
 Two details that are load-bearing rather than cosmetic:
 

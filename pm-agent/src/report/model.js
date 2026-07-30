@@ -562,6 +562,9 @@ export async function buildWeeklyModel(projectCode, options = {}) {
       name: config.name ?? projectCode,
       role: config.role ?? null,
       contractForm: config.contract?.form ?? null,
+      // The terms the report was measured against, so the document can state its
+      // own basis rather than leaving the client to assume one.
+      contract: config.contract ?? {},
       reportNo,
       weekEnding: asOf,
       weekStart,

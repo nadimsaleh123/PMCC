@@ -150,12 +150,27 @@ export async function scaffoldProject(code, { name = code, force = false } = {})
         name,
         role: 'contractor',
         createdAt: today(),
+        // What the agent measures this project against. Anything left null is
+        // reported as not watched rather than quietly skipped - see /contract.
+        // The clause fields are optional and are cited verbatim where set, so a
+        // letter quotes your contract's numbering rather than a generic form.
         contract: {
           form: null,
+          sum: null,
+          currency: 'USD',
           completionDate: null,
+          ldPerDay: null,
+          ldCapPercent: null,
+          retentionPercent: null,
           delayNoticeDays: 28,
+          particularsDays: 42,
           rfiResponseDays: 14,
           submittalResponseDays: 21,
+          delayNoticeClause: null,
+          particularsClause: null,
+          ldClause: null,
+          rfiClause: null,
+          submittalClause: null,
         },
         chase: {
           // How far ahead to look for activities about to become a problem.
