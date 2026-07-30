@@ -73,7 +73,7 @@ export async function startChase(
       status: 'no-programme',
       message:
         `No parsed programme for *${projectCode}* yet.\n\n` +
-        `Drop a P6 export into \`01-programme/xer/\` and run \`pm ingest ${projectCode} <file.xer>\`.`,
+        `Export from P6 (.xer) or MS Project (Save As → XML) and run \`pm ingest ${projectCode} <file>\`.`,
     };
   }
 
@@ -216,6 +216,7 @@ export async function answerChase(projectCode, text, { author = TERMINAL_AUTHOR 
         `Logged as a delay event against ${current.code}.\n\n` +
         `Was that *client/consultant-caused*, *our own/supplier*, or *neutral* (weather etc.)? ` +
         `It decides whether this supports a claim later, so I will not guess.`,
+      buttons: RESPONSIBILITY_BUTTONS,
     };
   }
 
@@ -232,6 +233,20 @@ export async function answerChase(projectCode, text, { author = TERMINAL_AUTHOR 
   await saveSession(session);
   return nextPrompt(session, 'Logged.');
 }
+
+/**
+ * The fixed choices for "whose delay is it", phrased for buttons. `send` is
+ * what the button feeds back through the ordinary message path, chosen so
+ * classifyResponsibility reads it the same as a typed answer. A tap is still a
+ * human answering - the rule against inferring entitlement is untouched.
+ */
+export const RESPONSIBILITY_BUTTONS = [
+  [
+    { label: 'Client / consultant', send: 'consultant' },
+    { label: 'Our side / supplier', send: 'supplier' },
+  ],
+  [{ label: 'Neutral — weather etc.', send: 'neutral' }],
+];
 
 export function classifyResponsibility(text) {
   const lower = text.toLowerCase();

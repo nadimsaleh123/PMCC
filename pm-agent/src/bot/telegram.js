@@ -46,7 +46,7 @@ export class Telegram {
   async getUpdates({ timeout = 50 } = {}) {
     const updates = await this.call(
       'getUpdates',
-      { offset: this.offset, timeout, allowed_updates: ['message'] },
+      { offset: this.offset, timeout, allowed_updates: ['message', 'callback_query'] },
       { timeoutMs: (timeout + 20) * 1000 },
     );
     for (const update of updates) {
@@ -79,6 +79,30 @@ export class Telegram {
     });
   }
 
+  /**
+   * Telegram requires every button press to be acknowledged, or the client
+   * shows a spinner for up to a minute. Failures are swallowed: an expired
+   * callback is not worth crashing the poll loop over.
+   */
+  async answerCallbackQuery(callbackQueryId, text) {
+    return this.call('answerCallbackQuery', {
+      callback_query_id: callbackQueryId,
+      ...(text ? { text } : {}),
+    }).catch(() => null);
+  }
+
+  /**
+   * Remove the buttons from a message once one has been pressed, so a
+   * double-tap cannot answer the same question twice.
+   */
+  async clearButtons(chatId, messageId) {
+    return this.call('editMessageReplyMarkup', {
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: { inline_keyboard: [] },
+    }).catch(() => null);
+  }
+
   async sendDocument(chatId, filename, content, caption) {
     const form = new FormData();
     form.append('chat_id', String(chatId));
@@ -105,6 +129,22 @@ export class Telegram {
     if (!response.ok) throw new Error(`Download failed: ${response.status}`);
     return Buffer.from(await response.arrayBuffer());
   }
+}
+
+/**
+ * Build a reply_markup from [[{label, send}]] rows. Every button carries the
+ * text it stands for, prefixed "t:" - a press is handled by feeding that text
+ * through the ordinary message path, so a tapped answer and a typed answer are
+ * literally the same code path and leave the same record.
+ */
+export function keyboard(rows) {
+  return {
+    reply_markup: {
+      inline_keyboard: rows.map((row) =>
+        row.map(({ label, send }) => ({ text: label, callback_data: `t:${send}`.slice(0, 64) })),
+      ),
+    },
+  };
 }
 
 /** Telegram hard-caps messages at 4096 characters. */

@@ -8,8 +8,15 @@
  */
 
 import path from 'node:path';
-import { Telegram, chunk } from './telegram.js';
-import { startChase, answerChase, finishChase, loadSession, classifyResponsibility } from './chase.js';
+import { Telegram, chunk, keyboard } from './telegram.js';
+import {
+  startChase,
+  answerChase,
+  finishChase,
+  loadSession,
+  classifyResponsibility,
+  RESPONSIBILITY_BUTTONS,
+} from './chase.js';
 import { askLedger } from './ask.js';
 import { ingestVoiceNote } from './diary.js';
 import { entriesOf } from '../ledger/registers.js';
@@ -123,11 +130,15 @@ async function handleCommand(tg, chatId, text, state, author) {
 
     case '/projects': {
       const projects = await listProjects();
+      // One button per project; a tap is exactly `/project CODE`.
       await tg.send(
         chatId,
         projects.length
-          ? `Projects:\n${projects.map((p) => `- \`${p}\`${p === project ? '  ← active' : ''}`).join('\n')}`
+          ? `Projects:\n${projects.map((p) => `- \`${p}\`${p === project ? '  ← active' : ''}`).join('\n')}\n\n_Tap to switch:_`
           : `No projects yet. Run \`pm init <CODE>\` on the Mac mini.`,
+        projects.length
+          ? keyboard(projects.map((p) => [{ label: p === project ? `${p} ←` : p, send: `/project ${p}` }]))
+          : {},
       );
       return true;
     }
@@ -428,7 +439,7 @@ async function handleMessage(tg, message, state) {
   }
 
   const result = await answerChase(project, text, { author });
-  await tg.send(chatId, result.message);
+  await tg.send(chatId, result.message, result.buttons ? keyboard(result.buttons) : {});
 
   if (result.done) {
     const summary = await finishChase(project, null, { author });
@@ -551,6 +562,7 @@ async function handleVoice(tg, chatId, message, state, author) {
       `I heard something that sounds like a delay, and logged it as *${result.event.ref}*.\n\n` +
         `Was it *client/consultant-caused*, *our own/supplier*, or *neutral* (weather etc.)? ` +
         `It decides whether this supports a claim later, so I will not guess.`,
+      keyboard(RESPONSIBILITY_BUTTONS),
     );
   }
 }
@@ -697,6 +709,26 @@ async function handlePhoto(tg, chatId, message, state, author) {
   );
 }
 
+/**
+ * Turn a button press into the message it stands for.
+ *
+ * Every button carries "t:" plus the text a person would have typed, so a tap
+ * runs through handleMessage exactly like typing - same authorisation, same
+ * attribution, same record. The press is acknowledged and the buttons removed
+ * first, so a double-tap cannot answer the same question twice.
+ */
+export async function asMessage(tg, callbackQuery) {
+  if (!callbackQuery) return null;
+  await tg.answerCallbackQuery(callbackQuery.id);
+
+  const source = callbackQuery.message;
+  const data = callbackQuery.data ?? '';
+  if (!source?.chat || !data.startsWith('t:')) return null;
+
+  await tg.clearButtons(source.chat.id, source.message_id);
+  return { chat: source.chat, from: callbackQuery.from, text: data.slice(2) };
+}
+
 export async function runBot({ token = process.env.TELEGRAM_BOT_TOKEN } = {}) {
   const tg = new Telegram(token);
   const me = await tg.call('getMe');
@@ -713,15 +745,16 @@ export async function runBot({ token = process.env.TELEGRAM_BOT_TOKEN } = {}) {
     try {
       const updates = await tg.getUpdates();
       for (const update of updates) {
-        if (!update.message) continue;
+        const message = update.message ?? (await asMessage(tg, update.callback_query));
+        if (!message) continue;
         const state = await readState();
         try {
-          await handleMessage(tg, update.message, state);
+          await handleMessage(tg, message, state);
         } catch (error) {
           console.error('[bot] handler error:', error);
-          if (isAuthorised(update.message.chat.id, update.message.from?.id)) {
+          if (isAuthorised(message.chat.id, message.from?.id)) {
             await tg
-              .send(update.message.chat.id, `Something broke handling that: ${error.message}`)
+              .send(message.chat.id, `Something broke handling that: ${error.message}`)
               .catch(() => {});
           }
         }
