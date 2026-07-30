@@ -51,16 +51,36 @@ async function listProjects() {
 }
 
 /**
- * Only respond to chats you have explicitly allowed. A PM bot holds contract
- * sums, rates and claims strategy; an open bot is a disclosure incident.
+ * Only respond to chats you have explicitly allowed. A PM bot holds contract sums,
+ * rates and claims strategy; an open bot is a disclosure incident.
+ *
+ * In a one-to-one chat the chat id and the sender id are the same, so either will
+ * do. They diverge in a group, where the chat id identifies the group - so accept
+ * both, and let the allowlist hold whichever you added.
  */
-function isAuthorised(chatId) {
+function isAuthorised(chatId, fromId) {
   const allowed = (process.env.TELEGRAM_ALLOWED_CHAT_IDS ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
   if (allowed.length === 0) return false;
-  return allowed.includes(String(chatId));
+  return allowed.includes(String(chatId)) || (fromId && allowed.includes(String(fromId)));
+}
+
+/**
+ * Who sent this.
+ *
+ * Attribution is not bookkeeping - a diary entry that names the person who reported
+ * it is materially stronger evidence than one that says "telegram", and it cannot be
+ * reconstructed later.
+ */
+function authorOf(message) {
+  const from = message.from ?? {};
+  const name =
+    [from.first_name, from.last_name].filter(Boolean).join(' ') ||
+    from.username ||
+    `telegram:${from.id}`;
+  return { id: from.id ?? message.chat.id, name, username: from.username ?? null };
 }
 
 const HELP = `*Construction PM agent*
@@ -89,7 +109,7 @@ async function resolveProject(state, chatId) {
   return projects[0] ?? null;
 }
 
-async function handleCommand(tg, chatId, text, state) {
+async function handleCommand(tg, chatId, text, state, author) {
   const [rawCommand, ...args] = text.trim().split(/\s+/);
   const command = rawCommand.toLowerCase().replace(/@.*$/, '');
   const project = await resolveProject(state, chatId);
@@ -130,7 +150,7 @@ async function handleCommand(tg, chatId, text, state) {
         await tg.send(chatId, 'No project set. `/projects` to see what is available.');
         return true;
       }
-      const result = await startChase(project);
+      const result = await startChase(project, { author });
       await tg.send(chatId, result.message);
       if (result.question) {
         await tg.send(chatId, `*1/${result.session.queue.length}* — ${result.question}`);
@@ -347,7 +367,9 @@ async function handleCommand(tg, chatId, text, state) {
 async function handleMessage(tg, message, state) {
   const chatId = message.chat.id;
 
-  if (!isAuthorised(chatId)) {
+  const author = authorOf(message);
+
+  if (!isAuthorised(chatId, author.id)) {
     // Say nothing useful to an unknown chat, but make the chat id visible in
     // the log so you can allowlist yourself on first run.
     console.warn(`[bot] ignoring message from unauthorised chat ${chatId}`);
@@ -357,17 +379,17 @@ async function handleMessage(tg, message, state) {
   const text = message.text ?? message.caption ?? '';
 
   if (message.voice || message.audio) {
-    await handleVoice(tg, chatId, message, state);
+    await handleVoice(tg, chatId, message, state, author);
     return;
   }
 
   if (message.photo) {
-    await handlePhoto(tg, chatId, message, state);
+    await handlePhoto(tg, chatId, message, state, author);
     return;
   }
 
   if (text.startsWith('/')) {
-    const handled = await handleCommand(tg, chatId, text, state);
+    const handled = await handleCommand(tg, chatId, text, state, author);
     if (!handled) await tg.send(chatId, `Unknown command. ${HELP}`);
     return;
   }
@@ -393,17 +415,17 @@ async function handleMessage(tg, message, state) {
   }
 
   // Not a command - treat as an answer to the chase question on the table.
-  const session = await loadSession(project);
+  const session = await loadSession(project, author);
   if (!session || session.cleared) {
     await tg.send(chatId, 'No chase in progress. `/chase` to start one, or `/help` for what I can do.');
     return;
   }
 
-  const result = await answerChase(project, text);
+  const result = await answerChase(project, text, { author });
   await tg.send(chatId, result.message);
 
   if (result.done) {
-    const summary = await finishChase(project);
+    const summary = await finishChase(project, null, { author });
     await tg.send(chatId, summary.message);
     if (summary.p6) {
       const { readFile } = await import('node:fs/promises');
@@ -465,7 +487,7 @@ async function handleAsk(tg, chatId, project, question, state) {
  * see diary.js. The one thing this must not do is infer who caused a delay, so a
  * detected delay ends with a question rather than a conclusion.
  */
-async function handleVoice(tg, chatId, message, state) {
+async function handleVoice(tg, chatId, message, state, author) {
   const project = await resolveProject(state, chatId);
   if (!project) {
     await tg.send(chatId, 'No project set. `/projects` to see what is available.');
@@ -480,6 +502,7 @@ async function handleVoice(tg, chatId, message, state) {
     buffer,
     extension: media.mime_type === 'audio/mpeg' ? '.mp3' : '.ogg',
     caption: message.caption ?? null,
+    author,
   });
 
   if (!result.ok) {
@@ -562,7 +585,7 @@ async function resolvePendingEvent(tg, chatId, pending, text, state) {
 }
 
 /** Photos are evidence. File them against the project, dated, with the caption. */
-async function handlePhoto(tg, chatId, message, state) {
+async function handlePhoto(tg, chatId, message, state, author) {
   const project = await resolveProject(state, chatId);
   if (!project) return;
 
@@ -589,6 +612,8 @@ async function handlePhoto(tg, chatId, message, state) {
     // Activity linkage comes from the caption when you write one like
     // "A-1240 level 3 blockwork east side".
     activity: /\b([A-Z]{1,4}-?\d{3,5})\b/.exec(caption)?.[1] ?? null,
+    takenBy: author?.name ?? null,
+    takenById: author?.id ?? null,
     receivedAt: new Date().toISOString(),
   });
   await writeYaml(indexFile, index, { header: 'Photo evidence index' });
@@ -625,7 +650,7 @@ export async function runBot({ token = process.env.TELEGRAM_BOT_TOKEN } = {}) {
           await handleMessage(tg, update.message, state);
         } catch (error) {
           console.error('[bot] handler error:', error);
-          if (isAuthorised(update.message.chat.id)) {
+          if (isAuthorised(update.message.chat.id, update.message.from?.id)) {
             await tg
               .send(update.message.chat.id, `Something broke handling that: ${error.message}`)
               .catch(() => {});

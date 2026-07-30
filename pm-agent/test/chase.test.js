@@ -11,7 +11,7 @@ process.env.LEDGER_ROOT = path.join(root, 'projects');
 
 const { scaffoldProject } = await import('../src/ledger/scaffold.js');
 const { ingestXer } = await import('../src/programme/ingest.js');
-const { startChase, answerChase, finishChase } = await import('../src/bot/chase.js');
+const { startChase, answerChase, finishChase, loadSession } = await import('../src/bot/chase.js');
 const { projectPaths } = await import('../src/ledger/paths.js');
 const { readYaml } = await import('../src/ledger/store.js');
 const { makeXer, BASE_PROGRAMME } = await import('./fixtures/make-xer.js');
@@ -97,6 +97,52 @@ test('an own-cause delay gets no notice deadline', async () => {
   assert.equal(latest.responsibility, 'contractor');
   assert.equal(latest.noticeDeadline, null);
   assert.equal(summary.noticeDeadlines.length, 0);
+});
+
+test('two people can be chased at once without clobbering each other', async () => {
+  // Sessions used to be keyed by project, so a second person answering would
+  // silently overwrite the first person's answers.
+  const ali = { id: 101, name: 'Ali Mansour' };
+  const sara = { id: 202, name: 'Sara Khoury' };
+
+  const first = await startChase(CODE, { asOf: '2026-07-15', author: ali });
+  const second = await startChase(CODE, { asOf: '2026-07-15', author: sara });
+
+  assert.equal(first.status, 'started');
+  assert.equal(second.status, 'started');
+
+  // Interleave, the way two people actually would.
+  await answerChase(CODE, 'skip', { author: ali });
+  await answerChase(CODE, 'skip', { author: sara });
+  await answerChase(CODE, 'started 14 july, 25% done', { author: ali });
+
+  const aliSession = await loadSession(CODE, ali);
+  const saraSession = await loadSession(CODE, sara);
+
+  assert.equal(aliSession.answers.length, 1, "Ali's answer survived");
+  assert.equal(saraSession.answers.length, 0, "Sara's session is untouched");
+  assert.equal(aliSession.author.name, 'Ali Mansour');
+  assert.equal(saraSession.index, 1, 'each session tracks its own position');
+});
+
+test('the ledger records who reported each update, not just how it arrived', async () => {
+  const author = { id: 303, name: 'Omar Haddad' };
+  await startChase(CODE, { asOf: '2026-07-16', author });
+  await answerChase(CODE, 'started 15 july, 30% done', { author });
+
+  for (;;) {
+    const result = await answerChase(CODE, 'skip', { author });
+    if (result.done || result.status === 'no-session') break;
+  }
+  await finishChase(CODE, null, { author });
+
+  const progress = await readYaml(projectPaths(CODE).progress);
+  const reported = Object.values(progress.activities).filter((a) => a.reportedBy === 'Omar Haddad');
+  assert.ok(reported.length > 0, 'progress carries the reporter');
+
+  const { readFile } = await import('node:fs/promises');
+  const diary = await readFile(projectPaths(CODE).diary, 'utf8');
+  assert.match(diary, /reported by Omar Haddad/);
 });
 
 test('the diary keeps the exact words that were said', async () => {

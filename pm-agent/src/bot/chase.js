@@ -20,8 +20,25 @@ import { parseReply } from './parseReply.js';
 import { writeP6Update } from '../export/p6update.js';
 import { today, formatHuman, addDays } from '../util/dates.js';
 
-const sessionFile = (projectCode) =>
-  path.join(projectPaths(projectCode).root, '.chase-session.json');
+/**
+ * Who is answering. Defaults to the terminal, so the CLI keeps working unchanged.
+ *
+ * This matters more than it looks: a diary entry that says "reported by the site
+ * engineer on 5 August" is materially stronger evidence than one that says
+ * "telegram-chase", and by the time you need it you cannot reconstruct it.
+ */
+export const TERMINAL_AUTHOR = { id: 'terminal', name: 'terminal' };
+
+const authorId = (author) => String(author?.id ?? TERMINAL_AUTHOR.id);
+
+/**
+ * One session per person, not per project.
+ *
+ * Two people running /chase on the same project at the same time would otherwise
+ * overwrite each other's answers - and would do it silently, which is worse.
+ */
+const sessionFile = (projectCode, author) =>
+  path.join(projectPaths(projectCode).root, `.chase-session-${authorId(author)}.json`);
 
 /**
  * Sessions are persisted so a bot restart mid-conversation does not lose the
@@ -29,21 +46,24 @@ const sessionFile = (projectCode) =>
  * it is gitignored.
  */
 async function saveSession(session) {
-  await writeJson(sessionFile(session.project), session);
+  await writeJson(sessionFile(session.project, session.author), session);
 }
 
-async function loadSession(projectCode) {
-  const file = sessionFile(projectCode);
+async function loadSession(projectCode, author = TERMINAL_AUTHOR) {
+  const file = sessionFile(projectCode, author);
   if (!(await exists(file))) return null;
   return readJson(file);
 }
 
-async function clearSession(projectCode) {
-  const file = sessionFile(projectCode);
+async function clearSession(projectCode, author = TERMINAL_AUTHOR) {
+  const file = sessionFile(projectCode, author);
   if (await exists(file)) await writeJson(file, { cleared: true, at: new Date().toISOString() });
 }
 
-export async function startChase(projectCode, { asOf = today(), limit } = {}) {
+export async function startChase(
+  projectCode,
+  { asOf = today(), limit, author = TERMINAL_AUTHOR } = {},
+) {
   const paths = projectPaths(projectCode);
   const config = (await readYaml(paths.config)) ?? {};
   const latest = await loadLatestProgramme(projectCode);
@@ -77,6 +97,7 @@ export async function startChase(projectCode, { asOf = today(), limit } = {}) {
 
   const session = {
     project: projectCode,
+    author,
     asOf,
     startedAt: new Date().toISOString(),
     dataDate: exceptions.dataDate,
@@ -121,8 +142,8 @@ function buildOpening(projectCode, exceptions) {
 /**
  * Apply one reply and advance. Returns the next prompt, or the closing summary.
  */
-export async function answerChase(projectCode, text) {
-  const session = await loadSession(projectCode);
+export async function answerChase(projectCode, text, { author = TERMINAL_AUTHOR } = {}) {
+  const session = await loadSession(projectCode, author);
   if (!session || session.cleared || session.index >= session.queue.length) {
     return { status: 'no-session', message: 'No chase in progress. Send `/chase` to start one.' };
   }
@@ -237,10 +258,16 @@ function nextPrompt(session, acknowledgement) {
  * P6-importable update. Commits once, atomically, with a message that names the
  * date so `git log` reads as a chronology.
  */
-export async function finishChase(projectCode, sessionArg, { aborted = false } = {}) {
-  const session = sessionArg ?? (await loadSession(projectCode));
+export async function finishChase(
+  projectCode,
+  sessionArg,
+  { aborted = false, author = TERMINAL_AUTHOR } = {},
+) {
+  const session = sessionArg ?? (await loadSession(projectCode, author));
+  const who = session?.author ?? author;
+
   if (!session || session.answers.length === 0) {
-    await clearSession(projectCode);
+    await clearSession(projectCode, who);
     return { message: 'Nothing recorded.', written: [] };
   }
 
@@ -266,6 +293,8 @@ export async function finishChase(projectCode, sessionArg, { aborted = false } =
       remainingDays: answer.remainingDays ?? previous.remainingDays ?? null,
       updatedAt: answer.askedAt,
       source: 'telegram-chase',
+      reportedBy: who.name ?? null,
+      reportedById: who.id ?? null,
       reply: answer.reply,
     };
   }
@@ -316,7 +345,11 @@ export async function finishChase(projectCode, sessionArg, { aborted = false } =
           : noticeDays
             ? 'Own/supplier cause as answered - no notice computed'
             : 'contract.delayNoticeDays not set in project.yaml',
-        recordedBy: 'telegram-chase',
+        // Who said it, not just how it arrived. By the time this matters in a
+        // claim you cannot reconstruct it.
+        recordedBy: who.name ?? 'telegram-chase',
+        recordedById: who.id ?? null,
+        recordedVia: 'telegram-chase',
         recordedAt: answer.askedAt,
       });
       events.nextRef += 1;
@@ -340,10 +373,10 @@ export async function finishChase(projectCode, sessionArg, { aborted = false } =
 
   const sha = await commitLedger(
     written,
-    `ledger(${projectCode}): site update ${session.asOf} — ${session.answers.length} activities${delays.length ? `, ${delays.length} delay event(s)` : ''}`,
+    `ledger(${projectCode}): site update ${session.asOf} by ${who.name ?? 'terminal'} — ${session.answers.length} activities${delays.length ? `, ${delays.length} delay event(s)` : ''}`,
   );
 
-  await clearSession(projectCode);
+  await clearSession(projectCode, who);
 
   return {
     written,
@@ -359,7 +392,9 @@ export async function finishChase(projectCode, sessionArg, { aborted = false } =
 function buildDiaryEntry(session, aborted) {
   const lines = [`## ${session.asOf}`, ''];
   lines.push(
-    `Site update captured via Telegram${aborted ? ' (session ended early)' : ''}. Programme data date ${session.dataDate ?? 'unknown'}.`,
+    `Site update reported by ${session.author?.name ?? 'unknown'}` +
+      `${session.author?.id === TERMINAL_AUTHOR.id ? ' at the terminal' : ' via Telegram'}` +
+      `${aborted ? ' (session ended early)' : ''}. Programme data date ${session.dataDate ?? 'unknown'}.`,
   );
   lines.push('');
 

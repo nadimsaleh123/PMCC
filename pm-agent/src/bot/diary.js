@@ -86,9 +86,11 @@ export async function structureTranscript(transcript, { cwd, ...options } = {}) 
 const bullet = (items) => items.map((item) => `  - ${item}`).join('\n');
 
 /** Render a diary entry. Sections with nothing in them are omitted entirely. */
-export function renderDiaryEntry({ day, transcript, structured, audioFile, caption }) {
+export function renderDiaryEntry({ day, transcript, structured, audioFile, caption, author }) {
   const lines = [`## ${day}`, ''];
-  lines.push(`Site report recorded by voice note${caption ? ` — ${caption}` : ''}.`);
+  lines.push(
+    `Site report recorded by voice note${author?.name ? ` from ${author.name}` : ''}${caption ? ` — ${caption}` : ''}.`,
+  );
   lines.push('');
 
   if (structured) {
@@ -155,6 +157,7 @@ export function renderDiaryEntry({ day, transcript, structured, audioFile, capti
 export async function ingestVoiceNote(projectCode, input) {
   const paths = projectPaths(projectCode);
   const day = input.asOf ?? today();
+  const author = input.author ?? { id: 'terminal', name: 'terminal' };
   const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, '');
 
   const dir = path.join(paths.evidence, 'voice', day);
@@ -175,6 +178,7 @@ export async function ingestVoiceNote(projectCode, input) {
       file: relative,
       date: day,
       caption: input.caption ?? null,
+      recordedBy: author.name,
       transcribed: false,
       note: transcription.error,
     });
@@ -202,6 +206,7 @@ export async function ingestVoiceNote(projectCode, input) {
     structured,
     audioFile: relative,
     caption: input.caption,
+    author,
   });
   await appendMarkdown(paths.diary, entry);
   written.push(paths.diary);
@@ -227,7 +232,10 @@ export async function ingestVoiceNote(projectCode, input) {
       noticeIssued: false,
       noticeDeadline: null,
       noticeBasis: 'Awaiting responsibility classification',
-      recordedBy: 'voice-note',
+      // Who said it, not just how it arrived.
+      recordedBy: author.name,
+      recordedById: author.id,
+      recordedVia: 'voice-note',
       recordedAt: new Date().toISOString(),
     };
 
@@ -247,6 +255,7 @@ export async function ingestVoiceNote(projectCode, input) {
     transcript: path.relative(paths.root, transcriptFile),
     date: day,
     caption: input.caption ?? null,
+    recordedBy: author.name,
     transcribed: true,
     structured: Boolean(structured),
   });
@@ -254,7 +263,7 @@ export async function ingestVoiceNote(projectCode, input) {
 
   const sha = await commitLedger(
     written,
-    `diary(${projectCode}): voice note ${day}${event ? ` — delay event ${event.ref}` : ''}`,
+    `diary(${projectCode}): voice note ${day} by ${author.name}${event ? ` — delay event ${event.ref}` : ''}`,
   );
 
   return {

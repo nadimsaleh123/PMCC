@@ -89,6 +89,20 @@ because it gets quoted verbatim in claims.
 The allowlist is not optional. The bot holds contract sums, rates and claims strategy;
 an open bot is a disclosure incident. Messages from unknown chats are ignored.
 
+### Adding a second person
+
+`TELEGRAM_ALLOWED_CHAT_IDS` is comma-separated, so adding your PM is one entry. They
+get a private chat with the bot, their own chase sessions, and everything they record
+is attributed to them by name in `progress.yaml`, `events.yaml`, the diary and the git
+commit message. Two people can be chased at the same time without colliding.
+
+**There are no roles yet — everyone on the allowlist can do everything**, including
+`/ask`, which reads the whole ledger. That is fine for you and a PM. It is *not* fine
+for site staff or a subcontractor: it would put contract sums and rates one question
+away. Before opening this up further, roles are needed — the design is to scope `/ask`
+by working directory so a foreman's questions physically cannot reach `00-contract/`
+or `05-commercial/`.
+
 ```bash
 node bin/pm.js bot
 ```
@@ -388,7 +402,7 @@ Stated plainly so nothing here is mistaken for working:
 npm test
 ```
 
-181 tests, and no test costs money or needs a network — the Claude runner and the
+184 tests, and no test costs money or needs a network — the Claude runner and the
 transcriber are both exercised against stubs.
 
 Covering the XER parser (including the Windows-1252 encoding P6 actually writes),

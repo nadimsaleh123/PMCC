@@ -170,6 +170,7 @@ test('a delay heard in a voice note opens an event, unclassified', async () => {
     buffer: Buffer.from('fake ogg'),
     asOf: '2026-08-06',
     structure: false,
+    author: { id: 991, name: 'Ahmed Hassan' },
   });
 
   assert.ok(result.event, 'a delay cue should open an event');
@@ -179,7 +180,29 @@ test('a delay heard in a voice note opens an event, unclassified', async () => {
   assert.equal(result.event.noticeDeadline, null);
 
   const events = await readYaml(projectPaths(CODE).events);
-  assert.equal(events.entries.at(-1).recordedBy, 'voice-note');
+  const logged = events.entries.at(-1);
+  // recordedBy names the person; the channel is separate. "Reported by the site
+  // engineer" is far stronger evidence than "reported by voice-note".
+  assert.equal(logged.recordedVia, 'voice-note');
+  assert.equal(logged.recordedBy, 'Ahmed Hassan');
+  assert.equal(logged.recordedById, 991);
+});
+
+test('the diary names who recorded the note', async () => {
+  process.env.PM_TRANSCRIBE_CMD = `printf '%s' 'Steel deliveries all arrived on time today.' > {output}`;
+
+  await ingestVoiceNote(CODE, {
+    buffer: Buffer.from('fake ogg'),
+    asOf: '2026-08-09',
+    structure: false,
+    author: { id: 991, name: 'Ahmed Hassan' },
+  });
+
+  const diary = await readFile(projectPaths(CODE).diary, 'utf8');
+  assert.match(diary, /voice note from Ahmed Hassan/);
+
+  const index = await readYaml(path.join(projectPaths(CODE).evidence, 'voice', 'index.yaml'));
+  assert.equal(index.entries.at(-1).recordedBy, 'Ahmed Hassan');
 });
 
 test('an ordinary voice note does not invent a delay event', async () => {
