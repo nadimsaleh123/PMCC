@@ -28,13 +28,15 @@ uniform float uTime;
 uniform vec2 uPointer;   // -0.5..0.5, eased on the JS side
 uniform float uScroll;   // -1..1 progress of section through viewport
 uniform float uAmp;      // master amplitude, 0 disables
+uniform float uAnchorY;  // 0.5 = center crop; 1.0 = anchor to the image top
 
-// object-fit: cover in shader form
+// object-fit: cover in shader form, with a vertical anchor so a short window
+// can hold the top of the image (sky, roofline) instead of its middle
 vec2 cover(vec2 uv) {
   float pr = uPlane.x / uPlane.y;
   float ir = uImage.x / uImage.y;
   vec2 s = pr > ir ? vec2(1.0, ir / pr) : vec2(pr / ir, 1.0);
-  return (uv - 0.5) * s + 0.5;
+  return vec2((uv.x - 0.5) * s.x + 0.5, (uv.y - uAnchorY) * s.y + uAnchorY);
 }
 
 void main() {
@@ -46,7 +48,7 @@ void main() {
           + sin(uv.x * 3.1 - uTime * 0.21) * 0.0028;
   uv += vec2(w, w * 0.6) * uAmp;
   // scale up slightly so drift never reveals edges
-  uv = (uv - 0.5) * 0.94 + 0.5;
+  uv = (uv - vec2(0.5, uAnchorY)) * 0.94 + vec2(0.5, uAnchorY);
   vec3 c = texture2D(uTex, cover(uv + drift)).rgb;
   // gentle vignette keeps type legible at the edges
   float d = distance(vUv, vec2(0.5, 0.42));
@@ -69,14 +71,21 @@ function compile(gl, type, src) {
  * @param {HTMLImageElement} image  already-loading img element to mirror
  * @returns {{destroy(): void, setScroll(p: number): void} | null} null if WebGL is unavailable
  */
-export function createWarp(canvas, image) {
-  const gl = canvas.getContext("webgl", { antialias: false, alpha: false });
+export function createWarp(canvas, image, { anchorY = 0.5 } = {}) {
+  // preserveDrawingBuffer keeps the last frame readable after composite -
+  // screenshots and tab previews otherwise capture a black canvas.
+  const gl = canvas.getContext("webgl", { antialias: false, alpha: false, preserveDrawingBuffer: true });
   if (!gl) return null;
 
   const program = gl.createProgram();
   gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERT));
   gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAG));
   gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error("[warp] program link failed:", gl.getProgramInfoLog(program));
+    canvas.dataset.warp = "link-failed";
+    return null;
+  }
   gl.useProgram(program);
 
   const quad = gl.createBuffer();
@@ -89,21 +98,28 @@ export function createWarp(canvas, image) {
   const U = (n) => gl.getUniformLocation(program, n);
   const uPlane = U("uPlane"), uImage = U("uImage"), uTime = U("uTime");
   const uPointer = U("uPointer"), uScroll = U("uScroll"), uAmp = U("uAmp");
+  const uAnchorY = U("uAnchorY");
 
   const texture = gl.createTexture();
   let imageSize = [1, 1];
   let ready = false;
 
   const upload = () => {
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    imageSize = [image.naturalWidth, image.naturalHeight];
-    ready = true;
+    try {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      imageSize = [image.naturalWidth, image.naturalHeight];
+      ready = true;
+      canvas.dataset.warp = "ready";
+    } catch (err) {
+      canvas.dataset.warp = `upload-failed: ${err}`;
+      console.error("[warp] texture upload failed", err);
+    }
   };
   if (image.complete && image.naturalWidth > 0) upload();
   else image.addEventListener("load", upload, { once: true });
@@ -126,22 +142,24 @@ export function createWarp(canvas, image) {
   };
   window.addEventListener("pointermove", onPointer, { passive: true });
 
+  // Visibility is driven by the caller (a ScrollTrigger in WarpImage), not an
+  // IntersectionObserver: GSAP pinning re-parents ancestors through a
+  // pin-spacer, and an IO attached before that move can report the canvas as
+  // gone forever, freezing the loop on a black buffer. ScrollTrigger knows
+  // about pins; IO does not.
   let scroll = 0;
   let visible = true;
   let raf = 0;
   const start = performance.now();
 
-  const io = new IntersectionObserver(([entry]) => {
-    visible = entry.isIntersecting;
-    if (visible && !raf) raf = requestAnimationFrame(frame);
-  });
-  io.observe(canvas);
-
+  let draws = 0;
   function frame(now) {
     raf = 0;
     if (!visible) return;
     resize();
     if (ready) {
+      draws += 1;
+      if (draws % 30 === 1) canvas.dataset.warpDraws = String(draws);
       pointer.x += (pointer.tx - pointer.x) * 0.045;
       pointer.y += (pointer.ty - pointer.y) * 0.045;
       gl.uniform2f(uPlane, canvas.width, canvas.height);
@@ -150,6 +168,7 @@ export function createWarp(canvas, image) {
       gl.uniform2f(uPointer, pointer.x, pointer.y);
       gl.uniform1f(uScroll, scroll);
       gl.uniform1f(uAmp, 1);
+      gl.uniform1f(uAnchorY, anchorY);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
     raf = requestAnimationFrame(frame);
@@ -160,9 +179,13 @@ export function createWarp(canvas, image) {
     setScroll(p) {
       scroll = p;
     },
+    setVisible(v) {
+      visible = v;
+      canvas.dataset.warpVisible = String(v);
+      if (visible && !raf) raf = requestAnimationFrame(frame);
+    },
     destroy() {
       cancelAnimationFrame(raf);
-      io.disconnect();
       window.removeEventListener("pointermove", onPointer);
       gl.deleteTexture(texture);
       gl.deleteBuffer(quad);

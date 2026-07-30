@@ -19,6 +19,7 @@ export default function WarpImage({
   className = "",
   imgClassName = "",
   priority = false,
+  anchor = "center",
 }) {
   const wrap = useRef(null);
   const img = useRef(null);
@@ -27,7 +28,7 @@ export default function WarpImage({
 
   useLayoutEffect(() => {
     if (reducedMotion()) return undefined;
-    const warp = createWarp(canvas.current, img.current);
+    const warp = createWarp(canvas.current, img.current, { anchorY: anchor === "top" ? 1 : 0.5 });
     if (!warp) return undefined;
 
     const st = ScrollTrigger.create({
@@ -35,7 +36,11 @@ export default function WarpImage({
       start: "top bottom",
       end: "bottom top",
       onUpdate: (self) => warp.setScroll(self.progress * 2 - 1),
+      // The render loop pauses off-screen. ScrollTrigger, not an
+      // IntersectionObserver, so pinned ancestors are measured correctly.
+      onToggle: (self) => warp.setVisible(self.isActive),
     });
+    warp.setVisible(st.isActive);
 
     const show = () => setGlReady(true);
     if (img.current.complete && img.current.naturalWidth > 0) show();
@@ -46,7 +51,7 @@ export default function WarpImage({
       warp.destroy();
       setGlReady(false);
     };
-  }, [src]);
+  }, [src, anchor]);
 
   return (
     <div ref={wrap} className={`relative overflow-clip ${className}`}>

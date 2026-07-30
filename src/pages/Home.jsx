@@ -9,6 +9,7 @@ import { heroClaim, stats, services, clients, project } from "../data/content";
 
 function Hero() {
   const root = useRef(null);
+  const pinTarget = useRef(null);
 
   useLayoutEffect(() => {
     if (reducedMotion()) return undefined;
@@ -23,22 +24,45 @@ function Hero() {
         { autoAlpha: 0, y: 20 },
         { autoAlpha: 1, y: 0, duration: 1, delay: 0.7 },
       );
+
+      // The smart bit: scrolling grows the roofline band downward until the
+      // whole facade fills the screen — the building reveals itself from the
+      // sky down — then the page releases. Desktop only; the pin targets an
+      // inner wrapper so React keeps owning the section.
+      const mm = gsap.matchMedia();
+      mm.add("(min-width: 1024px)", () => {
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: pinTarget.current,
+            start: "top top",
+            end: () => `+=${window.innerHeight * 1.1}`,
+            pin: true,
+            scrub: 0.5,
+            invalidateOnRefresh: true,
+          },
+        });
+        tl.to("[data-hero-strip]", { height: "100svh", ease: "power1.inOut", duration: 1 }, 0)
+          .to("[data-hero-copy]", { autoAlpha: 0, y: -40, duration: 0.45 }, 0.05);
+      });
     }, root.current);
     return () => ctx.revert();
   }, []);
 
   return (
-    <section ref={root} className="grid h-[100svh] grid-rows-[auto_minmax(0,1fr)] pt-[64px]">
-      <div data-hero-strip className="h-[34svh]">
+    <section ref={root} className="bg-ink">
+      <div ref={pinTarget} className="grid h-[100svh] grid-rows-[auto_minmax(0,1fr)] pt-[64px]">
+      <div data-hero-strip className="relative z-10 h-[34svh]">
         <WarpImage
-          src="/im/hero-band-2560.webp"
-          srcSet="/im/hero-band-1280.webp 1280w, /im/hero-band-2560.webp 2560w"
-          alt="Daher el Souane 563 by PMCC — terracotta roofline among the umbrella pines"
+          src="/im/hero-reveal-2560.webp"
+          srcSet="/im/hero-reveal-1280.webp 1280w, /im/hero-reveal-2560.webp 2560w"
+          alt="Daher el Souane 563 by PMCC — the front elevation revealed from the roofline down"
           className="h-full"
+          imgClassName="object-top"
+          anchor="top"
           priority
         />
       </div>
-      <div className="flex min-h-0 flex-col justify-center overflow-clip px-5 sm:px-8">
+      <div data-hero-copy className="flex min-h-0 flex-col justify-center overflow-clip px-5 sm:px-8">
         <Fade delay={0.35}>
           <p className="type-eyebrow text-smoke">{heroClaim.eyebrow}</p>
         </Fade>
@@ -60,6 +84,7 @@ function Hero() {
             Scroll ↓
           </p>
         </div>
+      </div>
       </div>
     </section>
   );
