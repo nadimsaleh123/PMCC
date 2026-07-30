@@ -175,7 +175,7 @@ function Clients() {
               <img
                 src={`/im/logos/${c.slug}.png`}
                 alt={c.name}
-                className="h-8 w-auto opacity-80 sm:h-10"
+                className="h-10 w-auto opacity-80 sm:h-16 xl:h-20"
                 loading="lazy"
                 onError={() =>
                   setFailed((prev) => {
@@ -186,12 +186,12 @@ function Clients() {
                 }
               />
             )}
-            <span aria-hidden className="mx-8 inline-block h-1.5 w-1.5 rounded-full bg-pmcc sm:mx-10" />
+            <span aria-hidden className="mx-10 inline-block h-1.5 w-1.5 rounded-full bg-pmcc sm:mx-20 xl:mx-24" />
           </span>
         ))}
       </div>
       <style>{`
-        .marquee { animation: marquee-x 36s linear infinite; }
+        .marquee { animation: marquee-x 48s linear infinite; }
         @keyframes marquee-x { to { transform: translateX(-33.333%); } }
         @media (prefers-reduced-motion: reduce) { .marquee { animation: none; } }
       `}</style>
