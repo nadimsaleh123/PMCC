@@ -9,6 +9,42 @@ downstream is wrong if those are wrong.
 
 ---
 
+## What you are setting up
+
+**The Ledger** is the important idea, and it is a simpler one than the name suggests:
+**a folder of files on disk, one per project**, holding everything known about that
+project.
+
+```
+MARINA-01/
+  00-contract/     the contract, conditions, BOQ
+  01-programme/    every P6 export ever loaded, kept forever
+  02-ledger/       site diary, progress, delay events
+  03-registers/    RFIs, submittals, variations, NCRs, risks, procurement
+  04-evidence/     photos, letters, minutes, drawings
+  05-commercial/   valuations, cashflow
+  06-outputs/      the reports and letters it produces
+```
+
+Not a database. Plain text files you can open in any editor — so if every line of this
+software disappeared tomorrow, you would still have a well-organised project folder.
+
+The one part that earns the name: the folder is a **git repository**. Git stamps every
+change with a date and an author and will not let that history be quietly rewritten. So
+you get a contemporaneous record as a side effect of ordinary use — *"on 5 August the
+site engineer reported the blocks were short"* — which is what wins an extension-of-time
+claim eighteen months later, and what almost nobody actually keeps.
+
+Three other terms used throughout:
+
+| Term | What it means |
+|---|---|
+| **The workspace** | `~/PMCC/` on the Mac mini — the Ledger, the code, and an inbox folder, all in one place |
+| **Two repositories** | The code and the Ledger are backed up separately. The code could be public one day; the Ledger holds contract sums, rates and claims strategy, so it never can be. |
+| **The bot** | The Telegram chat. It reads and writes the Ledger — it is the way in, not the thing itself. Everything it does can also be done from the command line. |
+
+---
+
 ## Before you start
 
 Three things to have ready:
@@ -19,9 +55,8 @@ Three things to have ready:
 | A P6 export of one real project | `.xer`, both a baseline and the current update if you have them |
 | Your contract | The form (FIDIC Red/Yellow, bespoke), the completion date, and the notice periods |
 
-And one decision, which you can defer: **where the Ledger's backup lives.** Step 11
-covers it. Everything works without it — the Mac mini's disk is just your only copy
-until you do it.
+You will also need a GitHub account, for the code and for the Ledger's off-site backup
+(Steps 1, 2 and 11).
 
 ---
 
@@ -297,9 +332,15 @@ pm sync
 **Check:** `pm sync` says it pushed, and the GitHub repo now shows your files —
 and still shows 🔒 **Private**.
 
-> Prefer nothing leaving your own hardware? Skip this and use Tailscale instead, with
-> the Mac mini itself as the remote. Say the word and I will write those steps. Until
-> you do one or the other, the Mac mini's disk is your only copy.
+**Do not skip this step.** It is the only thing standing between you and losing the
+whole record if the Mac mini's disk fails — and it is a machine running around the
+clock. A private repo is also what makes Step 14, working from a laptop, possible at
+all.
+
+> The one case where this changes: a client contract that forbids storing project data
+> with a third party, which some government work does. Then the answer is a private
+> network such as Tailscale between your own machines, *plus* a separate encrypted
+> backup — because a network between two machines is not a backup.
 
 ### Step 12. Run it around the clock
 

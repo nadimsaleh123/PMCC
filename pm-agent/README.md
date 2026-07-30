@@ -2,8 +2,9 @@
 
 > New here? Follow [`../SETUP.md`](../SETUP.md) — a complete, ordered setup from zero.
 
-A construction Project Ledger, a Primavera P6 parser, and a Telegram agent that chases
-you for site updates against the programme.
+A construction Project Ledger — a folder of plain files per project, kept in git so
+every change is timestamped and cannot be quietly rewritten — plus a Primavera P6
+parser and a Telegram agent that chases you for site updates against the programme.
 
 This is Stage 1–2 of the automation roadmap: the data spine and the daily capture
 habit. Everything else — client reports, EOT packs, look-aheads, commercial tracking —
