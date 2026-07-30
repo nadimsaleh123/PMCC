@@ -80,7 +80,6 @@ export const workGroups = [
   {
     title: "Villas & restoration",
     note: "Two generations of private houses — built new, or brought back.",
-    image: { src: "/im/villa-fakhoury.jpg", alt: "Villa Fakhoury, Kfardebian — dark stone volumes in the pines", caption: "Villa Fakhoury · Kfardebian · 2016" },
     items: [
       { name: "Villa Zreik", meta: "Faqra · 2008" },
       { name: "Villa Fakhoury", meta: "Kfardebian · 2016" },
@@ -99,14 +98,19 @@ export const workGroups = [
   },
 ];
 
+/**
+ * Marquee entries. Each renders its logo from /im/logos/<slug>.png when the
+ * file exists (bone-monochrome, transparent), and falls back to the serif
+ * wordmark when it does not — so a missing file degrades, never breaks.
+ */
 export const clients = [
-  "Microsoft",
-  "MEDCO",
-  "McDonald's",
-  "Arab Investment Bank",
-  "Mercy Corps",
-  "Rise Properties",
-  "JDM",
+  { name: "Microsoft", slug: "microsoft" },
+  { name: "MEDCO", slug: "medco" },
+  { name: "McDonald's", slug: "mcdonalds" },
+  { name: "Arab Investment Bank", slug: "aib" },
+  { name: "Mercy Corps", slug: "mercycorps" },
+  { name: "Rise Properties", slug: "rise" },
+  { name: "JDM", slug: "jdm" },
 ];
 
 export const timeline = [

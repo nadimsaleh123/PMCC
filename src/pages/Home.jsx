@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { gsap, reducedMotion } from "../lib/motion";
 import { Lines, Fade } from "../components/reveal";
@@ -28,10 +28,16 @@ function Hero() {
   }, []);
 
   return (
-    <section
-      ref={root}
-      className="relative grid h-[100svh] grid-rows-[minmax(0,1fr)_auto] gap-y-4 pt-[72px] lg:grid-cols-[1.15fr_0.85fr] lg:grid-rows-none lg:gap-x-10 lg:pb-8 lg:pr-8"
-    >
+    <section ref={root} className="grid h-[100svh] grid-rows-[auto_minmax(0,1fr)] pt-[64px]">
+      <div data-hero-strip className="h-[34svh]">
+        <WarpImage
+          src="/im/hero-band-2560.webp"
+          srcSet="/im/hero-band-1280.webp 1280w, /im/hero-band-2560.webp 2560w"
+          alt="Daher el Souane 563 by PMCC — terracotta roofline among the umbrella pines"
+          className="h-full"
+          priority
+        />
+      </div>
       <div className="flex min-h-0 flex-col justify-center overflow-clip px-5 sm:px-8">
         <Fade delay={0.35}>
           <p className="type-eyebrow text-smoke">{heroClaim.eyebrow}</p>
@@ -40,7 +46,7 @@ function Hero() {
           as="h1"
           trigger={false}
           delay={0.35}
-          className="type-display mt-[2svh] text-[clamp(2.4rem,min(8vw,11.5svh),7.2rem)] text-bone"
+          className="type-display mt-[2svh] text-[clamp(2.4rem,min(8vw,10.5svh),7.2rem)] text-bone"
         >
           {heroClaim.lines[0]}
           <br />
@@ -54,17 +60,6 @@ function Hero() {
             Scroll ↓
           </p>
         </div>
-      </div>
-      <div data-hero-strip className="relative h-[30svh] lg:h-auto lg:self-stretch">
-        <WarpImage
-          src="/im/site-finished.jpg"
-          alt="Daher el Souane 563 — PMCC's own development on the ridge above the coast"
-          className="h-full"
-          priority
-        />
-        <p className="absolute bottom-3 left-4 bg-ink/60 px-3 py-1 font-sans text-[0.65rem] uppercase tracking-wideish text-bone">
-          Daher el Souane 563 · our own development
-        </p>
       </div>
     </section>
   );
@@ -159,6 +154,8 @@ function Services() {
 }
 
 function Clients() {
+  // Slugs whose /im/logos/<slug>.png failed to load fall back to wordmarks.
+  const [failed, setFailed] = useState(() => new Set());
   const row = [...clients, ...clients, ...clients];
   return (
     <section className="overflow-clip bg-ink pb-6 pt-16" aria-label="Selected clients">
@@ -166,12 +163,30 @@ function Clients() {
       <div className="marquee mt-8 flex w-max items-center pr-0">
         {row.map((c, i) => (
           <span
-            key={`${c}-${i}`}
-            className="type-display flex items-center whitespace-nowrap text-[clamp(1.7rem,3.8vw,3.1rem)] text-stone"
+            key={`${c.slug}-${i}`}
+            className="flex items-center"
             aria-hidden={i >= clients.length}
           >
-            {c}
-            <span aria-hidden className="mx-8 inline-block h-1.5 w-1.5 rounded-full bg-pmcc" />
+            {failed.has(c.slug) ? (
+              <span className="type-display whitespace-nowrap text-[clamp(1.7rem,3.8vw,3.1rem)] text-stone">
+                {c.name}
+              </span>
+            ) : (
+              <img
+                src={`/im/logos/${c.slug}.png`}
+                alt={c.name}
+                className="h-8 w-auto opacity-75 sm:h-10"
+                loading="lazy"
+                onError={() =>
+                  setFailed((prev) => {
+                    const next = new Set(prev);
+                    next.add(c.slug);
+                    return next;
+                  })
+                }
+              />
+            )}
+            <span aria-hidden className="mx-8 inline-block h-1.5 w-1.5 rounded-full bg-pmcc sm:mx-10" />
           </span>
         ))}
       </div>
