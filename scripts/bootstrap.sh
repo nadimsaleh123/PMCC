@@ -40,11 +40,23 @@ NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
 [ "$NODE_MAJOR" -ge 18 ] || die "Node $NODE_MAJOR is too old; 18 or newer is required."
 ok "node $(node --version), git present"
 
-if command -v claude >/dev/null 2>&1; then
-  ok "claude $(claude --version 2>/dev/null | head -1)"
-else
-  warn "claude not found - everything works except /ask. Install with: npm i -g @anthropic-ai/claude-code"
-fi
+# Under WSL the Windows PATH is on the Linux PATH, so a Claude Code installed on the
+# Windows side answers 'command -v' and even prints a version - but cannot run here.
+# The resolved path is the only thing that tells the two apart.
+CLAUDE_BIN="$(command -v claude 2>/dev/null || true)"
+
+case "$CLAUDE_BIN" in
+  '')
+    warn "claude not found - everything works except /ask. Install with: npm i -g @anthropic-ai/claude-code"
+    ;;
+  /mnt/*)
+    warn "claude resolves to the Windows install ($CLAUDE_BIN) and will not run here."
+    warn "/ask needs it inside Ubuntu. Install with: npm i -g @anthropic-ai/claude-code"
+    ;;
+  *)
+    ok "claude $(claude --version 2>/dev/null | head -1)"
+    ;;
+esac
 
 # Running from /mnt/c under WSL makes git painfully slow and breaks permissions
 # in ways that surface much later as confusing errors.

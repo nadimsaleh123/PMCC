@@ -182,6 +182,10 @@ nvm install --lts
 
 ### W4. Install Claude Code
 
+If `nvm install --lts` listed `@anthropic-ai/claude-code` under a path starting
+`C:\Users\…`, that is the **Windows** copy. WSL puts the Windows PATH on the Linux
+PATH, so it is visible from Ubuntu but cannot run there. Do this step anyway.
+
 **In Ubuntu:**
 
 ```bash
@@ -191,7 +195,16 @@ claude
 
 The first `claude` run opens a browser to sign in. Sign in, then quit it with `/exit`.
 
-**Check:** `claude --version` prints a version.
+**Check:** `which claude` — the path is the only reliable tell, because
+`claude --version` prints a version for the Windows copy too.
+
+```bash
+which claude
+```
+
+- A path under `/home/…/.nvm/…` → correct, this is the Ubuntu install.
+- A path under `/mnt/c/…` → still the Windows install. Run the `npm install -g` line
+  above in Ubuntu and check again.
 
 ### W5. Where to keep files — this one matters
 
@@ -678,6 +691,7 @@ create a conflict you have to resolve by hand.
 | Bot does not reply at all (laptop) | `pm bot` is not running. It only listens while that window is open. |
 | `'&&' is not a valid statement separator` | You are in PowerShell, not Ubuntu. Type `wsl` first — see W2. |
 | `sudo` / `nvm` / `exec` `is not recognized` | Same cause. Check the prompt: `PS C:\…>` is PowerShell, `you@…:~$` is Ubuntu. |
+| `claude` errors about a `C:\` path, or `/ask` fails with a node error | `which claude` points at `/mnt/c/…` — that is the Windows install, not the Ubuntu one. Reinstall inside Ubuntu — see W4. |
 | Everything is slow, git especially (WSL) | Files are under `/mnt/c/`. Move the workspace to the Linux home folder — see W5. |
 | Cron jobs never fire (WSL) | `service cron status`. WSL does not start it by default — see W6. |
 | `/ask` works in terminal, fails under launchd | `HOME` or `UserName` missing from the plist. |
