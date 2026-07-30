@@ -18,7 +18,7 @@ import {
   RESPONSIBILITY_BUTTONS,
 } from './chase.js';
 import { askLedger } from './ask.js';
-import { captureEntry, CAPTURE_KINDS } from './capture.js';
+import { captureEntry, amendEntry, CAPTURE_KINDS } from './capture.js';
 import { ingestVoiceNote } from './diary.js';
 import { entriesOf } from '../ledger/registers.js';
 import { openItems, writeChaseDraft } from '../correspondence/chase-draft.js';
@@ -110,9 +110,10 @@ export const COMMAND_MENU = [
   { command: 'diff', description: 'What changed between the last two programmes' },
   { command: 'health', description: 'DCMA 14-point check on the programme' },
   { command: 'lookahead', description: 'What is coming up, ready or blocked' },
-  { command: 'risk', description: 'Log a risk — /risk subject | owner: X | impact: Y' },
-  { command: 'decision', description: 'Log a decision needed — /decision subject | owner: X | due: date' },
-  { command: 'action', description: 'Log an action — /action subject | owner: X | due: date' },
+  { command: 'risk', description: 'Log a risk — just write it plainly' },
+  { command: 'decision', description: 'Log a decision needed — owner and date read from the sentence' },
+  { command: 'action', description: 'Log an action — e.g. order tiles owner Jihad due 1 aug' },
+  { command: 'set', description: 'Fill in a field — /set ACT-003 due friday' },
   { command: 'nudge', description: 'Draft a chase letter — /nudge DEC-001' },
   { command: 'ask', description: 'Ask anything about the project record' },
   { command: 'brief', description: 'Show the project brief the agent is working to' },
@@ -151,6 +152,34 @@ const MENU_ROWS = [
   ],
 ];
 
+/**
+ * The parties that own things on a construction project, and the deadlines
+ * anyone actually sets. Offered as taps because the alternative is remembering
+ * a syntax on a phone, in the dark, at the end of a site day.
+ *
+ * Suggestions only - every one of them is a value the author chose. Nothing here
+ * fills a field in on its own.
+ */
+const OWNER_CHOICES = ['Client', 'Consultant', 'PMCC', 'Subcontractor'];
+const DUE_CHOICES = [
+  { label: 'Today', value: 'today' },
+  { label: 'Friday', value: 'friday' },
+  { label: 'Next week', value: 'next week' },
+  { label: 'End of month', value: 'end of month' },
+];
+
+/** Button rows for whatever a just-logged entry is still missing. */
+function fillRows(ref, missing = []) {
+  const rows = [];
+  if (missing.includes('owner')) {
+    rows.push(OWNER_CHOICES.map((who) => ({ label: `👤 ${who}`, send: `/set ${ref} owner ${who}` })));
+  }
+  if (missing.includes('due')) {
+    rows.push(DUE_CHOICES.map((d) => ({ label: `📅 ${d.label}`, send: `/set ${ref} due ${d.value}` })));
+  }
+  return rows;
+}
+
 const HELP = `*Construction PM agent*
 
 Tap *Menu* beside the message box for the full list, or \`/menu\` for buttons.
@@ -163,9 +192,11 @@ Tap *Menu* beside the message box for the full list, or \`/menu\` for buttons.
 
 *Record*
 \`/chase\` — the daily update (I ask, you answer)
-\`/risk <subject> | owner: X | impact: Y\`
-\`/decision <subject> | owner: X | due: 2026-08-20\`
-\`/action <subject> | owner: X | due: 2026-08-12\`
+\`/risk\`, \`/decision\`, \`/action\` — just write it plainly:
+\`/action order concrete batch owner Jihad due 1 aug\`
+I read the owner and the date out of the sentence, show you what I
+understood, and offer buttons for anything still missing.
+\`/set ACT-003 due friday\` fills one in afterwards.
 Send a photo or a document and I file it as evidence.
 
 *Produce*
@@ -263,17 +294,59 @@ async function handleCommand(tg, chatId, text, state, author) {
       if (result.entry.owner) lines.push(`Owner: ${result.entry.owner}`);
       if (result.entry.dueDate) lines.push(`Due: ${formatHuman(result.entry.dueDate)}`);
       if (result.entry.impact) lines.push(`Impact: ${result.entry.impact}`);
+      if (result.entry.mitigation) lines.push(`Mitigation: ${result.entry.mitigation}`);
 
-      // Named, never filled in. An invented owner or deadline would flow straight
-      // into an alert and a chase letter.
-      if (result.missing.length > 0) {
-        lines.push('', `_Not recorded: ${result.missing.join(', ')}. Add with \`| owner: …\` next time._`);
+      if (result.dueUnreadable) {
+        lines.push('', `_I could not read "${result.dueUnreadable}" as a date, so no deadline is set._`);
       }
       if (result.unparsed.length > 0) {
         lines.push('', `_Kept as written but not understood as a field: ${result.unparsed.join('; ')}_`);
       }
 
-      await tg.send(chatId, lines.join('\n'));
+      // Named, never filled in - but asked for, because a missing owner is a
+      // missing chase and one tap is cheaper than remembering the syntax.
+      if (result.missing.length > 0) {
+        lines.push('', `_No ${result.missing.join(' or ')} recorded._`);
+      }
+
+      await tg.send(chatId, lines.join('\n'), keyboard(fillRows(result.ref, result.missing)));
+      return true;
+    }
+
+    /**
+     * Fill in a field on something already logged - what the follow-up buttons
+     * send, and how you fix a typo from the phone.
+     */
+    case '/set': {
+      if (!project) return true;
+      const [ref, field, ...rest] = args;
+      const value = rest.join(' ').trim();
+
+      if (!ref || !field || !value) {
+        await tg.send(chatId, 'Use `/set ACT-003 owner Jihad` or `/set ACT-003 due friday`.');
+        return true;
+      }
+
+      const result = await amendEntry(project, ref, field, value, { author });
+      if (!result) {
+        await tg.send(chatId, `I do not have \`${ref}\`, or \`${field}\` is not a field I set.`);
+        return true;
+      }
+      if (result.unreadable) {
+        await tg.send(chatId, `I could not read "${result.unreadable}" as a date. Try \`1 aug\`, \`friday\` or \`2026-08-01\`.`);
+        return true;
+      }
+
+      const shown = result.field === 'due' ? formatHuman(result.value) : result.value;
+      const stillMissing = ['owner', 'due'].filter(
+        (f) => (f === 'due' ? !result.entry.dueDate : !result.entry[f]),
+      );
+
+      await tg.send(
+        chatId,
+        `\`${result.ref}\` — ${result.field} set to *${shown}*.`,
+        keyboard(fillRows(result.ref, stillMissing)),
+      );
       return true;
     }
 
