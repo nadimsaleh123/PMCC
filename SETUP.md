@@ -62,44 +62,23 @@ You will also need a GitHub account, for the code and for the Ledger's off-site 
 
 ## Part 1 · GitHub
 
-### Step 0. Merge the work into `main`
+### Step 0. Merge the work into `main` — ✅ DONE
 
-**Do this first.** All of the agent code lives on a branch called
-`claude/construction-automation-usecases-pucblv`. Your `main` branch still contains
-only the original marketing website. Clone the repo before doing this and you get a
-website with no bot.
+All the agent code lives on a branch; `main` originally held only the marketing
+website. That merge has been done for you — `main` now contains `pm-agent/` and this
+file.
 
-1. Go to `https://github.com/nadimsaleh123/Construction-React/branches`
-2. Find `claude/construction-automation-usecases-pucblv` and click **New pull request**
-3. Confirm it reads **base: `main` ← compare: `claude/construction-automation-…`**
-4. **Create pull request**, then **Merge pull request**, then **Confirm merge**
+**Check:** <https://github.com/nadimsaleh123/PMCC> shows a `pm-agent` folder.
 
-**Check:** go to the repository home page. You should now see a `pm-agent` folder and
-a `SETUP.md` file in the file list. If you only see `src`, `index.html` and
-`package.json`, the merge did not happen.
+> Each time new work is pushed to the branch, merge it again the same way: open the
+> branch, **New pull request** → **Merge**. Or from a clone:
+> `git checkout main && git merge origin/claude/construction-automation-usecases-pucblv && git push`
 
-> Prefer the command line? From a clone of the repo:
-> ```bash
-> git checkout main
-> git merge origin/claude/construction-automation-usecases-pucblv
-> git push origin main
-> ```
+### Step 1. Rename the repository — ✅ DONE
 
-### Step 1. Rename this repository
-
-It is called `Construction-React` after the template it started from. It now holds the
-marketing site *and* the PM agent, so give it your name.
-
-1. Go to `https://github.com/nadimsaleh123/Construction-React/settings`
-2. Under **Repository name**, change it to `pmcc`
-3. **Rename**
-
-GitHub redirects the old URL automatically, so nothing you have already cloned breaks.
-The commit history is kept — worth keeping, since the commits record why things are
-built the way they are.
-
-> Renaming rather than starting fresh is deliberate. A new empty repo would lose that
-> history for no gain.
+It was `Construction-React`, after the template it started from. It is now
+**`PMCC`**. GitHub redirects the old URL, so nothing already cloned breaks, and the
+commit history is intact.
 
 ### Step 2. Create the private Ledger repository
 
@@ -232,47 +211,64 @@ runs fine.
 ### Step 4. Create the workspace and install
 
 ```bash
-mkdir -p ~/PMCC/inbox
-cd ~/PMCC
-
-git clone https://github.com/nadimsaleh123/pmcc.git website
-cd website/pm-agent
-npm install
-npm test
+mkdir -p ~/PMCC && cd ~/PMCC
+git clone https://github.com/nadimsaleh123/PMCC.git website
+bash website/scripts/bootstrap.sh
 ```
 
-**Check:** the last line of `npm test` reads `# fail 0`. If anything fails, stop —
-do not build on a broken install.
+That one script does the rest of Step 4 **and all of Step 5**: creates the inbox,
+installs, runs the tests, initialises the Ledger repository, adds `LEDGER_ROOT`,
+`PM_INBOX` and a `pm` alias to the right shell file, then runs `pm doctor` and prints
+exactly what is left. It is safe to run again at any time.
 
-Now make the commands convenient and the environment permanent:
+Then:
 
 ```bash
-cat >> ~/.zshrc <<'EOF'
+source ~/.bashrc      # or ~/.zshrc on macOS — the script tells you which
+```
+
+**Check:** the script ends with a green tests-passing line, and `pm` on its own prints
+the command list.
+
+<details>
+<summary>Doing it by hand instead</summary>
+
+```bash
+mkdir -p ~/PMCC/inbox
+cd ~/PMCC/website/pm-agent
+npm install
+npm test
+
+# Use the rc file for the shell you actually run. WSL Ubuntu is bash;
+# macOS is zsh. Writing to the wrong one fails silently.
+RC=~/.bashrc; [ "${SHELL##*/}" = zsh ] && RC=~/.zshrc
+
+cat >> "$RC" <<'EOF'
 export LEDGER_ROOT=~/PMCC/ledger/projects
 export PM_INBOX=~/PMCC/inbox
 alias pm='node ~/PMCC/website/pm-agent/bin/pm.js'
 EOF
 
-source ~/.zshrc
+source "$RC"
 ```
-
-**Check:** `pm` on its own prints the command list.
+</details>
 
 > Everything below uses `pm`. If you skipped the alias, write
 > `node ~/PMCC/website/pm-agent/bin/pm.js` instead.
 
-### Step 5. Create the Ledger repository locally
+### Step 5. The Ledger repository — done by the script
+
+`bootstrap.sh` already ran `git init` in `~/PMCC/ledger`. If you have no global git
+identity it will have said so; set one inside that folder:
 
 ```bash
-mkdir -p ~/PMCC/ledger/projects
 cd ~/PMCC/ledger
-git init -b main
-git config user.name  "Your Name"
+git config user.name "Your Name"
 git config user.email "you@example.com"
 ```
 
-**Check:** `pm doctor` runs and the Ledger line is no longer a failure. Several
-warnings are expected at this point — you have not set up Telegram yet.
+**Check:** `pm doctor` shows the Ledger line as `ok`. Warnings about Telegram and
+projects are expected — those come next.
 
 ---
 
@@ -527,16 +523,12 @@ If it reports a problem, each line carries its own fix.
 ```bash
 mkdir -p ~/PMCC
 cd ~/PMCC
-git clone https://github.com/nadimsaleh123/pmcc.git website
+git clone https://github.com/nadimsaleh123/PMCC.git website
 git clone https://github.com/nadimsaleh123/pmcc-ledger.git ledger
 cd website/pm-agent && npm install
 
-cat >> ~/.zshrc <<'EOF'
-export LEDGER_ROOT=~/PMCC/ledger/projects
-alias pm='node ~/PMCC/website/pm-agent/bin/pm.js'
-EOF
-source ~/.zshrc
-
+bash website/scripts/bootstrap.sh
+source ~/.bashrc          # or ~/.zshrc — the script tells you which
 pm sync
 ```
 
@@ -617,7 +609,7 @@ Deliberately cheap, because the Ledger is a git repository:
 
 ```bash
 # on the Mac mini, when you next have access
-git clone https://github.com/nadimsaleh123/pmcc.git ~/PMCC/website
+git clone https://github.com/nadimsaleh123/PMCC.git ~/PMCC/website
 git clone https://github.com/nadimsaleh123/pmcc-ledger.git ~/PMCC/ledger
 cd ~/PMCC/website/pm-agent && npm install
 ```
