@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Lines, Fade } from "./reveal";
 import Monogram from "./Monogram";
+import Magnetic from "./Magnetic";
 import { company } from "../data/content";
 
 export default function Footer() {
@@ -16,15 +17,17 @@ export default function Footer() {
         </Lines>
 
         <Fade className="mt-12 flex flex-wrap items-center gap-4">
-          <a
-            href={`https://wa.me/${company.whatsapp}`}
-            target="_blank"
-            rel="noreferrer"
-            className="group inline-flex items-center gap-3 bg-pmcc px-7 py-4 font-sans text-sm font-semibold text-bone transition-transform duration-300 ease-out-expo hover:scale-[1.03]"
-          >
-            WhatsApp {company.mobile}
-            <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-          </a>
+          <Magnetic>
+            <a
+              href={`https://wa.me/${company.whatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="group inline-flex items-center gap-3 bg-pmcc px-7 py-4 font-sans text-sm font-semibold text-bone"
+            >
+              WhatsApp {company.mobile}
+              <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+            </a>
+          </Magnetic>
           <a
             href={`tel:${company.phone.replace(/\s/g, "")}`}
             className="inline-flex items-center gap-3 border border-seam px-7 py-4 font-sans text-sm text-bone transition-colors hover:border-stone"

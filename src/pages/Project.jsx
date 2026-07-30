@@ -1,8 +1,10 @@
 import { useLayoutEffect, useRef } from "react";
 import { gsap, reducedMotion } from "../lib/motion";
 import { Lines, Fade } from "../components/reveal";
+import Magnetic from "../components/Magnetic";
 import WarpImage from "../components/WarpImage";
 import FloorStack from "../components/project/FloorStack";
+import BeforeAfter from "../components/project/BeforeAfter";
 import Gallery from "../components/project/Gallery";
 import { project, company } from "../data/content";
 
@@ -172,16 +174,18 @@ function Availability() {
           <p className="font-sans text-sm leading-relaxed text-ink/70">{project.onRequest}</p>
         </Fade>
         <Fade className="mt-10 flex justify-center">
-          <a
-            href={`https://wa.me/${company.whatsapp}?text=${encodeURIComponent(
-              "Hello PMCC — I'm interested in Daher el Souane 563.",
-            )}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-3 bg-pmcc px-8 py-4 font-sans text-sm font-semibold text-bone transition-transform duration-300 ease-out-expo hover:scale-[1.03]"
-          >
-            Enquire on WhatsApp →
-          </a>
+          <Magnetic>
+            <a
+              href={`https://wa.me/${company.whatsapp}?text=${encodeURIComponent(
+                "Hello PMCC — I'm interested in Daher el Souane 563.",
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-3 bg-pmcc px-8 py-4 font-sans text-sm font-semibold text-bone"
+            >
+              Enquire on WhatsApp →
+            </a>
+          </Magnetic>
         </Fade>
       </div>
     </section>
@@ -194,6 +198,7 @@ export default function Project() {
       <ProjectHero />
       <FactsStrip />
       <Narrative />
+      <BeforeAfter />
       <FloorStack />
       <Gallery />
       <AerialModel />

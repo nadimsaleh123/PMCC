@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import SmoothScroll, { useLenis } from "./lib/SmoothScroll";
 import { ScrollTrigger } from "./lib/motion";
 import Preloader from "./components/Preloader";
+import Cursor from "./components/Cursor";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -35,6 +36,7 @@ export default function App() {
         Skip to content
       </a>
       <div className="grain" />
+      <Cursor />
       <Preloader onDone={() => setLoaded(true)} />
       <ScrollReset />
       <Nav />

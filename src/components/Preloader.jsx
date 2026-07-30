@@ -64,10 +64,8 @@ export default function Preloader({ onDone }) {
       aria-hidden="true"
     >
       <div className="flex flex-col items-center gap-6">
-        <div data-block className="flex h-14 w-32 items-center justify-center bg-pmcc">
-          <span data-word className="font-sans text-xl font-extrabold tracking-[0.06em] text-bone">
-            PMCC
-          </span>
+        <div data-block className="overflow-clip">
+          <img data-word src="/im/logo.png" alt="" width={418} height={413} className="h-16 w-auto" />
         </div>
         <div className="font-sans text-xs tabular-nums text-smoke">
           <span data-count>0</span>%

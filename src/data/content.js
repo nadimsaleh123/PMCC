@@ -13,8 +13,8 @@ export const company = {
   since: 2002,
   address: "Al-Bustan Building, Amaret Chalhoub, Nahr El Mot Highway, Metn, Lebanon",
   phone: "+961 1 886 608",
-  mobile: "+961 3 614 222",
-  whatsapp: "9613614222",
+  mobile: "+961 3 616 222",
+  whatsapp: "9613616222",
   email: "info@pmcclb.com",
 };
 
@@ -27,9 +27,9 @@ export const heroClaim = {
 
 export const stats = [
   { value: "2002", label: "Founded — first project: Microsoft's regional offices, Beirut" },
-  { value: "40", label: "Projects delivered across Lebanon, from villas to office towers" },
+  { value: "100+", label: "Projects delivered across Lebanon, from villas to office towers" },
   { value: "13", label: "Engineers, foremen and technicians in-house" },
-  { value: "4", label: "Developments under construction today, including our own" },
+  { value: "4", label: "Projects under construction today across Lebanon" },
 ];
 
 export const services = [
@@ -83,6 +83,7 @@ export const works = [
 export const clients = [
   "Microsoft",
   "MEDCO",
+  "McDonald's",
   "Arab Investment Bank",
   "Mercy Corps",
   "Rise Properties",
@@ -95,7 +96,7 @@ export const timeline = [
   { year: "2005", text: "Restoration becomes a discipline of its own: the WWII Museum at Khiam, then heritage houses that were built to outlive their owners." },
   { year: "2012–16", text: "Beirut office work compounds — Microsoft again at Berytus, Arab Investment Bank, commercial centers — repeat clients, larger plates." },
   { year: "2017–25", text: "Towers and buildings: Tiresmart, Zalka 208, Marina Gate. Management of programmes measured in years, not seasons." },
-  { year: "Today", text: "PMCC builds for itself: Daher el Souane 563, Naccache 401–413 and the Bcharreh heritage houses — developer and builder in the same hands." },
+  { year: "Today", text: "PMCC builds for itself for the first time: Daher el Souane 563, our own development — alongside contracting at Naccache, Bcharreh and Marina Gate." },
 ];
 
 /** ——— Daher el Souane 563 ——— */

@@ -1,17 +1,21 @@
 /**
  * The record as a typographic index — honest, complete, no stock photography.
- * The one row with something to sell is the one row printed in red.
+ * Each row carries its ledger number; the one row with something to sell is
+ * printed in red and opens the flagship page.
  */
 import { Link } from "react-router-dom";
 import { Fade } from "../reveal";
 import { works } from "../../data/content";
 
-function Row({ w }) {
+function Row({ w, index }) {
   const inner = (
-    <div className="grid grid-cols-[4.5rem_1fr] items-baseline gap-x-4 gap-y-1 py-5 sm:grid-cols-[6rem_1.4fr_1fr_1fr] sm:gap-x-8">
-      <p className="font-sans text-xs tabular-nums text-smoke">{w.year}</p>
+    <div className="grid grid-cols-[2.6rem_1fr] items-baseline gap-x-3 px-3 py-6 transition-colors duration-300 group-hover:bg-coal sm:grid-cols-[3.5rem_5rem_1.5fr_1fr_1fr_2rem] sm:gap-x-6 sm:px-4">
+      <p className="font-sans text-xs tabular-nums text-smoke/60 transition-colors duration-300 group-hover:text-pmcc">
+        {String(index + 1).padStart(2, "0")}
+      </p>
+      <p className="hidden font-sans text-xs tabular-nums text-stone sm:block">{w.year}</p>
       <h3
-        className={`type-display text-xl transition-transform duration-500 ease-out-expo group-hover:translate-x-2 sm:text-2xl ${
+        className={`type-display text-2xl transition-transform duration-500 ease-out-expo group-hover:translate-x-2 sm:text-3xl ${
           w.href ? "text-pmcc" : "text-bone"
         }`}
       >
@@ -22,14 +26,29 @@ function Row({ w }) {
           </span>
         ) : null}
       </h3>
-      <p className="col-start-2 font-sans text-xs text-smoke sm:col-start-3">{w.place}</p>
-      <p className="col-start-2 font-sans text-xs text-smoke sm:col-start-4">{w.scope}</p>
+      <p className="col-start-2 font-sans text-xs text-smoke sm:col-start-4">
+        <span className="sm:hidden">{w.year} · </span>
+        {w.place}
+      </p>
+      <p className="col-start-2 font-sans text-xs text-smoke sm:col-start-5">{w.scope}</p>
+      <p
+        aria-hidden="true"
+        className="hidden justify-self-end font-sans text-lg text-smoke/0 transition-all duration-300 group-hover:translate-x-1 group-hover:text-bone sm:block"
+      >
+        →
+      </p>
     </div>
   );
 
   return (
     <Fade className="group border-t border-seam last:border-b">
-      {w.href ? <Link to={w.href}>{inner}</Link> : inner}
+      {w.href ? (
+        <Link to={w.href} data-cursor="view">
+          {inner}
+        </Link>
+      ) : (
+        inner
+      )}
     </Fade>
   );
 }
@@ -42,9 +61,12 @@ export default function WorksIndex() {
           <p className="type-eyebrow text-smoke">The record</p>
           <p className="font-sans text-xs text-smoke">{works.length} entries · 2002 → today</p>
         </div>
-        <div className="mt-10">
-          {works.map((w) => (
-            <Row key={`${w.name}-${w.year}`} w={w} />
+        <h2 className="type-display mt-6 text-[clamp(2rem,4.6vw,3.8rem)] text-bone">
+          Every project since 2002, <em className="type-display-it text-stone">on the record.</em>
+        </h2>
+        <div className="mt-12">
+          {works.map((w, i) => (
+            <Row key={`${w.name}-${w.year}`} w={w} index={i} />
           ))}
         </div>
       </div>

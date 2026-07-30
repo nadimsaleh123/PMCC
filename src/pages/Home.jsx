@@ -28,8 +28,8 @@ function Hero() {
   }, []);
 
   return (
-    <section ref={root} className="relative flex min-h-[100svh] flex-col justify-between pt-24">
-      <div className="px-5 sm:px-8">
+    <section ref={root} className="relative flex h-[100svh] flex-col pt-20">
+      <div className="flex min-h-0 flex-1 flex-col justify-center px-5 sm:px-8">
         <Fade delay={0.35}>
           <p className="type-eyebrow text-smoke">{heroClaim.eyebrow}</p>
         </Fade>
@@ -37,13 +37,13 @@ function Hero() {
           as="h1"
           trigger={false}
           delay={0.35}
-          className="type-display mt-8 max-w-6xl text-[clamp(3.2rem,11.5vw,10.5rem)] text-bone"
+          className="type-display mt-6 max-w-6xl text-[clamp(2.9rem,9.5vw,8.6rem)] text-bone"
         >
           {heroClaim.lines[0]}
           <br />
           <em className="type-display-it text-stone">{heroClaim.lines[1]}</em>
         </Lines>
-        <div className="mt-10 flex items-end justify-between gap-8 pb-10">
+        <div className="mt-8 flex items-end justify-between gap-8 pb-6">
           <p data-hero-sub className="max-w-md font-sans text-sm leading-relaxed text-smoke">
             {heroClaim.sub}
           </p>
@@ -52,7 +52,7 @@ function Hero() {
           </p>
         </div>
       </div>
-      <div data-hero-strip className="h-[40svh]">
+      <div data-hero-strip className="h-[32svh] shrink-0">
         <WarpImage
           src="/im/elevation-front-2560.webp"
           srcSet="/im/elevation-front-1280.webp 1280w, /im/elevation-front-2560.webp 2560w"
@@ -124,10 +124,11 @@ function Manifesto() {
         </Lines>
         <Fade className="mt-12 max-w-xl">
           <p className="font-sans text-sm leading-relaxed text-ink/70">
-            More than two decades of managing construction for Microsoft, MEDCO and
-            two generations of private clients taught us exactly where projects
-            go wrong. Now we put that discipline into buildings we develop
-            ourselves — and sign with our own name.
+            More than two decades of managing and contracting for Microsoft,
+            MEDCO and two generations of private clients taught us exactly
+            where projects go wrong. Now we have put that discipline into the
+            first building we develop ourselves — Daher el Souane 563 — and
+            signed it with our own name.
           </p>
         </Fade>
       </div>
@@ -164,15 +165,17 @@ function Services() {
 function Clients() {
   const row = [...clients, ...clients, ...clients];
   return (
-    <section className="overflow-clip border-y border-seam bg-ink py-10" aria-label="Selected clients">
-      <div className="marquee flex w-max items-center gap-16 pr-16">
+    <section className="overflow-clip bg-ink pb-6 pt-16" aria-label="Selected clients">
+      <p className="type-eyebrow px-5 text-smoke sm:px-8">They trusted us with their name</p>
+      <div className="marquee mt-8 flex w-max items-center pr-0">
         {row.map((c, i) => (
           <span
             key={`${c}-${i}`}
-            className="type-display whitespace-nowrap text-2xl text-smoke sm:text-3xl"
+            className="type-display flex items-center whitespace-nowrap text-[clamp(2.4rem,6vw,5rem)] text-stone"
             aria-hidden={i >= clients.length}
           >
             {c}
+            <span aria-hidden className="mx-10 inline-block h-2 w-2 rounded-full bg-pmcc" />
           </span>
         ))}
       </div>
@@ -223,11 +226,11 @@ export default function Home() {
     <>
       <Hero />
       <Stats />
+      <Clients />
       <Manifesto />
       <Services />
       <Timeline />
       <WorksIndex />
-      <Clients />
       <FlagshipPromo />
     </>
   );
