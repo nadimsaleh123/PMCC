@@ -39,7 +39,7 @@ Three other terms used throughout:
 
 | Term | What it means |
 |---|---|
-| **The workspace** | `~/PMCC/` on the Mac mini — the Ledger, the code, and an inbox folder, all in one place |
+| **The workspace** | `~/PMCC/` on whichever machine you run this on — the Ledger, the code, and an inbox folder, all in one place |
 | **Two repositories** | The code and the Ledger are backed up separately. The code could be public one day; the Ledger holds contract sums, rates and claims strategy, so it never can be. |
 | **The bot** | The Telegram chat. It reads and writes the Ledger — it is the way in, not the thing itself. Everything it does can also be done from the command line. |
 
@@ -51,7 +51,7 @@ Three things to have ready:
 
 | | |
 |---|---|
-| A Mac mini you can leave on | It runs the bot |
+| A machine to run it on | A laptop is fine to start with. An always-on machine is only needed for the morning chase and alerts to fire by themselves — see *Running without an always-on machine*. |
 | A P6 export of one real project | `.xer`, both a baseline and the current update if you have them |
 | Your contract | The form (FIDIC Red/Yellow, bespoke), the completion date, and the notice periods |
 
@@ -119,9 +119,100 @@ Copy the URL it shows you. You need it in Step 11.
 
 ---
 
-## Part 2 · The Mac mini
+## On Windows: set up WSL first
+
+Skip this if you are on a Mac or Linux.
+
+Everything runs inside **WSL** — a real Ubuntu inside Windows. Not because the code
+needs it (it is plain Node and runs natively on Windows), but because every command,
+path and cron line below then matches exactly what the Mac mini will run later. You
+learn one set of commands, not two.
+
+### W1. Install WSL
+
+Open **PowerShell as Administrator** (right-click Start → Terminal (Admin)):
+
+```powershell
+wsl --install
+```
+
+Reboot when it asks. On the next boot an Ubuntu window opens and asks you to invent a
+username and password — this is a Linux account, nothing to do with Windows. Write the
+password down; you need it for `sudo`.
+
+**Check:** `wsl -l -v` in PowerShell shows `Ubuntu` and `VERSION 2`.
+
+From here on, **every command in this guide goes in the Ubuntu window**, not PowerShell.
+
+### W2. Install Node and git
+
+Ubuntu's packaged Node is usually too old, so use nvm:
+
+```bash
+sudo apt update && sudo apt install -y git curl
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+exec $SHELL
+nvm install --lts
+```
+
+**Check:** `node --version` prints v20 or higher, and `git --version` prints something.
+
+### W3. Install Claude Code
+
+```bash
+npm install -g @anthropic-ai/claude-code
+claude
+```
+
+The first `claude` run opens a browser to sign in. Sign in, then quit it with `/exit`.
+
+**Check:** `claude --version` prints a version.
+
+### W4. Where to keep files — this one matters
+
+Put everything in the **Linux** home folder (`~/PMCC`), **not** under `/mnt/c/`.
+
+Git on `/mnt/c/` is extremely slow and has permission problems that produce confusing
+failures later. Your Windows files are still reachable when you need them —
+`/mnt/c/Users/YourName/Downloads/` — which is how you will get your `.xer` export
+across in Step 7.
+
+To open the Linux folder in Windows Explorer at any time:
+
+```bash
+explorer.exe .
+```
+
+### W5. One thing Windows does differently: cron
+
+WSL does not start `cron` automatically, so scheduled jobs will silently never run.
+Fix it once:
+
+```bash
+sudo tee /etc/wsl.conf > /dev/null <<'EOF'
+[boot]
+command="service cron start"
+EOF
+```
+
+Then in PowerShell, `wsl --shutdown`, and reopen Ubuntu.
+
+**Check:** `service cron status` says it is running.
+
+> On laptop-only mode this matters less — see *Running without an always-on machine*
+> near the end. Set it up anyway; it costs nothing and it is one less thing to
+> remember later.
+
+---
+
+## Part 2 · The machine
+
+> Written for the Mac mini, but every step works identically inside WSL on your
+> laptop. Steps 3 and 12 are the only two that differ, and both say so.
 
 ### Step 3. Prerequisites
+
+**On Windows you did this in W2–W3 — skip to Step 4.**
 
 ```bash
 # Node 18 or newer
@@ -191,7 +282,9 @@ warnings are expected at this point — you have not set up Telegram yet.
 
 ```bash
 pm init MARINA-01 --name "Marina Tower"
-open ~/PMCC/ledger/projects/MARINA-01/CLAUDE.md
+nano ~/PMCC/ledger/projects/MARINA-01/CLAUDE.md
+# macOS: open ~/PMCC/ledger/projects/MARINA-01/CLAUDE.md
+# Windows: explorer.exe ~/PMCC/ledger/projects/MARINA-01   then edit in Notepad
 ```
 
 **This file is the step people skip, and it is the one that matters most.** Fill in:
@@ -229,6 +322,12 @@ pm ingest MARINA-01 ~/Downloads/baseline.xer --baseline
 pm ingest MARINA-01 ~/Downloads/current-update.xer
 ```
 
+> **On Windows**, your export is on the Windows side, not in the Linux home
+> folder. Use the `/mnt/c/` path — tab-completion works:
+> ```bash
+> pm ingest MARINA-01 /mnt/c/Users/YourName/Downloads/baseline.xer --baseline
+> ```
+
 **Now open P6 side by side and confirm all four of these match:**
 
 | The output says | Check in P6 |
@@ -252,7 +351,8 @@ pm diff MARINA-01       # only works once two updates are ingested
 
 ```bash
 cp ~/PMCC/website/pm-agent/report-assets/brand.example.yaml ~/PMCC/ledger/brand.yaml
-open ~/PMCC/ledger/brand.yaml
+nano ~/PMCC/ledger/brand.yaml
+# or: explorer.exe ~/PMCC/ledger   (Windows)  ·  open ~/PMCC/ledger   (macOS)
 ```
 
 Fill in the real contact block — address, phone, email, website — and the issuer name
@@ -266,7 +366,8 @@ point `company.logo` at it — no code change needed.
 
 ```bash
 pm report MARINA-01 --pdf
-open ~/PMCC/ledger/projects/MARINA-01/06-outputs/reports/
+explorer.exe ~/PMCC/ledger/projects/MARINA-01/06-outputs/reports   # Windows
+# macOS: open ~/PMCC/ledger/projects/MARINA-01/06-outputs/reports/
 ```
 
 **Check:** the PDF opens, page 1 fits on one sheet, your letterhead and contact details
@@ -286,7 +387,7 @@ goes to a client"* is worth fixing now.
 ```bash
 cd ~/PMCC/website/pm-agent
 cp .env.example .env
-open .env          # paste the token into TELEGRAM_BOT_TOKEN
+nano .env          # paste the token into TELEGRAM_BOT_TOKEN
 ```
 
 `.env` is read automatically — you do not need to source it. A real environment
@@ -367,6 +468,10 @@ all.
 
 ### Step 12. Run it around the clock
 
+**On a laptop, skip this and read *Running without an always-on machine* below
+instead.** launchd is macOS-only, and a laptop that sleeps cannot hold a schedule.
+
+
 Create `~/Library/LaunchAgents/com.pmcc.bot.plist` using the template in
 `pm-agent/README.md` (under *Running it unattended on a Mac mini*), then:
 
@@ -417,7 +522,7 @@ If it reports a problem, each line carries its own fix.
 
 ## Part 6 · Working from elsewhere
 
-### Step 14. The laptop
+### Step 14. A second machine
 
 ```bash
 mkdir -p ~/PMCC
@@ -464,11 +569,77 @@ and `05-commercial/` in a folder you might one day share.
 
 ---
 
+## Running without an always-on machine
+
+Running on a laptop that sleeps and travels? Almost everything still works. Only one
+capability actually needs a machine that is always on.
+
+### What changes
+
+| | |
+|---|---|
+| **Still works exactly the same** | Loading and verifying P6, the weekly client PDF, `diff`, `health`, `lookahead`, `alerts`, `ask`, `nudge`, `open`, filing documents, and the bot itself whenever it is running |
+| **Only while `pm bot` is running** | The bot replying to you in Telegram |
+| **Does not happen by itself** | The 7am chase and the alert run. You start them. |
+
+**Messages are not lost while the bot is off.** Telegram holds undelivered updates for
+about 24 hours, so a photo or an answer you send overnight arrives as soon as you start
+the bot next morning. Beyond a day it is dropped, so do not leave it off for a week and
+expect a backlog.
+
+### A workable daily routine
+
+Open Ubuntu (or Terminal) in the morning and run:
+
+```bash
+pm alerts MARINA-01     # anything that needs attention
+pm bot                  # leave this window open while you work
+```
+
+Then use Telegram normally — `/chase`, photos, documents, `/ask`, `/report`. Close the
+window at the end of the day.
+
+To have the chase come to you rather than typing `/chase`:
+
+```bash
+pm chase MARINA-01 --send
+```
+
+Or answer it right in the terminal, no Telegram at all:
+
+```bash
+pm chase MARINA-01
+```
+
+### Moving to the always-on machine later
+
+Deliberately cheap, because the Ledger is a git repository:
+
+```bash
+# on the Mac mini, when you next have access
+git clone https://github.com/nadimsaleh123/pmcc.git ~/PMCC/website
+git clone https://github.com/nadimsaleh123/pmcc-ledger.git ~/PMCC/ledger
+cd ~/PMCC/website/pm-agent && npm install
+```
+
+Then Steps 9, 12 and 13 — the bot token, launchd, cron, `pm doctor --deep`. Half an
+hour. Everything you recorded in the meantime is already there, because you were
+running `pm sync` all along.
+
+**One rule while both machines exist:** run `pm sync` before you start work and after
+you finish. Two machines editing the same project without syncing is the one way to
+create a conflict you have to resolve by hand.
+
+---
+
 ## When something is wrong
 
 | What you see | What it is |
 |---|---|
 | Bot ignores you | `TELEGRAM_ALLOWED_CHAT_IDS` empty or wrong. Watch the log for the id. |
+| Bot does not reply at all (laptop) | `pm bot` is not running. It only listens while that window is open. |
+| Everything is slow, git especially (WSL) | Files are under `/mnt/c/`. Move the workspace to the Linux home folder — see W4. |
+| Cron jobs never fire (WSL) | `service cron status`. WSL does not start it by default — see W5. |
 | `/ask` works in terminal, fails under launchd | `HOME` or `UserName` missing from the plist. |
 | `/ask` fails after being idle | Budget too low. A question costs ~$0.01 warm, ~$0.25 cold — keep `PM_CLAUDE_BUDGET_USD` at 0.35 or above. |
 | Nothing is ever committed | The ledger folder is not a git repo. `pm doctor` says so. |
