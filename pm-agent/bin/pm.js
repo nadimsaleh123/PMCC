@@ -8,6 +8,11 @@
 
 import path from 'node:path';
 import { writeFile } from 'node:fs/promises';
+import { loadEnv } from '../src/util/env.js';
+
+// Before anything reads process.env. A real environment variable always wins,
+// so the launchd plist stays authoritative and a stale .env cannot override it.
+loadEnv();
 import { scaffoldProject } from '../src/ledger/scaffold.js';
 import { projectPaths, ledgerRoot } from '../src/ledger/paths.js';
 import { ingestXer, loadLatestProgramme, loadLastTwoProgrammes, loadBaselineProgramme } from '../src/programme/ingest.js';

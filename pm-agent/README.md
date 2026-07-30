@@ -1,5 +1,7 @@
 # pm-agent
 
+> New here? Follow [`../SETUP.md`](../SETUP.md) — a complete, ordered setup from zero.
+
 A construction Project Ledger, a Primavera P6 parser, and a Telegram agent that chases
 you for site updates against the programme.
 
@@ -539,7 +541,7 @@ Stated plainly so nothing here is mistaken for working:
 npm test
 ```
 
-204 tests, and no test costs money or needs a network — the Claude runner and the
+213 tests, and no test costs money or needs a network — the Claude runner and the
 transcriber are both exercised against stubs.
 
 Covering the XER parser (including the Windows-1252 encoding P6 actually writes),
