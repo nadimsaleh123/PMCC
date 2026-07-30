@@ -61,12 +61,52 @@ async function loadPlaywright() {
 
 /** Whether a PDF can actually be produced on this machine. Used by `pm doctor`. */
 export async function playwrightAvailable() {
+  return (await pdfCapability()).ok;
+}
+
+/**
+ * Why a PDF can or cannot be produced here.
+ *
+ * The module importing is not the question - the question is whether a browser
+ * will launch. Those are two different installs (`npm install`, then
+ * `playwright install chromium`), and having the first without the second is the
+ * common state on a fresh machine. A check that stops at the import reports
+ * "available" on exactly the machine that cannot render a report, which is worse
+ * than no check at all.
+ *
+ * @returns {Promise<{ok: boolean, reason: string|null, fix: string|null}>}
+ */
+export async function pdfCapability() {
+  let playwright;
   try {
-    await loadPlaywright();
-    return true;
+    playwright = await loadPlaywright();
   } catch {
-    return false;
+    return {
+      ok: false,
+      reason: 'Playwright is not installed - reports will be HTML only',
+      fix: 'npm install (in pm-agent)',
+    };
   }
+
+  // executablePath() is a pure path computation - it does not check the disk, and
+  // it throws when the channel has no bundled browser at all.
+  let executable;
+  try {
+    executable = playwright.chromium.executablePath();
+  } catch (error) {
+    return { ok: false, reason: `no bundled browser: ${error.message.split('\n')[0]}`, fix: 'npx playwright install chromium' };
+  }
+
+  const { existsSync } = await import('node:fs');
+  if (!executable || !existsSync(executable)) {
+    return {
+      ok: false,
+      reason: `browser not downloaded (expected at ${executable})`,
+      fix: `npx playwright install${process.platform === 'linux' ? ' --with-deps' : ''} chromium`,
+    };
+  }
+
+  return { ok: true, reason: null, fix: null };
 }
 
 function footerTemplate(model, brand, fontUri) {

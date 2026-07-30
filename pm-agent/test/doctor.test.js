@@ -136,3 +136,31 @@ test('the summary counts problems and reads plainly', async () => {
   const warned = formatDiagnosis([{ status: 'warn', name: 'X', detail: 'y' }]);
   assert.match(warned, /Nothing broken/);
 });
+
+test('the PDF check fails when the browser is absent, not just the module', async () => {
+  const { pdfCapability } = await import('../src/report/pdf.js');
+  const real = await pdfCapability();
+  assert.equal(real.ok, true, 'this container has a browser');
+
+  // The state a fresh machine is actually in: playwright installed by npm, but
+  // `playwright install` never run. A check that only imports the module reports
+  // "available" here - on precisely the machine that cannot render a report.
+  //
+  // Run in a child process: playwright resolves its browsers directory once at
+  // module load, so the environment has to differ before the process starts.
+  const { execFileSync } = await import('node:child_process');
+  const script =
+    "import('./src/report/pdf.js').then(async (m) => " +
+    'console.log(JSON.stringify(await m.pdfCapability())))';
+
+  const out = execFileSync(process.execPath, ['-e', script], {
+    cwd: new URL('..', import.meta.url).pathname,
+    env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: '/nonexistent-browsers' },
+    encoding: 'utf8',
+  });
+
+  const missing = JSON.parse(out);
+  assert.equal(missing.ok, false);
+  assert.match(missing.reason, /browser not downloaded/);
+  assert.match(missing.fix, /playwright install/);
+});

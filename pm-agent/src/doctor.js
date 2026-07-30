@@ -184,17 +184,13 @@ export async function diagnose(options = {}) {
   // Uses the same resolver as the PDF path, including the global-install fallback,
   // so this cannot report a false negative that sends you installing something you
   // already have.
-  const { playwrightAvailable } = await import('./report/pdf.js');
-  const playwright = await playwrightAvailable();
+  const { pdfCapability } = await import('./report/pdf.js');
+  const pdf = await pdfCapability();
 
   checks.push(
-    playwright
-      ? ok('Playwright', 'available - reports can be written as PDF')
-      : warn(
-          'Playwright',
-          'not installed - reports will be HTML only',
-          'npm i -D playwright && npx playwright install chromium',
-        ),
+    pdf.ok
+      ? ok('Playwright', 'browser present - reports can be written as PDF')
+      : warn('Playwright', `${pdf.reason} - reports will be HTML only`, pdf.fix),
   );
 
   const fonts = (await exists(FONT_DIR)) ? (await readdir(FONT_DIR)).filter((f) => f.endsWith('.woff2')) : [];
