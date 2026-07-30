@@ -236,8 +236,8 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <Clients />
       <Stats />
+      <Clients />
       <Manifesto />
       <Services />
       <Timeline />
