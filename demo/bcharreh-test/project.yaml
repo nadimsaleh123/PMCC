@@ -1,0 +1,17 @@
+# Project configuration for BCHARREH-TEST — FICTIONAL TEST DATA
+code: BCHARREH-TEST
+name: Bcharreh Heritage Houses (TEST)
+role: contractor
+createdAt: 2026-03-02
+contract:
+  form: Bespoke lump-sum renovation agreement (test data)
+  completionDate: 2026-11-27
+  delayNoticeDays: 14
+  rfiResponseDays: 7
+  submittalResponseDays: 14
+chase:
+  lookaheadDays: 14
+  nearCriticalFloatDays: 5
+  maxQuestionsPerSession: 6
+telegram:
+  chatId: null

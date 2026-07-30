@@ -281,7 +281,9 @@ export async function finishChase(
   const session = sessionArg ?? (await loadSession(projectCode, author));
   const who = session?.author ?? author;
 
-  if (!session || session.answers.length === 0) {
+  // A cleared session has no answers array - finishing twice (or finishing
+  // a session that never started) reports nothing rather than throwing.
+  if (!session || session.cleared || !session.answers?.length) {
     await clearSession(projectCode, who);
     return { message: 'Nothing recorded.', written: [] };
   }
