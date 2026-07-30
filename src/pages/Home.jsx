@@ -200,7 +200,10 @@ function Clients() {
               <img
                 src={`/im/logos/${c.slug}.png`}
                 alt={c.name}
-                className="h-8 w-auto opacity-75 sm:h-10"
+                // grayscale+invert turns any dark-on-light logo into a light
+                // mark, and screen blending sinks white/black backgrounds
+                // into the dark strip - raw downloads render as one bone set.
+                className="h-8 w-auto opacity-80 mix-blend-screen [filter:grayscale(1)_invert(1)_brightness(1.05)] sm:h-10"
                 loading="lazy"
                 onError={() =>
                   setFailed((prev) => {
