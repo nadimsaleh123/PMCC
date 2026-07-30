@@ -1,10 +1,36 @@
 <!doctype html>
-<html lang="en" theme-data="light">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/homeimg.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MS Builders</title>
+    <meta name="theme-color" content="#0D0C0A" />
+    <title>PMCC — Project Management &amp; Construction, Lebanon</title>
+    <meta
+      name="description"
+      content="PMCC S.A.R.L. — engineering, construction and general contracting in Lebanon since 2002. Now selling: Daher el Souane 563, four full-floor residences on Mount Lebanon."
+    />
+    <meta property="og:title" content="PMCC — We manage what we build." />
+    <meta
+      property="og:description"
+      content="Construction management, contracting and development in Lebanon since 2002. Now selling: Daher el Souane 563."
+    />
+    <meta property="og:image" content="/im/hero-three-quarter-1280.webp" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23C8102E'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='%23EFE9DD' font-family='sans-serif' font-weight='800' font-size='11'%3EP%3C/text%3E%3C/svg%3E"
+    />
+    <!-- LCP: the home hero strip, discovered here instead of after JS boot -->
+    <link
+      rel="preload"
+      as="image"
+      imagesrcset="/im/elevation-front-1280.webp 1280w, /im/elevation-front-2560.webp 2560w"
+      imagesizes="100vw"
+      fetchpriority="high"
+    />
+    <style>
+      /* Paint the shell before any JS: no white flash, no unstyled flicker */
+      html { background: #0d0c0a; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
