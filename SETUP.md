@@ -107,25 +107,69 @@ needs it (it is plain Node and runs natively on Windows), but because every comm
 path and cron line below then matches exactly what the Mac mini will run later. You
 learn one set of commands, not two.
 
-### W1. Install WSL
+### You will be using two different terminals
 
-Open **PowerShell as Administrator** (right-click Start → Terminal (Admin)):
+They look identical. **The prompt is the only reliable way to tell them apart**, so
+check it before pasting anything:
+
+```
+PS C:\Users\you>          <- PowerShell. ONLY the wsl commands work here.
+you@DESKTOP-ABC:~$         <- Ubuntu. Everything else goes here.
+```
+
+Paste a Linux command into PowerShell and you get errors like `'&&' is not a valid
+statement separator` or `nvm is not recognized`. Nothing is broken — it is the wrong
+shell. Every code block below says which one it belongs in.
+
+### W1. Is WSL already installed?
+
+**In PowerShell:**
+
+```powershell
+wsl -l -v
+```
+
+- **`Ubuntu` is listed** → it is installed. Skip to W2.
+- **"no installed distributions", or the command is unrecognised** → do W1b.
+
+### W1b. Install it
+
+**In PowerShell, as Administrator** (right-click Start → Terminal (Admin)):
 
 ```powershell
 wsl --install
 ```
 
-Reboot when it asks. On the next boot an Ubuntu window opens and asks you to invent a
-username and password — this is a Linux account, nothing to do with Windows. Write the
-password down; you need it for `sudo`.
+Reboot when it asks. On the next boot an Ubuntu window opens by itself and asks you to
+invent a username and password — a Linux account, nothing to do with your Windows
+login. Write the password down; `sudo` needs it.
 
-**Check:** `wsl -l -v` in PowerShell shows `Ubuntu` and `VERSION 2`.
+**Check:** `wsl -l -v` now shows `Ubuntu` and `VERSION 2`.
 
-From here on, **every command in this guide goes in the Ubuntu window**, not PowerShell.
+### W2. Get into Ubuntu
 
-### W2. Install Node and git
+**This is the step that catches people.** That first Ubuntu window is not special — if
+you closed it, or you are back in PowerShell, you need to go back in deliberately.
 
-Ubuntu's packaged Node is usually too old, so use nvm:
+**In PowerShell:**
+
+```powershell
+wsl
+```
+
+Or launch **Ubuntu** from the Start menu — same thing.
+
+**Check:** your prompt changed from `PS C:\Users\you>` to `you@SOMETHING:~$`. If it
+still starts with `PS`, you are in PowerShell and nothing below will work.
+
+> Everything from here to the end of setup runs in **Ubuntu**. `exit` returns you to
+> PowerShell; `wsl` takes you back.
+
+### W3. Install Node and git
+
+Ubuntu's packaged Node is usually too old, so use nvm.
+
+**In Ubuntu** (prompt ends in `$`, not `>`):
 
 ```bash
 sudo apt update && sudo apt install -y git curl
@@ -136,7 +180,9 @@ nvm install --lts
 
 **Check:** `node --version` prints v20 or higher, and `git --version` prints something.
 
-### W3. Install Claude Code
+### W4. Install Claude Code
+
+**In Ubuntu:**
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -147,7 +193,7 @@ The first `claude` run opens a browser to sign in. Sign in, then quit it with `/
 
 **Check:** `claude --version` prints a version.
 
-### W4. Where to keep files — this one matters
+### W5. Where to keep files — this one matters
 
 Put everything in the **Linux** home folder (`~/PMCC`), **not** under `/mnt/c/`.
 
@@ -156,16 +202,16 @@ failures later. Your Windows files are still reachable when you need them —
 `/mnt/c/Users/YourName/Downloads/` — which is how you will get your `.xer` export
 across in Step 7.
 
-To open the Linux folder in Windows Explorer at any time:
+To open the Linux folder in Windows Explorer at any time, **in Ubuntu**:
 
 ```bash
 explorer.exe .
 ```
 
-### W5. One thing Windows does differently: cron
+### W6. One thing Windows does differently: cron
 
 WSL does not start `cron` automatically, so scheduled jobs will silently never run.
-Fix it once:
+Fix it once, **in Ubuntu**:
 
 ```bash
 sudo tee /etc/wsl.conf > /dev/null <<'EOF'
@@ -174,7 +220,7 @@ command="service cron start"
 EOF
 ```
 
-Then in PowerShell, `wsl --shutdown`, and reopen Ubuntu.
+Then **in PowerShell** run `wsl --shutdown`, and go back in with `wsl`.
 
 **Check:** `service cron status` says it is running.
 
@@ -191,7 +237,7 @@ Then in PowerShell, `wsl --shutdown`, and reopen Ubuntu.
 
 ### Step 3. Prerequisites
 
-**On Windows you did this in W2–W3 — skip to Step 4.**
+**On Windows you did this in W3–W4 — skip to Step 4.**
 
 ```bash
 # Node 18 or newer
@@ -630,8 +676,10 @@ create a conflict you have to resolve by hand.
 |---|---|
 | Bot ignores you | `TELEGRAM_ALLOWED_CHAT_IDS` empty or wrong. Watch the log for the id. |
 | Bot does not reply at all (laptop) | `pm bot` is not running. It only listens while that window is open. |
-| Everything is slow, git especially (WSL) | Files are under `/mnt/c/`. Move the workspace to the Linux home folder — see W4. |
-| Cron jobs never fire (WSL) | `service cron status`. WSL does not start it by default — see W5. |
+| `'&&' is not a valid statement separator` | You are in PowerShell, not Ubuntu. Type `wsl` first — see W2. |
+| `sudo` / `nvm` / `exec` `is not recognized` | Same cause. Check the prompt: `PS C:\…>` is PowerShell, `you@…:~$` is Ubuntu. |
+| Everything is slow, git especially (WSL) | Files are under `/mnt/c/`. Move the workspace to the Linux home folder — see W5. |
+| Cron jobs never fire (WSL) | `service cron status`. WSL does not start it by default — see W6. |
 | `/ask` works in terminal, fails under launchd | `HOME` or `UserName` missing from the plist. |
 | `/ask` fails after being idle | Budget too low. A question costs ~$0.01 warm, ~$0.25 cold — keep `PM_CLAUDE_BUDGET_USD` at 0.35 or above. |
 | Nothing is ever committed | The ledger folder is not a git repo. `pm doctor` says so. |
