@@ -12,8 +12,10 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "../../lib/motion";
 import { Lines, Fade } from "../reveal";
 
+// The owner's drone pair: the structure on site today, and the finished
+// building montaged into the same hillside.
 const BEFORE = "/im/site-progress.jpg";
-const AFTER = "/im/hero-three-quarter-2560.webp";
+const AFTER = "/im/site-finished.jpg";
 
 export default function BeforeAfter() {
   const [available, setAvailable] = useState(null);
