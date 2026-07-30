@@ -372,6 +372,12 @@ not `null`.
 
 ### Step 7. Load the programme — and verify it
 
+Both schedulers work; the file extension decides the parser:
+
+- **Primavera P6**: File → Export → Primavera PM (XER) → `.xer`
+- **Microsoft Project**: File → Save As → choose **XML Format** → `.xml`.
+  Not `.mpp` — that is the binary format and it is refused with an error.
+
 ```bash
 pm ingest MARINA-01 ~/Downloads/baseline.xer --baseline
 pm ingest MARINA-01 ~/Downloads/current-update.xer
@@ -380,17 +386,22 @@ pm ingest MARINA-01 ~/Downloads/current-update.xer
 > **On Windows**, your export is on the Windows side, not in the Linux home
 > folder. Use the `/mnt/c/` path — tab-completion works:
 > ```bash
-> pm ingest MARINA-01 /mnt/c/Users/YourName/Downloads/baseline.xer --baseline
+> pm ingest MARINA-01 /mnt/c/Users/YourName/Downloads/baseline.xml --baseline
 > ```
 
-**Now open P6 side by side and confirm all four of these match:**
+**Now open your scheduler side by side and confirm all four of these match:**
 
-| The output says | Check in P6 |
+| The output says | Check in P6 / MS Project |
 |---|---|
-| Activity count | Total activities in the project |
-| Data date | Project → Data Date |
+| Activity count | Total activities in the project (MSP: excluding summary rows) |
+| Data date | P6: Project → Data Date. MSP: Project → Status Date |
 | Forecast finish | Your completion milestone's finish |
 | Critical count | Activities with total float ≤ 0 |
+
+> **MS Project users:** set a Status Date (Project → Status Date) before
+> exporting. Without one the data date falls back to the file's last-saved
+> time, which makes "overdue" mean "overdue as of whenever someone last had
+> the file open" — not a basis for chasing anyone.
 
 **If any of these disagree, stop and tell me.** Every report, alert and claim built on
 top inherits the error, and it will not be obvious later.

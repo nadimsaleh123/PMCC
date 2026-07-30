@@ -50,8 +50,9 @@ clause-citing use cases will be confidently wrong if the contract form is wrong.
 
 ## Programme
 
-- Master programme is Primavera P6. XER exports land in \`01-programme/xer/\`.
-- Baseline XER lives in \`01-programme/baseline/\`.
+- Master programme is Primavera P6 (\`.xer\`) or Microsoft Project (\`.xml\`,
+  via File → Save As → XML - never \`.mpp\`). Exports land in \`01-programme/xer/\`.
+- The baseline export lives in \`01-programme/baseline/\`.
 - P6 is the system of record for the schedule. The agent proposes updates as
   importable files in \`06-outputs/p6-updates/\`; it never rewrites the XER.
 

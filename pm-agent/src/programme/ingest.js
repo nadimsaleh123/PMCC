@@ -10,6 +10,7 @@
 import path from 'node:path';
 import { copyFile } from 'node:fs/promises';
 import { parseXerFile } from '../parse/xer.js';
+import { parseMspdiFile } from '../parse/mspdi.js';
 import { normalizeProgramme } from '../parse/normalize.js';
 import { projectPaths } from '../ledger/paths.js';
 import { ensureDir, writeJson, readJson, listFiles, latestFile, exists } from '../ledger/store.js';
@@ -21,15 +22,25 @@ function snapshotName(programme, fallbackDay) {
   return `${day}.json`;
 }
 
+/** Parse a programme export in whichever format the scheduler produced. */
+async function parseProgrammeFile(file, options) {
+  const ext = path.extname(file).toLowerCase();
+  if (ext === '.xml') return parseMspdiFile(file, options);
+  if (ext === '.xer') return normalizeProgramme(await parseXerFile(file), options);
+  throw new Error(
+    `Cannot read ${path.basename(file)}: expected .xer (Primavera P6) or .xml (MS Project). ` +
+      'From MS Project use File → Save As → XML - .mpp is not readable.',
+  );
+}
+
 /**
  * @param {string} projectCode
- * @param {string} xerFile      path to the .xer to ingest
+ * @param {string} xerFile      path to the .xer or .xml to ingest
  * @param {{archive?: boolean, baseline?: boolean}} options
  */
 export async function ingestXer(projectCode, xerFile, options = {}) {
   const paths = projectPaths(projectCode);
-  const raw = await parseXerFile(xerFile);
-  const programme = normalizeProgramme(raw, {
+  const programme = await parseProgrammeFile(xerFile, {
     sourceFile: path.basename(xerFile),
     projectCode,
   });
@@ -39,7 +50,11 @@ export async function ingestXer(projectCode, xerFile, options = {}) {
   if (options.archive !== false) {
     const targetDir = options.baseline ? paths.baseline : paths.xer;
     await ensureDir(targetDir);
-    const archived = path.join(targetDir, `${name.replace(/\.json$/, '')}.xer`);
+    // Archive under the data date, keeping the source format's own extension.
+    const archived = path.join(
+      targetDir,
+      `${name.replace(/\.json$/, '')}${path.extname(xerFile).toLowerCase()}`,
+    );
     if (path.resolve(archived) !== path.resolve(xerFile)) {
       await copyFile(xerFile, archived);
     }

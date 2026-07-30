@@ -39,7 +39,7 @@ const USAGE = `pm — construction Project Ledger
 
   pm init <CODE> [--name "Project name"]     create a new project ledger
   pm projects                                list projects
-  pm ingest <CODE> <file.xer> [--baseline]   parse and archive a P6 export
+  pm ingest <CODE> <file.xer|.xml> [--baseline] parse and archive a P6 or MS Project export
   pm exceptions <CODE> [--as-of YYYY-MM-DD]  what needs chasing today
   pm chase <CODE> [--send]                   run the chase (terminal, or push to Telegram)
   pm diff <CODE>                             compare the last two programmes
@@ -85,7 +85,7 @@ async function requireProgramme(code) {
   const latest = await loadLatestProgramme(code);
   if (!latest) {
     console.error(
-      `No parsed programme for ${code}. Run: pm ingest ${code} <file.xer>`,
+      `No parsed programme for ${code}. Run: pm ingest ${code} <file.xer|.xml>`,
     );
     process.exit(1);
   }
@@ -113,8 +113,8 @@ const commands = {
     await commitLedger([paths.root], `ledger(${code}): initialise project`);
     console.log(`Created ${paths.root}`);
     console.log(`\nNext:\n  1. Fill in ${path.relative(process.cwd(), paths.projectBrief)} — especially the contract form and notice periods.`);
-    console.log(`  2. pm ingest ${code} <baseline.xer> --baseline`);
-    console.log(`  3. pm ingest ${code} <current.xer>`);
+    console.log(`  2. pm ingest ${code} <baseline.xer|.xml> --baseline`);
+    console.log(`  3. pm ingest ${code} <current.xer|.xml>`);
   },
 
   async projects() {
@@ -140,7 +140,7 @@ const commands = {
 
   async ingest({ positional, flags }) {
     const [code, file] = positional;
-    if (!code || !file) throw new Error('Usage: pm ingest <CODE> <file.xer> [--baseline]');
+    if (!code || !file) throw new Error('Usage: pm ingest <CODE> <file.xer|.xml> [--baseline]');
 
     const { programme, parsedFile } = await ingestXer(code, path.resolve(file), {
       baseline: Boolean(flags.baseline),

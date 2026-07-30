@@ -283,10 +283,8 @@ export function normalizeProgramme(raw, options = {}) {
   }
 
   const dataDate = parseP6Date(projectRow.last_recalc_date);
-  const complete = activities.filter((a) => a.status === 'complete').length;
-  const inProgress = activities.filter((a) => a.status === 'in-progress').length;
 
-  return {
+  return assembleProgramme({
     source: {
       file: options.sourceFile ?? null,
       p6Version: header.version,
@@ -306,6 +304,25 @@ export function normalizeProgramme(raw, options = {}) {
     },
     calendars: Object.fromEntries(calendars),
     wbs: [...wbsById.values()],
+    activities,
+    relationships,
+  });
+}
+
+/**
+ * Final assembly shared by every parser (XER, MSPDI). Computes the stats block
+ * from the activities so no parser can report a different notion of "critical"
+ * or "forecast finish" than the others.
+ */
+export function assembleProgramme({ source, project, calendars, wbs, activities, relationships }) {
+  const complete = activities.filter((a) => a.status === 'complete').length;
+  const inProgress = activities.filter((a) => a.status === 'in-progress').length;
+
+  return {
+    source,
+    project,
+    calendars,
+    wbs,
     activities,
     relationships,
     stats: {
