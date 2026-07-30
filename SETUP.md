@@ -700,6 +700,7 @@ create a conflict you have to resolve by hand.
 |---|---|
 | Bot ignores you | `TELEGRAM_ALLOWED_CHAT_IDS` empty or wrong. Watch the log for the id. |
 | Bot does not reply at all (laptop) | `pm bot` is not running. It only listens while that window is open. |
+| No Menu button beside the message box | Run `pm menu` — it pushes the command list and reads back what Telegram holds. Then fully close and reopen the chat; the client caches the old list. |
 | `'&&' is not a valid statement separator` | You are in PowerShell, not Ubuntu. Type `wsl` first — see W2. |
 | `sudo` / `nvm` / `exec` `is not recognized` | Same cause. Check the prompt: `PS C:\…>` is PowerShell, `you@…:~$` is Ubuntu. |
 | `claude` errors about a `C:\` path, or `/ask` fails with a node error | `which claude` points at `/mnt/c/…` — that is the Windows install, not the Ubuntu one. Reinstall inside Ubuntu — see W4. |

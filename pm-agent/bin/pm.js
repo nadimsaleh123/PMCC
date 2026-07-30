@@ -53,6 +53,7 @@ const USAGE = `pm — construction Project Ledger
   pm sync [--no-push]                        pull and push the ledger (laptop <-> mini)
   pm doctor [--deep]                         check this machine is set up
   pm bot                                     run the Telegram agent
+  pm menu                                    push the command menu to Telegram
 
 Environment:
   LEDGER_ROOT                  where projects live (default ../projects)
@@ -444,6 +445,35 @@ const commands = {
 
   async bot() {
     await runBot();
+  },
+
+  /**
+   * Push the command menu to Telegram without restarting the bot.
+   *
+   * `pm bot` does this on startup, but the menu is a property of the *bot*, not
+   * of the running process - so when it is missing you want to set it and read
+   * it back, rather than restarting a long-running agent to find out.
+   */
+  async menu() {
+    const { Telegram } = await import('../src/bot/telegram.js');
+    const { COMMAND_MENU } = await import('../src/bot/server.js');
+
+    const tg = new Telegram(process.env.TELEGRAM_BOT_TOKEN);
+    const me = await tg.call('getMe');
+
+    await tg.call('setMyCommands', { commands: COMMAND_MENU });
+    await tg.call('setChatMenuButton', { menu_button: { type: 'commands' } });
+
+    // Read back rather than trusting the write: this is the only way to tell a
+    // menu Telegram never accepted from one your client is showing stale.
+    const live = await tg.call('getMyCommands');
+
+    console.log(`\n  @${me.username} — Telegram now holds ${live.length} commands:\n`);
+    for (const entry of live) console.log(`    /${entry.command.padEnd(11)} ${entry.description}`);
+    console.log(
+      '\n  In Telegram: close the chat and reopen it. The Menu button sits at the' +
+        '\n  left of the message box, where the paperclip is on the right.\n',
+    );
   },
 };
 
