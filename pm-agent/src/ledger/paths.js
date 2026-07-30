@@ -57,6 +57,10 @@ export function projectPaths(projectCode) {
     photos: path.join(root, '04-evidence', 'photos'),
     correspondence: path.join(root, '04-evidence', 'correspondence'),
     minutes: path.join(root, '04-evidence', 'minutes'),
+    drawings: path.join(root, '04-evidence', 'drawings'),
+    documents: path.join(root, '04-evidence', 'documents'),
+    // A register of every document received, wherever it was filed.
+    documentIndex: path.join(root, '02-ledger', 'documents.yaml'),
 
     commercial: path.join(root, '05-commercial'),
     valuations: path.join(root, '05-commercial', 'valuations'),

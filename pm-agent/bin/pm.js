@@ -25,6 +25,7 @@ import { askLedger } from '../src/bot/ask.js';
 import { openItems, writeChaseDraft } from '../src/correspondence/chase-draft.js';
 import { loadBrand } from '../src/report/html/brand.js';
 import { diagnose, formatDiagnosis } from '../src/doctor.js';
+import { drainInbox } from '../src/documents/intake.js';
 import { today } from '../src/util/dates.js';
 import { createInterface } from 'node:readline/promises';
 
@@ -42,6 +43,7 @@ const USAGE = `pm — construction Project Ledger
   pm ask <CODE> "<question>"                 answer from the project record
   pm open <CODE>                             what is waiting on someone else
   pm nudge <CODE> <REF>                      draft a chase letter
+  pm inbox <CODE> [--dir PATH] [--keep]      file everything dropped in the inbox
   pm doctor [--deep]                         check this machine is set up
   pm bot                                     run the Telegram agent
 
@@ -388,6 +390,34 @@ const commands = {
     console.log(draft.body);
     console.log(`\nWritten to ${draft.file}`);
     console.log('Nothing has been sent. Review it, then send it yourself.');
+  },
+
+  async inbox({ positional, flags }) {
+    const code = positional[0];
+    if (!code) throw new Error('Usage: pm inbox <CODE> [--dir PATH] [--keep]');
+
+    // Default sits beside the ledger, deliberately outside the git repository.
+    const dir =
+      (typeof flags.dir === 'string' && flags.dir) ||
+      process.env.PM_INBOX ||
+      path.resolve(ledgerRoot(), '..', 'inbox');
+
+    const result = await drainInbox(code, dir, { keep: Boolean(flags.keep) });
+
+    if (result.filed.length === 0 && result.duplicates.length === 0 && result.skipped.length === 0) {
+      console.log(`Nothing waiting in ${path.join(dir, code)}`);
+      return;
+    }
+
+    for (const item of result.filed) {
+      console.log(`filed      ${item.category.padEnd(14)} ${item.record.file}`);
+    }
+    for (const item of result.duplicates) {
+      console.log(`duplicate  ${item.file} — already filed as ${item.of}`);
+    }
+    for (const item of result.skipped) {
+      console.log(`skipped    ${item.file} — ${item.reason}`);
+    }
   },
 
   async doctor({ flags }) {

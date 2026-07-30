@@ -57,6 +57,83 @@ node bin/pm.js report MARINA-01 --pdf   # the weekly client report
 and confirm the activity count, the data date, the critical path and total float
 match. If they do not, nothing built on top is worth reading.
 
+## One PMCC workspace on the Mac mini
+
+Everything under one folder, but as **two separate git repositories**. That is not
+fussiness: the website repo can be public, and the Ledger holds contract sums, rates
+and claims strategy. One repo for both would be a disclosure waiting to happen.
+
+```
+~/PMCC/
+  website/          this repo — the marketing site (may be public)
+  ledger/           a PRIVATE repo, never pushed anywhere public
+    projects/
+      MARINA-01/
+  inbox/            drop zone for documents — deliberately NOT in either repo
+    MARINA-01/
+      contract/
+      drawings/
+```
+
+```bash
+mkdir -p ~/PMCC/inbox
+cd ~/PMCC
+git clone <this repo> website
+mkdir -p ledger/projects && cd ledger && git init
+echo 'export LEDGER_ROOT=~/PMCC/ledger/projects' >> ~/.zshrc
+echo 'export PM_INBOX=~/PMCC/inbox'              >> ~/.zshrc
+```
+
+**Do not put the Ledger inside a Drive, Dropbox or iCloud folder.** They sync `.git`
+internals and corrupt the repository — you would lose exactly the audit trail this
+system exists to keep. Sync the **inbox** instead: it is a plain folder, so every sync
+tool handles it safely, and `pm inbox` moves files across into the repo properly.
+
+## Getting documents in when you are not at the machine
+
+The Ledger lives on one machine and you are often somewhere else. Two routes, and you
+can use both.
+
+### Send it to the bot
+
+Send a PDF to the Telegram chat with a caption like `contract` or `drawing rev C`, from
+anywhere. It is filed in the right folder, hashed, indexed and committed. Works from a
+phone in a meeting.
+
+Telegram will not hand a bot any file over **20 MB**, so a full drawing set needs the
+inbox instead — the bot says so rather than failing obscurely.
+
+### Drop it in the inbox
+
+```bash
+node bin/pm.js inbox MARINA-01
+```
+
+Files everything in `~/PMCC/inbox/MARINA-01/`, using subfolder names as categories
+(`contract/`, `drawings/`, `correspondence/`, `minutes/`, `commercial/`), then removes
+the originals — but only after a successful write, so a crash never loses a file. Put
+it on cron every 15 minutes and anything you drop into that folder from any synced
+device appears in the Ledger by itself:
+
+```cron
+*/15 * * * * cd /Users/you/PMCC/website/pm-agent && /usr/local/bin/node bin/pm.js inbox MARINA-01
+```
+
+Point Google Drive, Dropbox, iCloud or `rsync` at `~/PMCC/inbox` and you have the
+auto-updating setup, without any of them touching a git repository.
+
+Two safeguards worth knowing: a file whose modification time is under 30 seconds old is
+left alone, because a half-synced file would otherwise be filed with a hash that is
+wrong forever; and identical bytes are never filed twice, because sync clients
+re-deliver the same file constantly.
+
+### Every document is hashed
+
+`02-ledger/documents.yaml` records what arrived, when, from whom, by which route, and
+its **SHA-256**. For a contract that is the point: *"this is the document as received on
+5 August, sha256 a1b2…"* is a defensible statement, and it is how you later prove which
+revision a claim was argued against.
+
 ## The Ledger
 
 ```
@@ -402,7 +479,7 @@ Stated plainly so nothing here is mistaken for working:
 npm test
 ```
 
-184 tests, and no test costs money or needs a network — the Claude runner and the
+198 tests, and no test costs money or needs a network — the Claude runner and the
 transcriber are both exercised against stubs.
 
 Covering the XER parser (including the Windows-1252 encoding P6 actually writes),

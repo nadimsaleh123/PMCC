@@ -14,6 +14,7 @@ import { askLedger } from './ask.js';
 import { ingestVoiceNote } from './diary.js';
 import { entriesOf } from '../ledger/registers.js';
 import { openItems, writeChaseDraft } from '../correspondence/chase-draft.js';
+import { fileDocument } from '../documents/intake.js';
 import { loadBrand } from '../report/html/brand.js';
 import { projectPaths, ledgerRoot } from '../ledger/paths.js';
 import { readYaml, writeYaml, listFiles, exists, ensureDir } from '../ledger/store.js';
@@ -388,6 +389,11 @@ async function handleMessage(tg, message, state) {
     return;
   }
 
+  if (message.document) {
+    await handleDocument(tg, chatId, message, state, author);
+    return;
+  }
+
   if (text.startsWith('/')) {
     const handled = await handleCommand(tg, chatId, text, state, author);
     if (!handled) await tg.send(chatId, `Unknown command. ${HELP}`);
@@ -581,6 +587,69 @@ async function resolvePendingEvent(tg, chatId, pending, text, state) {
     entry?.noticeDeadline
       ? `Logged as *${entry.responsibility}*.\n\n📄 Notice for ${pending.ref} due by *${formatHuman(entry.noticeDeadline)}*.\n\n_Check the clause before issuing. I draft; you send._`
       : `Logged as *${entry?.responsibility ?? 'unclassified'}*.`,
+  );
+}
+
+/**
+ * A document sent to the bot from anywhere lands in the Ledger on the Mac mini.
+ *
+ * This is the whole answer to "the machine is in Dubai and I am not": send the
+ * contract from your phone and it is filed, hashed and committed.
+ */
+async function handleDocument(tg, chatId, message, state, author) {
+  const project = await resolveProject(state, chatId);
+  if (!project) {
+    await tg.send(chatId, 'No project set. `/projects` to see what is available.');
+    return;
+  }
+
+  const doc = message.document;
+  const caption = message.caption ?? '';
+
+  // Telegram's bot API will not hand over a file above 20 MB. A drawing set will
+  // exceed that, so say what to do rather than failing obscurely.
+  if (doc.file_size && doc.file_size > 20 * 1024 * 1024) {
+    await tg.send(
+      chatId,
+      `\`${doc.file_name}\` is ${(doc.file_size / 1024 / 1024).toFixed(0)} MB. Telegram will not let me download anything over 20 MB.\n\n` +
+        `Drop it in the inbox folder instead — it syncs to the Mac mini and gets filed the same way.`,
+    );
+    return;
+  }
+
+  await tg.send(chatId, '_Filing…_');
+
+  const result = await fileDocument(project, {
+    buffer: await tg.download(doc.file_id),
+    filename: doc.file_name ?? 'document',
+    hint: caption,
+    note: caption || null,
+    author,
+    via: 'telegram',
+  });
+
+  if (result.status === 'duplicate') {
+    await tg.send(
+      chatId,
+      `Already have that exact file — filed ${result.of.date} as \`${result.of.file}\`. Nothing added.`,
+    );
+    return;
+  }
+
+  await tg.send(
+    chatId,
+    [
+      `Filed as *${result.category}*.`,
+      '',
+      `\`${result.record.file}\``,
+      `sha256 \`${result.record.sha256.slice(0, 16)}…\``,
+      '',
+      caption
+        ? ''
+        : '_Tip: add a caption like "contract" or "drawing" and I file it in the right folder._',
+    ]
+      .filter(Boolean)
+      .join('\n'),
   );
 }
 
