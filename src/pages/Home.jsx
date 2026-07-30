@@ -9,7 +9,6 @@ import { heroClaim, stats, services, clients, project } from "../data/content";
 
 function Hero() {
   const root = useRef(null);
-  const pinTarget = useRef(null);
 
   useLayoutEffect(() => {
     if (reducedMotion()) return undefined;
@@ -24,33 +23,12 @@ function Hero() {
         { autoAlpha: 0, y: 20 },
         { autoAlpha: 1, y: 0, duration: 1, delay: 0.7 },
       );
-
-      // The smart bit: scrolling grows the image band upward over the claim
-      // until the dawn frame fills the screen, then the page releases.
-      // Desktop only; the pin targets an inner wrapper so React keeps owning
-      // the section.
-      const mm = gsap.matchMedia();
-      mm.add("(min-width: 1024px)", () => {
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: pinTarget.current,
-            start: "top top",
-            end: () => `+=${window.innerHeight * 1.1}`,
-            pin: true,
-            scrub: 0.5,
-            invalidateOnRefresh: true,
-          },
-        });
-        tl.to("[data-hero-strip]", { height: "100svh", ease: "power1.inOut", duration: 1 }, 0)
-          .to("[data-hero-copy]", { autoAlpha: 0, y: -40, duration: 0.45 }, 0.05);
-      });
     }, root.current);
     return () => ctx.revert();
   }, []);
 
   return (
-    <section ref={root} className="bg-ink">
-      <div ref={pinTarget} className="grid h-[100svh] grid-rows-[minmax(0,1fr)_auto] pt-[64px]">
+    <section ref={root} className="grid h-[100svh] grid-rows-[minmax(0,1fr)_auto] bg-ink pt-[64px]">
       <div data-hero-copy className="flex min-h-0 flex-col justify-center overflow-clip px-5 sm:px-8">
         <Fade delay={0.35}>
           <p className="type-eyebrow text-smoke">{heroClaim.eyebrow}</p>
@@ -82,7 +60,6 @@ function Hero() {
           className="h-full"
           priority
         />
-      </div>
       </div>
     </section>
   );
@@ -198,10 +175,7 @@ function Clients() {
               <img
                 src={`/im/logos/${c.slug}.png`}
                 alt={c.name}
-                // grayscale+invert turns any dark-on-light logo into a light
-                // mark, and screen blending sinks white/black backgrounds
-                // into the dark strip - raw downloads render as one bone set.
-                className="h-8 w-auto opacity-80 mix-blend-screen [filter:grayscale(1)_invert(1)_brightness(1.05)] sm:h-10"
+                className="h-8 w-auto opacity-80 sm:h-10"
                 loading="lazy"
                 onError={() =>
                   setFailed((prev) => {
