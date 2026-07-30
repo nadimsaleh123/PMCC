@@ -9,7 +9,12 @@
 
 import path from 'node:path';
 import { Telegram, chunk } from './telegram.js';
-import { startChase, answerChase, finishChase, loadSession } from './chase.js';
+import { startChase, answerChase, finishChase, loadSession, classifyResponsibility } from './chase.js';
+import { askLedger } from './ask.js';
+import { ingestVoiceNote } from './diary.js';
+import { entriesOf } from '../ledger/registers.js';
+import { openItems, writeChaseDraft } from '../correspondence/chase-draft.js';
+import { loadBrand } from '../report/html/brand.js';
 import { projectPaths, ledgerRoot } from '../ledger/paths.js';
 import { readYaml, writeYaml, listFiles, exists, ensureDir } from '../ledger/store.js';
 import { loadLatestProgramme, loadLastTwoProgrammes } from '../programme/ingest.js';
@@ -17,9 +22,11 @@ import { diffProgrammes } from '../analysis/diff.js';
 import { checkProgrammeHealth } from '../analysis/health.js';
 import { computeExceptions } from '../analysis/exceptions.js';
 import { renderDiff, renderHealth, renderExceptions } from '../report/render.js';
+import { generateWeeklyReport } from '../report/generate.js';
+import { runAlerts, formatAlertBatch, formatOpenAlerts } from '../alerts/index.js';
 import { commitLedger } from '../ledger/git.js';
 import { writeFile } from 'node:fs/promises';
-import { today, formatHuman } from '../util/dates.js';
+import { today, formatHuman, addDays } from '../util/dates.js';
 
 const STATE_FILE = () => path.join(ledgerRoot(), '.agent-state.yaml');
 
@@ -60,6 +67,11 @@ const HELP = `*Construction PM agent*
 
 \`/chase\` — start the daily update (I ask, you answer)
 \`/status\` — where the project stands right now
+\`/alerts\` — what is currently flagged
+\`/report\` — this week's client report as a PDF
+\`/ask <question>\` — anything about the project record (or just start with \`?\`)
+\`/open\` — decisions, actions and RFIs waiting on someone
+\`/nudge REF\` — draft a chase letter for that reference
 \`/diff\` — what changed between the last two P6 updates
 \`/health\` — DCMA 14-point check on the current programme
 \`/lookahead [days]\` — exceptions coming up in the window
@@ -150,6 +162,119 @@ async function handleCommand(tg, chatId, text, state) {
       return true;
     }
 
+    case '/ask': {
+      if (!project) return true;
+      const question = args.join(' ').trim();
+      if (!question) {
+        await tg.send(chatId, 'Ask me something — `/ask when did we first raise the block shortage?`');
+        return true;
+      }
+      await handleAsk(tg, chatId, project, question, state);
+      return true;
+    }
+
+    case '/open': {
+      if (!project) return true;
+      const items = await openItems(project);
+
+      if (items.length === 0) {
+        await tg.send(chatId, `*${project}* — nothing outstanding with anyone.`);
+        return true;
+      }
+
+      const lines = [`*${project}* — ${items.length} item${items.length === 1 ? '' : 's'} with someone else`, ''];
+      for (const item of items) {
+        const when =
+          item.daysRemaining === null
+            ? item.daysOpen !== null
+              ? `open ${item.daysOpen}d`
+              : 'no date'
+            : item.daysRemaining < 0
+              ? `*${Math.abs(item.daysRemaining)}d overdue*`
+              : `due in ${item.daysRemaining}d`;
+        lines.push(`\`${item.ref}\` ${item.subject}`);
+        lines.push(`   ${item.owner ?? 'unassigned'} · ${when}`);
+      }
+      lines.push('');
+      lines.push('`/nudge REF` to draft a chase letter.');
+
+      for (const part of chunk(lines.join('\n'))) await tg.send(chatId, part);
+      return true;
+    }
+
+    case '/nudge': {
+      if (!project) return true;
+      const ref = args[0];
+      if (!ref) {
+        await tg.send(chatId, 'Which one? `/nudge DEC-001`. `/open` lists them.');
+        return true;
+      }
+
+      const brand = await loadBrand(project);
+      const draft = await writeChaseDraft(project, ref, { brand });
+
+      if (!draft) {
+        await tg.send(chatId, `No entry with reference \`${ref}\` in any register.`);
+        return true;
+      }
+
+      await commitLedger([draft.file], `correspondence(${project}): chase draft for ${draft.entry.ref}`);
+      await tg.sendDocument(
+        chatId,
+        path.basename(draft.file),
+        draft.body,
+        `Draft chase for ${draft.entry.ref}. Review it, then send it yourself.`,
+      );
+
+      if (draft.missing.length > 0) {
+        await tg.send(
+          chatId,
+          `The record is thin, so the draft leaves things out:\n${draft.missing.map((m) => `- ${m}`).join('\n')}`,
+        );
+      }
+      return true;
+    }
+
+    case '/alerts': {
+      if (!project) return true;
+      // On demand, list everything open - including the quiet ones that were
+      // deliberately not re-sent this morning.
+      const result = await runAlerts(project);
+      for (const part of chunk(formatOpenAlerts(project, result.open, { asOf: result.asOf }))) {
+        await tg.send(chatId, part);
+      }
+      return true;
+    }
+
+    case '/report': {
+      if (!project) return true;
+      await tg.send(chatId, `Building this week's report for *${project}*…`);
+
+      try {
+        const result = await generateWeeklyReport(project, { pdf: true });
+        const { readFile } = await import('node:fs/promises');
+        const file = result.pdf?.file ?? result.htmlFile;
+
+        await tg.sendDocument(
+          chatId,
+          path.basename(file),
+          await readFile(file),
+          `Weekly report no. ${result.model.meta.reportNo}. Review it, then issue it yourself.`,
+        );
+
+        if (result.warnings.length > 0) {
+          await tg.send(
+            chatId,
+            `Before this goes to a client:\n${result.warnings.map((w) => `- ${w}`).join('\n')}`,
+          );
+        }
+      } catch (error) {
+        // Most likely Playwright missing; the HTML was still written.
+        await tg.send(chatId, `Could not build the PDF: ${error.message}`);
+      }
+      return true;
+    }
+
     case '/diff': {
       if (!project) return true;
       const pair = await loadLastTwoProgrammes(project);
@@ -232,10 +357,7 @@ async function handleMessage(tg, message, state) {
   const text = message.text ?? message.caption ?? '';
 
   if (message.voice || message.audio) {
-    await tg.send(
-      chatId,
-      'Voice note received. Transcription is not wired up yet — send it as text for now, or run `pm diary` on the Mac mini.',
-    );
+    await handleVoice(tg, chatId, message, state);
     return;
   }
 
@@ -250,13 +372,27 @@ async function handleMessage(tg, message, state) {
     return;
   }
 
-  // Not a command - treat as an answer to the chase question on the table.
   const project = await resolveProject(state, chatId);
   if (!project) {
     await tg.send(chatId, 'No project set. `/projects` to see what is available.');
     return;
   }
 
+  // An outstanding "who caused it" question takes precedence over everything.
+  const pending = state.chats?.[chatId]?.pendingEvent;
+  if (pending) {
+    await resolvePendingEvent(tg, chatId, pending, text, state);
+    return;
+  }
+
+  // A leading "?" marks an explicit question. Everything else stays routed to the
+  // chase answer, so an ordinary message can never silently cost money.
+  if (text.trimStart().startsWith('?')) {
+    await handleAsk(tg, chatId, project, text.trim().slice(1).trim(), state);
+    return;
+  }
+
+  // Not a command - treat as an answer to the chase question on the table.
   const session = await loadSession(project);
   if (!session || session.cleared) {
     await tg.send(chatId, 'No chase in progress. `/chase` to start one, or `/help` for what I can do.');
@@ -279,6 +415,147 @@ async function handleMessage(tg, message, state) {
       );
     }
   }
+}
+
+/**
+ * Answer a question from the ledger.
+ *
+ * Each call costs real money, so there is a per-query cap (passed to the CLI) and a
+ * daily ceiling tracked here. A runaway loop on an unattended bot should cost a few
+ * dollars, not a few hundred.
+ */
+async function handleAsk(tg, chatId, project, question, state) {
+  const dailyCapUsd = Number(process.env.PM_CLAUDE_DAILY_USD) || 5;
+  const day = today();
+
+  state.askSpend ??= {};
+  const spentToday = state.askSpend[day] ?? 0;
+
+  if (spentToday >= dailyCapUsd) {
+    await tg.send(
+      chatId,
+      `Daily question budget of $${dailyCapUsd.toFixed(2)} is spent ($${spentToday.toFixed(2)} today). ` +
+        `Raise PM_CLAUDE_DAILY_USD if that is too tight.`,
+    );
+    return;
+  }
+
+  await tg.send(chatId, '_Reading the project record…_');
+  const result = await askLedger(project, question);
+
+  if (!result.ok) {
+    await tg.send(chatId, `Could not answer that: ${result.error}`);
+    return;
+  }
+
+  if (result.costUsd) {
+    state.askSpend[day] = spentToday + result.costUsd;
+    // Keep only the current day; this is a budget guard, not an audit trail.
+    state.askSpend = { [day]: state.askSpend[day] };
+    await writeState(state);
+  }
+
+  for (const part of chunk(result.result)) await tg.send(chatId, part);
+}
+
+/**
+ * A voice note becomes a dated site diary entry.
+ *
+ * Whatever else fails, the audio is filed and the transcript reaches the diary -
+ * see diary.js. The one thing this must not do is infer who caused a delay, so a
+ * detected delay ends with a question rather than a conclusion.
+ */
+async function handleVoice(tg, chatId, message, state) {
+  const project = await resolveProject(state, chatId);
+  if (!project) {
+    await tg.send(chatId, 'No project set. `/projects` to see what is available.');
+    return;
+  }
+
+  const media = message.voice ?? message.audio;
+  await tg.send(chatId, '_Transcribing…_');
+
+  const buffer = await tg.download(media.file_id);
+  const result = await ingestVoiceNote(project, {
+    buffer,
+    extension: media.mime_type === 'audio/mpeg' ? '.mp3' : '.ogg',
+    caption: message.caption ?? null,
+  });
+
+  if (!result.ok) {
+    await tg.send(
+      chatId,
+      `The audio is filed as evidence, but I could not transcribe it.\n\n${result.error}` +
+        (result.configured ? '' : '\n\nSend the update as text and it goes straight into the diary.'),
+    );
+    return;
+  }
+
+  const summary = [`Recorded to the site diary for today.`, ''];
+  if (result.structured) {
+    const s = result.structured;
+    const parts = [];
+    if (s.weather) parts.push(`weather: ${s.weather}`);
+    if (s.manpower?.length) parts.push(`${s.manpower.length} trade(s) on site`);
+    if (s.works?.length) parts.push(`${s.works.length} work item(s)`);
+    if (s.instructions?.length) parts.push(`${s.instructions.length} instruction(s)`);
+    if (parts.length) summary.push(parts.join(' · '));
+  } else {
+    summary.push('_Structuring was unavailable, so the transcript went in verbatim._');
+  }
+
+  await tg.send(chatId, summary.join('\n'));
+
+  if (result.event) {
+    state.chats ??= {};
+    state.chats[chatId] = {
+      ...(state.chats[chatId] ?? {}),
+      pendingEvent: { project, ref: result.event.ref },
+    };
+    await writeState(state);
+
+    await tg.send(
+      chatId,
+      `I heard something that sounds like a delay, and logged it as *${result.event.ref}*.\n\n` +
+        `Was it *client/consultant-caused*, *our own/supplier*, or *neutral* (weather etc.)? ` +
+        `It decides whether this supports a claim later, so I will not guess.`,
+    );
+  }
+}
+
+/** Apply a responsibility answer to an event raised from a voice note. */
+async function resolvePendingEvent(tg, chatId, pending, text, state) {
+  const paths = projectPaths(pending.project);
+  const events = await readYaml(paths.events);
+  const entry = entriesOf(events).find((e) => e.ref === pending.ref);
+
+  if (entry) {
+    entry.responsibility = classifyResponsibility(text);
+    entry.clarification = text;
+
+    // Same rule as the chase loop: the notice clock starts from awareness
+    // regardless of fault, and it is the clock most claims are lost on.
+    const config = (await readYaml(paths.config)) ?? {};
+    const noticeDays = config.contract?.delayNoticeDays ?? null;
+
+    if (noticeDays && entry.responsibility !== 'contractor') {
+      entry.noticeDeadline = addDays(entry.date, noticeDays);
+      entry.noticeBasis = `${noticeDays} days from awareness (${entry.date}) per project.yaml contract.delayNoticeDays`;
+    }
+
+    await writeYaml(paths.events, events);
+    await commitLedger([paths.events], `ledger(${pending.project}): classify ${pending.ref} as ${entry.responsibility}`);
+  }
+
+  delete state.chats[chatId].pendingEvent;
+  await writeState(state);
+
+  await tg.send(
+    chatId,
+    entry?.noticeDeadline
+      ? `Logged as *${entry.responsibility}*.\n\n📄 Notice for ${pending.ref} due by *${formatHuman(entry.noticeDeadline)}*.\n\n_Check the clause before issuing. I draft; you send._`
+      : `Logged as *${entry?.responsibility ?? 'unclassified'}*.`,
+  );
 }
 
 /** Photos are evidence. File them against the project, dated, with the caption. */
@@ -360,15 +637,39 @@ export async function runBot({ token = process.env.TELEGRAM_BOT_TOKEN } = {}) {
   }
 }
 
-/** Used by the cron entry point to push the morning chase without a /chase. */
-export async function pushChase(projectCode, { token = process.env.TELEGRAM_BOT_TOKEN } = {}) {
-  const chatIds = (process.env.TELEGRAM_ALLOWED_CHAT_IDS ?? '')
+/**
+ * Where a scheduled push for this project should go.
+ *
+ * `project.yaml` may name a chat, so a project with its own group does not spray
+ * every other project's alerts at it. That chat must still be in the allowlist -
+ * a per-project setting can narrow the audience but never widen it, or editing a
+ * yaml file would be enough to exfiltrate a ledger.
+ */
+export async function resolveChatIds(projectCode) {
+  const allowed = (process.env.TELEGRAM_ALLOWED_CHAT_IDS ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
 
-  if (chatIds.length === 0) throw new Error('TELEGRAM_ALLOWED_CHAT_IDS is not set');
+  if (allowed.length === 0) throw new Error('TELEGRAM_ALLOWED_CHAT_IDS is not set');
 
+  const config = (await readYaml(projectPaths(projectCode).config)) ?? {};
+  const preferred = config.telegram?.chatId;
+
+  if (preferred && allowed.includes(String(preferred))) return [String(preferred)];
+
+  if (preferred) {
+    console.warn(
+      `[bot] project.yaml for ${projectCode} names chat ${preferred}, which is not in TELEGRAM_ALLOWED_CHAT_IDS - ignoring it.`,
+    );
+  }
+
+  return allowed;
+}
+
+/** Used by the cron entry point to push the morning chase without a /chase. */
+export async function pushChase(projectCode, { token = process.env.TELEGRAM_BOT_TOKEN } = {}) {
+  const chatIds = await resolveChatIds(projectCode);
   const tg = new Telegram(token);
   const result = await startChase(projectCode);
 
@@ -377,6 +678,26 @@ export async function pushChase(projectCode, { token = process.env.TELEGRAM_BOT_
     if (result.question) {
       await tg.send(chatId, `*1/${result.session.queue.length}* — ${result.question}`);
     }
+  }
+
+  return result;
+}
+
+/**
+ * Scheduled alert run. Sends nothing on a quiet day, which is the whole point -
+ * the value of an alert is destroyed by the ones that did not need sending.
+ */
+export async function pushAlerts(projectCode, { token = process.env.TELEGRAM_BOT_TOKEN, asOf } = {}) {
+  const result = await runAlerts(projectCode, { asOf });
+
+  if (result.toSend.length === 0) return result;
+
+  const chatIds = await resolveChatIds(projectCode);
+  const tg = new Telegram(token);
+  const message = formatAlertBatch(projectCode, result.toSend, { asOf: result.asOf });
+
+  for (const chatId of chatIds) {
+    for (const part of chunk(message)) await tg.send(chatId, part);
   }
 
   return result;

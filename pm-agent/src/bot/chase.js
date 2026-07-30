@@ -212,7 +212,7 @@ export async function answerChase(projectCode, text) {
   return nextPrompt(session, 'Logged.');
 }
 
-function classifyResponsibility(text) {
+export function classifyResponsibility(text) {
   const lower = text.toLowerCase();
   if (/client|employer|consultant|engineer|architect|consultant|design/.test(lower)) return 'employer';
   if (/us|our|we|supplier|subcontractor|sub|own|internal|contractor/.test(lower)) return 'contractor';

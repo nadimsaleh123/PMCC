@@ -18,8 +18,12 @@ import { renderDiff, renderExceptions, renderHealth } from '../src/report/render
 import { readYaml, ensureDir, exists } from '../src/ledger/store.js';
 import { commitLedger } from '../src/ledger/git.js';
 import { startChase, answerChase, finishChase } from '../src/bot/chase.js';
-import { runBot, pushChase } from '../src/bot/server.js';
+import { runBot, pushChase, pushAlerts } from '../src/bot/server.js';
 import { generateWeeklyReport } from '../src/report/generate.js';
+import { runAlerts, formatAlert, formatOpenAlerts } from '../src/alerts/index.js';
+import { askLedger } from '../src/bot/ask.js';
+import { openItems, writeChaseDraft } from '../src/correspondence/chase-draft.js';
+import { loadBrand } from '../src/report/html/brand.js';
 import { today } from '../src/util/dates.js';
 import { createInterface } from 'node:readline/promises';
 
@@ -33,6 +37,10 @@ const USAGE = `pm — construction Project Ledger
   pm diff <CODE>                             compare the last two programmes
   pm health <CODE>                           DCMA 14-point check
   pm report <CODE> [--pdf] [--as-of DATE]    weekly client report
+  pm alerts <CODE> [--send] [--all]          what needs attention (quiet by default)
+  pm ask <CODE> "<question>"                 answer from the project record
+  pm open <CODE>                             what is waiting on someone else
+  pm nudge <CODE> <REF>                      draft a chase letter
   pm bot                                     run the Telegram agent
 
 Environment:
@@ -278,6 +286,106 @@ const commands = {
     }
 
     console.log('\nNothing has been sent. Review it, then issue it yourself.');
+  },
+
+  async alerts({ positional, flags }) {
+    const code = positional[0];
+    if (!code) throw new Error('Usage: pm alerts <CODE> [--send] [--all]');
+
+    const asOf = typeof flags['as-of'] === 'string' ? flags['as-of'] : undefined;
+
+    if (flags.send) {
+      const result = await pushAlerts(code, { asOf });
+      console.log(
+        result.toSend.length === 0
+          ? `Nothing new to raise for ${code}. ${result.open.length} still open, ${result.resolved.length} cleared.`
+          : `Sent ${result.toSend.length} alert(s) for ${code}.`,
+      );
+      return;
+    }
+
+    const result = await runAlerts(code, { asOf });
+
+    if (flags.all) {
+      console.log(formatOpenAlerts(code, result.open, { asOf: result.asOf }).replace(/\*/g, ''));
+    } else if (result.toSend.length === 0) {
+      console.log(
+        `Nothing new to raise as at ${result.asOf}. ${result.open.length} open, ${result.resolved.length} cleared this run.`,
+      );
+      console.log('Use --all to list everything currently open.');
+    } else {
+      for (const alert of result.toSend) console.log(`\n${formatAlert(alert).replace(/\*/g, '')}`);
+    }
+
+    if (result.sha) console.log(`\nCommitted ${result.sha.slice(0, 8)}`);
+  },
+
+  async ask({ positional }) {
+    const [code, ...rest] = positional;
+    const question = rest.join(' ').trim();
+    if (!code || !question) throw new Error('Usage: pm ask <CODE> "<question>"');
+
+    const result = await askLedger(code, question);
+
+    if (!result.ok) {
+      console.error(`\n${result.error}`);
+      process.exit(1);
+    }
+
+    console.log(`\n${result.result}\n`);
+
+    if (result.denials.length > 0) {
+      console.warn(
+        `Note: ${result.denials.length} tool call(s) were denied - the model tried to act outside read-only.`,
+      );
+    }
+  },
+
+  async open({ positional }) {
+    const code = positional[0];
+    if (!code) throw new Error('Usage: pm open <CODE>');
+
+    const items = await openItems(code);
+    if (items.length === 0) {
+      console.log('Nothing outstanding with anyone.');
+      return;
+    }
+
+    for (const item of items) {
+      const when =
+        item.daysRemaining === null
+          ? item.daysOpen !== null
+            ? `open ${item.daysOpen}d`
+            : 'no date'
+          : item.daysRemaining < 0
+            ? `${Math.abs(item.daysRemaining)}d OVERDUE`
+            : `due in ${item.daysRemaining}d`;
+      console.log(
+        `${String(item.ref).padEnd(10)} ${String(item.owner ?? 'unassigned').padEnd(16)} ${when.padEnd(14)} ${item.subject}`,
+      );
+    }
+    console.log(`\npm nudge ${code} <REF> to draft a chase letter.`);
+  },
+
+  async nudge({ positional, flags }) {
+    const [code, ref] = positional;
+    if (!code || !ref) throw new Error('Usage: pm nudge <CODE> <REF>');
+
+    const brand = await loadBrand(code);
+    const draft = await writeChaseDraft(code, ref, {
+      brand,
+      asOf: typeof flags['as-of'] === 'string' ? flags['as-of'] : undefined,
+    });
+
+    if (!draft) {
+      console.error(`No entry with reference ${ref} in any register.`);
+      process.exit(1);
+    }
+
+    await commitLedger([draft.file], `correspondence(${code}): chase draft for ${draft.entry.ref}`);
+    console.log(draft.body);
+    console.log(`\nWritten to ${draft.file}`);
+    console.log('Nothing has been sent. Review it, then send it yourself.');
   },
 
   async bot() {

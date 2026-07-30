@@ -385,6 +385,65 @@ function registersAppendix(registers, brand) {
   );
 }
 
+/**
+ * Procurement, with order-by dates derived from the programme rather than typed
+ * out once and left to rot.
+ */
+function procurementAppendix(items, brand) {
+  const c = brand.colours;
+
+  const rows = items.map((item) => {
+    const status = item.orphaned
+      ? pill('grey', 'Unlinked')
+      : item.daysToOrder === null
+        ? pill('grey', 'No date')
+        : item.daysToOrder < 0
+          ? pill('red', `${Math.abs(item.daysToOrder)}d late`)
+          : item.daysToOrder <= 14
+            ? pill('amber', `${item.daysToOrder}d`)
+            : pill('green', `${item.daysToOrder}d`);
+
+    return {
+      item: `<span class="strong">${esc(item.item)}</span>${item.supplier ? `<div class="tight muted">${esc(item.supplier)}</div>` : ''}`,
+      activity: item.activity ? esc(item.activity) : '<span class="muted">—</span>',
+      lead: item.leadDays === null ? '<span class="muted">not recorded</span>' : `${item.leadDays}d`,
+      needOnSite: item.needOnSite ? esc(formatHuman(item.needOnSite)) : '<span class="muted">—</span>',
+      orderBy: item.orderBy
+        ? `<span class="strong">${esc(formatHuman(item.orderBy))}</span>`
+        : '<span class="muted">cannot be derived</span>',
+      status,
+    };
+  });
+
+  const orphaned = items.filter((i) => i.orphaned);
+
+  return (
+    table(
+      [
+        { key: 'item', label: 'Item', width: '26%' },
+        { key: 'activity', label: 'Activity', width: '12%' },
+        { key: 'lead', label: 'Lead', align: 'right', width: '10%' },
+        { key: 'needOnSite', label: 'Needed on site', width: '18%' },
+        { key: 'orderBy', label: 'Order by', width: '18%' },
+        { key: 'status', label: 'Float', width: '16%' },
+      ],
+      rows,
+    ) +
+    (orphaned.length > 0
+      ? `<div style="margin-top:3mm">${callout(
+          'Items no longer linked to the programme',
+          orphaned
+            .map(
+              (i) =>
+                `<div class="tight">${esc(i.ref)} ${esc(i.item)} — linked to ${esc(i.activity)}, which is not in the current programme.</div>`,
+            )
+            .join(''),
+        )}</div>`
+      : '') +
+    `<div class="provenance">Order-by dates are derived from the linked activity's planned start in the current programme, less the recorded lead time. They move when the programme moves.</div>`
+  );
+}
+
 function eventsAppendix(events, brand) {
   const rows = events.map((event) => ({
     ref: `<span class="strong">${esc(event.ref)}</span><div class="tight muted">${esc(formatHuman(event.date))}</div>`,
@@ -481,14 +540,25 @@ export async function renderWeeklyHtml(model, brand) {
     );
   }
 
+  if (a.procurement) {
+    appendices.push(
+      appendix(
+        'D',
+        'Procurement and long lead items',
+        'Order-by dates derived from the current programme.',
+        procurementAppendix(a.procurement, brand),
+      ),
+    );
+  }
+
   if (a.events) {
     appendices.push(
-      appendix('D', 'Delay events recorded this period', null, eventsAppendix(a.events, brand)),
+      appendix('E', 'Delay events recorded this period', null, eventsAppendix(a.events, brand)),
     );
   }
 
   if (a.commercial) {
-    appendices.push(appendix('E', 'Commercial position', null, commercialAppendix(a.commercial)));
+    appendices.push(appendix('F', 'Commercial position', null, commercialAppendix(a.commercial)));
   }
 
   const body = `

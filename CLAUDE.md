@@ -47,4 +47,12 @@ wrong without it.
   human, never derived from keywords.
 - **Never fabricate a measurement.** If progress is not in the Ledger, the output says
   "not measured", not a plausible number. These figures end up in payment
-  applications.
+  applications. The same rule governs generated correspondence: an unrecorded
+  consequence is omitted from a chase letter, never invented.
+- **Anything that reads the Ledger with an LLM is read-only.** `src/bot/ask.js` runs
+  Claude with a tool allowlist plus a redundant deny list, and never the
+  permission-bypass flags. An agent that could edit the Ledger could rewrite the
+  contemporaneous record the system exists to protect.
+- **Alerts are quiet and are part of the record.** Each condition fires once and stays
+  silent until it materially worsens; `02-ledger/alerts.yaml` is committed, because
+  "you were warned on this date" is itself evidence.

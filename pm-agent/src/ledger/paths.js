@@ -41,6 +41,8 @@ export function projectPaths(projectCode) {
     progress: path.join(root, '02-ledger', 'progress.yaml'),
     decisions: path.join(root, '02-ledger', 'decisions.yaml'),
     events: path.join(root, '02-ledger', 'events.yaml'),
+    // Committed, not transient: a record of what was flagged and when.
+    alerts: path.join(root, '02-ledger', 'alerts.yaml'),
 
     registers: path.join(root, '03-registers'),
     rfi: path.join(root, '03-registers', 'rfi.yaml'),
@@ -75,13 +77,3 @@ export function projectPaths(projectCode) {
   };
 }
 
-/** Path to the newest file in a directory, by filename sort. */
-export const REGISTER_FILES = [
-  'rfi',
-  'submittals',
-  'vo',
-  'ncr',
-  'risk',
-  'procurement',
-  'actions',
-];

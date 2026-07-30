@@ -21,6 +21,7 @@ import {
 } from '../programme/ingest.js';
 import { diffProgrammes } from '../analysis/diff.js';
 import { computeExceptions } from '../analysis/exceptions.js';
+import { entriesOf, isOpen, subjectOf, procurementDates } from '../ledger/registers.js';
 import { today, dayOf, daysBetween, addDays, formatHuman } from '../util/dates.js';
 
 // --- provenance ------------------------------------------------------------
@@ -184,10 +185,8 @@ function computeStatus({ completionShiftDays, negativeFloatCount, overdueDecisio
 
 // --- registers -------------------------------------------------------------
 
-const entriesOf = (register) => register?.entries ?? [];
-const isOpen = (entry) => !['closed', 'approved', 'answered', 'complete'].includes(
-  String(entry.status ?? 'open').toLowerCase(),
-);
+// Register conventions are shared with the alert rules so the two can never
+// disagree about what "open" means.
 
 /**
  * Turnaround against the *contractual* response period. Where the other side is
@@ -523,6 +522,28 @@ export async function buildWeeklyModel(projectCode, options = {}) {
   // when at least one register has something in it.
   const anyRegisterEntries = Object.values(registerSummaries).some((r) => r.total > 0);
 
+  // Procurement, with order-by dates derived from the live programme. Late
+  // material is the most common real cause of delay and is almost entirely
+  // preventable, so it earns a place in the client report.
+  const activityByCode = new Map(programme.activities.map((a) => [a.code ?? a.id, a]));
+  const procurementItems = entriesOf(registers.procurement)
+    .filter(isOpen)
+    .map((entry) => {
+      const derived = procurementDates(entry, activityByCode);
+      return {
+        ref: entry.ref,
+        item: subjectOf(entry),
+        supplier: entry.supplier ?? null,
+        activity: entry.activity ?? null,
+        leadDays: derived.leadDays,
+        needOnSite: derived.needOnSite,
+        orderBy: derived.orderBy,
+        orphaned: derived.orphaned,
+        daysToOrder: derived.orderBy ? daysBetween(asOf, derived.orderBy) : null,
+      };
+    })
+    .sort((a, b) => (a.daysToOrder ?? 9999) - (b.daysToOrder ?? 9999));
+
   const status = computeStatus({ completionShiftDays, negativeFloatCount, overdueDecisions });
 
   return {
@@ -564,6 +585,7 @@ export async function buildWeeklyModel(projectCode, options = {}) {
       lookahead: lookahead.items.length > 0 ? lookahead : null,
       photos: photos.length > 0 ? photos : null,
       registers: anyRegisterEntries ? registerSummaries : null,
+      procurement: procurementItems.length > 0 ? procurementItems : null,
       commercial: commercial.available ? commercial : null,
       events: events.length > 0 ? events : null,
     },

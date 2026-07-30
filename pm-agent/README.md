@@ -99,6 +99,11 @@ node bin/pm.js bot
 |---|---|
 | `/chase` | the daily update — it asks, you answer |
 | `/status` | forecast completion, progress, critical path count |
+| `/alerts` | everything currently flagged |
+| `/report` | this week's client report as a PDF |
+| `/ask <question>` | anything about the project record (or start a message with `?`) |
+| `/open` | decisions, actions and RFIs waiting on someone else |
+| `/nudge REF` | draft a chase letter for that reference |
 | `/diff` | what changed between the last two P6 updates |
 | `/health` | DCMA 14-point check |
 | `/lookahead [days]` | what is coming up and what is at risk |
@@ -109,7 +114,7 @@ up short"*. It extracts the date, the percentage, and recognises the delay. `ski
 `stop` work at any point.
 
 Send a photo with an activity code in the caption and it files it as evidence against
-that activity.
+that activity. Send a voice note and it becomes a site diary entry.
 
 ### How the chase decides what to ask
 
@@ -132,6 +137,93 @@ If the cause could support a claim and `contract.delayNoticeDays` is set in
 `project.yaml`, it computes and tells you the notice deadline. That single line is
 probably the highest-value thing in this repo: entitlement is lost on missed notice
 periods far more often than on weak merits.
+
+## Alerts — it tells you before you have to ask
+
+```bash
+node bin/pm.js alerts MARINA-01            # what is new
+node bin/pm.js alerts MARINA-01 --all      # everything currently open
+node bin/pm.js alerts MARINA-01 --send     # for cron
+```
+
+Conditions checked: contractual **notice deadlines** not yet issued, **decisions and
+actions** falling due, **RFIs and submittals** beyond the contractual response period,
+**procurement order-by dates**, activities crossing into **negative float**, and a
+**stale programme**.
+
+**It is quiet on purpose.** Each condition alerts once and then says nothing more
+until it gets materially worse — a notice deadline crossing inside three days, float
+worsening by five days, an RFI passing twice its response period. An alerter that
+repeats itself every morning gets muted, and a muted alerter is worse than none.
+
+Procurement order-by dates are **derived from the live programme**: need-on-site comes
+from the linked activity's planned start, less the recorded lead time. They move when
+the programme moves. If the linked activity disappears from a revision, the item is
+flagged as unlinked rather than falling silent — which is exactly when it matters.
+
+History lives in `02-ledger/alerts.yaml` and is **committed**. "You were warned about
+this on that date" is itself a contemporaneous record.
+
+## Asking questions
+
+```bash
+node bin/pm.js ask MARINA-01 "when did we first raise the block shortage?"
+```
+
+Runs Claude Code against the project folder, **strictly read-only** — the tool
+allowlist is `Read,Grep,Glob` with a redundant deny list, and the permission-bypass
+flags are deliberately never used. The ledger holds contract sums and claims strategy;
+an agent that could edit it could rewrite the contemporaneous record this whole system
+exists to protect.
+
+It is instructed to cite a file path for every claim and to answer **"Not in the
+project record"** rather than infer. Asked for a contract completion date that is still
+`_TBC_`, it says so instead of producing a plausible one.
+
+Costs roughly $0.25 a question at typical ledger size. There is a per-question cap and
+a daily ceiling — see `.env.example`. In Telegram, only `/ask` and a leading `?` spend
+money; ordinary messages still route to the chase answer.
+
+## Chasing other people
+
+```bash
+node bin/pm.js open MARINA-01              # what is with someone else
+node bin/pm.js nudge MARINA-01 DEC-001     # draft a chase letter
+```
+
+Letters are built from a **deterministic template**, not generated prose. A template
+cannot invent a consequence nobody recorded, cannot soften a date, and produces the
+same letter twice for the same facts — which matters when a series of chasers becomes
+the evidence that you pursued something diligently.
+
+Where the record is thin the letter says less and lists what is missing at the bottom,
+for you to add to the register and regenerate. Drafts land in
+`06-outputs/correspondence/`. Nothing is sent.
+
+## Voice notes
+
+Send one from site and it becomes a dated diary entry — weather, manpower by trade,
+plant, works by location, delays, instructions, visitors — with the verbatim
+transcript always kept underneath.
+
+Transcription runs as a command, so the engine is yours to choose. Local keeps site
+audio on your machine, which names people and incidents:
+
+```bash
+brew install ffmpeg whisper-cpp
+curl -L -o ~/.whisper/ggml-base.en.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
+```
+
+then set `PM_TRANSCRIBE_CMD` as shown in `.env.example`.
+
+**The record survives every failure.** No transcriber configured, transcription fails,
+or structuring fails — the audio is still filed as evidence, and any transcript still
+reaches the diary verbatim. A rambling dated transcript is a valid contemporaneous
+record; losing it because a parser was unhappy is not acceptable.
+
+If a delay is heard, an event is opened as `unclassified` and the bot asks who caused
+it. It never decides that itself.
 
 ## The weekly client report
 
@@ -229,21 +321,35 @@ For the 07:00 push, a second agent with `StartCalendarInterval` running
 `bin/pm.js chase <CODE> --send`, or a crontab line:
 
 ```cron
+# Morning chase, Sunday-Thursday for a Gulf working week.
 0 7 * * 0-4 cd /Users/you/Construction-React/pm-agent && /usr/local/bin/node bin/pm.js chase MARINA-01 --send
+
+# Alerts, a little earlier. Sends nothing on a quiet day.
+30 6 * * 0-4 cd /Users/you/Construction-React/pm-agent && /usr/local/bin/node bin/pm.js alerts MARINA-01 --send
 ```
 
-(Sunday–Thursday, for a Gulf working week.)
+By default a scheduled push goes to every chat in `TELEGRAM_ALLOWED_CHAT_IDS`. Set
+`telegram.chatId` in a project's `project.yaml` to send that project to one chat
+instead — it must still be in the allowlist, so a per-project setting can narrow the
+audience but never widen it.
 
 ## What this does not do yet
 
 Stated plainly so nothing here is mistaken for working:
 
-- **Voice notes are not transcribed.** The bot acknowledges them and asks for text.
+- **The voice engine is unverified on macOS.** The pipeline is built and tested
+  against a stub, but neither whisper.cpp nor ffmpeg existed in the environment this
+  was developed in, so the real `PM_TRANSCRIBE_CMD` needs confirming on your machine.
+  Everything either side of the transcriber — filing, diary writing, delay detection,
+  the fallbacks — is tested.
 - **No BOQ, valuation, cashflow or VO handling.** The folders exist; the logic does
   not. The report reads commercial data if you hand-enter it and marks it `manual`;
   otherwise the section does not appear.
 - **The report has no monthly or board variant yet.** Same engine, different section
   set — worth adding once the weekly has been used in anger.
+- **No RFI, VO or NCR can be raised from chat** — registers are edited by hand or by
+  the skills.
+- **No multi-project digest.** Each project is chased and alerted separately.
 - **DCMA checks 12–14** (critical path test, CPLI, BEI) are reported as unassessed
   rather than silently passed — they need a baseline and a perturbation run in P6.
 - **Reply parsing is deterministic, not an LLM.** It is good on the common phrasings
@@ -257,9 +363,22 @@ Stated plainly so nothing here is mistaken for working:
 npm test
 ```
 
-98 tests covering the XER parser (including the Windows-1252 encoding P6 actually
-writes), float and duration conversion, the exception engine, the diff engine against
-a deliberately dishonest revision, the DCMA checks, reply parsing, the P6 export
-format, an end-to-end chase that writes the Ledger, and the report model — including
-that a missing measurement can never render as a number, and that duration weighting
-does not let a handful of snagging items outweigh the frame.
+168 tests, and no test costs money or needs a network — the Claude runner and the
+transcriber are both exercised against stubs.
+
+Covering the XER parser (including the Windows-1252 encoding P6 actually writes),
+float and duration conversion, the exception engine, the diff engine against a
+deliberately dishonest revision, the DCMA checks, reply parsing, the P6 export format,
+an end-to-end chase that writes the Ledger, and the report model.
+
+The parts most worth the tests they have:
+
+- **Alert tiering and the quiet rule** — that a condition alerts once, stays silent at
+  the same tier, fires again when it escalates, and re-fires if it clears and returns.
+- **The read-only guarantee** — that the Claude invocation carries both an allowlist
+  and a deny list and never the permission-bypass flags.
+- **The record surviving failure** — that a failed transcription still files the audio,
+  and a failed structuring still writes the transcript to the diary.
+- **Never fabricating** — that a missing measurement cannot render as a number, that an
+  unrecorded consequence is omitted from a chase letter rather than invented, and that
+  duration weighting does not let a handful of snagging items outweigh the frame.
