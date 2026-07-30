@@ -50,6 +50,7 @@ node bin/pm.js exceptions MARINA-01     # what needs chasing
 node bin/pm.js chase MARINA-01          # answer in the terminal
 node bin/pm.js diff MARINA-01           # what changed between updates
 node bin/pm.js health MARINA-01         # DCMA 14-point check
+node bin/pm.js report MARINA-01 --pdf   # the weekly client report
 ```
 
 **Before trusting anything downstream**, open P6 side by side with the ingest output
@@ -132,6 +133,66 @@ If the cause could support a claim and `contract.delayNoticeDays` is set in
 probably the highest-value thing in this repo: entitlement is lost on missed notice
 periods far more often than on weak merits.
 
+## The weekly client report
+
+```bash
+node bin/pm.js report MARINA-01 --pdf --as-of 2026-08-05
+```
+
+Writes to `06-outputs/reports/` and commits. **Nothing is sent** — you review it and
+issue it yourself.
+
+**Page 1 is the whole story**: forecast completion and whether it moved, progress
+against plan, status, what changed this week, the S-curve, the critical path, the
+decisions needed from the client, and the top risks. Appendices — look-ahead,
+photographs, registers, delay events, commercial — attach only when they have
+something in them. A quiet week is one page.
+
+### Set up the letterhead first
+
+```bash
+cp report-assets/brand.example.yaml $LEDGER_ROOT/brand.yaml
+```
+
+Company name, logo, contact block, issuer, colours and page setup. Fill it in once;
+override per project with `<CODE>/report-brand.yaml` when reporting under a joint
+venture name. The command lists what is still missing every time it runs, because a
+report going to a client with a blank footer is a real defect.
+
+### What makes it trustworthy
+
+Every figure in the model carries its provenance — `measured` (recorded in the
+Ledger by a human), `programme` (as reported in the P6 update), `derived`,
+`manual`, or `not-measured`. Anything without a source prints as **"Not measured"**
+in the body of the report, visibly, rather than as a zero. A footnote states the
+basis of every number, including how progress was weighted and how stale the
+programme is. These figures end up in payment applications; an admitted gap is
+always better than a plausible invention.
+
+### PDF generation
+
+`pm report` alone needs no extra install — it writes a self-contained HTML file
+(fonts, logo and photographs all inlined) that opens in any browser and prints with
+Cmd+P. `--pdf` additionally needs a browser:
+
+```bash
+npm install --save-dev playwright
+npx playwright install chromium
+```
+
+Two details that are load-bearing rather than cosmetic:
+
+- **Fonts are embedded, and are static weights rather than a variable font.**
+  Chromium cannot subset an instance of a variable font, so it silently falls back
+  to Type3 glyph procedures — the report still looks right, but the PDF text stops
+  being selectable and searchable. Static weights produce real embedded TrueType.
+- **`page.pdf()`, not Chrome's `--print-to-pdf`.** The CLI cannot do
+  `printBackground`, which would strip every tinted panel and chart wash.
+
+`--png <file>` renders page 1 to an image and measures it. If page 1 exceeds the
+printable area, or any table is wider than the page, the command says so before you
+send it.
+
 ## Running it unattended on a Mac mini
 
 Save as `~/Library/LaunchAgents/com.pm-agent.bot.plist`, then
@@ -178,7 +239,11 @@ For the 07:00 push, a second agent with `StartCalendarInterval` running
 Stated plainly so nothing here is mistaken for working:
 
 - **Voice notes are not transcribed.** The bot acknowledges them and asks for text.
-- **No BOQ, valuation, cashflow or VO handling.** The folders exist; the logic does not.
+- **No BOQ, valuation, cashflow or VO handling.** The folders exist; the logic does
+  not. The report reads commercial data if you hand-enter it and marks it `manual`;
+  otherwise the section does not appear.
+- **The report has no monthly or board variant yet.** Same engine, different section
+  set — worth adding once the weekly has been used in anger.
 - **DCMA checks 12–14** (critical path test, CPLI, BEI) are reported as unassessed
   rather than silently passed — they need a baseline and a perturbation run in P6.
 - **Reply parsing is deterministic, not an LLM.** It is good on the common phrasings
@@ -192,7 +257,9 @@ Stated plainly so nothing here is mistaken for working:
 npm test
 ```
 
-67 tests covering the XER parser (including the Windows-1252 encoding P6 actually
+98 tests covering the XER parser (including the Windows-1252 encoding P6 actually
 writes), float and duration conversion, the exception engine, the diff engine against
 a deliberately dishonest revision, the DCMA checks, reply parsing, the P6 export
-format, and an end-to-end chase that writes the Ledger.
+format, an end-to-end chase that writes the Ledger, and the report model — including
+that a missing measurement can never render as a number, and that duration weighting
+does not let a handful of snagging items outweigh the frame.

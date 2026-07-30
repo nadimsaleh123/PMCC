@@ -9,10 +9,37 @@ The perceived quality of a project manager is largely the quality of their repor
 This produces a report that is internally consistent because everything in it comes
 from one source, and on time because it takes minutes.
 
-## Gather from the Ledger — do not ask the user for data that is already there
+## The weekly report is generated, not written
 
 ```bash
 cd pm-agent
+node bin/pm.js report <CODE> --pdf
+```
+
+That produces the whole document — letterhead, KPIs, S-curve, critical path,
+decisions required, risks, and the appendices — from the Ledger, with provenance on
+every figure. Run it first. Do not hand-write a report that the tool already builds,
+and do not reach for the `pdf` skill: it manipulates existing PDFs and cannot create
+a styled one.
+
+**Your job is the part the generator cannot do**: read the output and decide whether
+it tells the truth well. Specifically —
+
+- Is the executive story right? The generator ranks by float and lateness; you know
+  whether the thing at the top is actually what matters this week.
+- Are the `consequence` fields on decisions written in terms the client feels? "Blocks
+  slab handover" beats "delays A-1300".
+- Do the risk mitigations describe something actually in train, or aspiration?
+- Does anything read as an accusation rather than a fact?
+
+Edit the source data in the Ledger and regenerate. Do not hand-edit the HTML — it
+will be overwritten and the next report will regress.
+
+## For a monthly, board or ad-hoc report
+
+There is no monthly variant yet. Compose it from the same sources:
+
+```bash
 node bin/pm.js diff <CODE>        # what moved since last report
 node bin/pm.js exceptions <CODE>  # what is at risk now
 node bin/pm.js health <CODE>      # only if a new programme was submitted
@@ -64,6 +91,20 @@ Then read, from `<LEDGER_ROOT>/<CODE>/`:
 
 ## Output
 
-Write Markdown to `<LEDGER_ROOT>/<CODE>/06-outputs/reports/YYYY-MM-DD-<type>-report.md`.
-If the user wants PDF, DOCX or PPTX, use the `pdf`, `docx` or `pptx` skills to convert
-from that Markdown rather than authoring the content twice.
+The weekly writes itself to
+`<LEDGER_ROOT>/<CODE>/06-outputs/reports/YYYY-MM-DD-weekly-report-NN.{html,pdf}` and
+commits.
+
+For the report types that have no generator yet, write Markdown alongside it and use
+the `docx` or `pptx` skills if the user needs another format. Never use the `pdf`
+skill to build a report from scratch — it cannot style one.
+
+## Before you hand it over
+
+Run through the warnings the command prints. They are not cosmetic:
+
+- Missing brand contact details mean a client document with a blank footer.
+- A stale programme data date means every date in the report is computed from old
+  logic — say so to the client rather than letting them assume it is current.
+- "Page 1 is Nmm tall against a 265mm printable area" means the one-page summary has
+  spilled onto a second sheet. Cut content; do not shrink the type.

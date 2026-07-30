@@ -19,6 +19,7 @@ import { readYaml, ensureDir, exists } from '../src/ledger/store.js';
 import { commitLedger } from '../src/ledger/git.js';
 import { startChase, answerChase, finishChase } from '../src/bot/chase.js';
 import { runBot, pushChase } from '../src/bot/server.js';
+import { generateWeeklyReport } from '../src/report/generate.js';
 import { today } from '../src/util/dates.js';
 import { createInterface } from 'node:readline/promises';
 
@@ -31,6 +32,7 @@ const USAGE = `pm — construction Project Ledger
   pm chase <CODE> [--send]                   run the chase (terminal, or push to Telegram)
   pm diff <CODE>                             compare the last two programmes
   pm health <CODE>                           DCMA 14-point check
+  pm report <CODE> [--pdf] [--as-of DATE]    weekly client report
   pm bot                                     run the Telegram agent
 
 Environment:
@@ -248,6 +250,34 @@ const commands = {
 
     const file = await saveReport(code, `${today()}-schedule-health.md`, report);
     console.log(`\nSaved to ${file}`);
+  },
+
+  async report({ positional, flags }) {
+    const code = positional[0];
+    if (!code) throw new Error('Usage: pm report <CODE> [--pdf] [--as-of YYYY-MM-DD]');
+
+    const result = await generateWeeklyReport(code, {
+      asOf: typeof flags['as-of'] === 'string' ? flags['as-of'] : undefined,
+      reportNo: flags.no ? Number(flags.no) : undefined,
+      pdf: Boolean(flags.pdf),
+      png: typeof flags.png === 'string' ? flags.png : undefined,
+    });
+
+    const { model } = result;
+    console.log(`Weekly report no. ${model.meta.reportNo}, week ending ${model.meta.weekEnding}`);
+    console.log(`  Forecast completion  ${model.kpis.completion.date ?? '-'}${model.kpis.completion.movementDays ? ` (${model.kpis.completion.movementDays > 0 ? '+' : ''}${model.kpis.completion.movementDays}d this week)` : ''}`);
+    console.log(`  Status               ${model.status.label} — ${model.status.basis}`);
+    console.log(`  Decisions open       ${model.kpis.decisions.open} (${model.kpis.decisions.overdue} overdue)`);
+    console.log(`\n  HTML  ${result.htmlFile}`);
+    if (result.pdf) console.log(`  PDF   ${result.pdf.file}${result.pdf.pages ? ` (${result.pdf.pages} pages)` : ''}`);
+    if (result.sha) console.log(`  Committed ${result.sha.slice(0, 8)}`);
+
+    if (result.warnings.length > 0) {
+      console.log('\nBefore this goes to a client:');
+      for (const warning of result.warnings) console.log(`  - ${warning}`);
+    }
+
+    console.log('\nNothing has been sent. Review it, then issue it yourself.');
   },
 
   async bot() {

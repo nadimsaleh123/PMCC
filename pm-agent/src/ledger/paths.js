@@ -69,6 +69,9 @@ export function projectPaths(projectCode) {
 
     projectBrief: path.join(root, 'CLAUDE.md'),
     config: path.join(root, 'project.yaml'),
+    // Per-project override of <LEDGER_ROOT>/brand.yaml, for reporting under a
+    // joint venture name or a client's own template.
+    brand: path.join(root, 'report-brand.yaml'),
   };
 }
 
