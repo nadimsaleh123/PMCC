@@ -59,6 +59,16 @@ async function loadPlaywright() {
   throw error;
 }
 
+/** Whether a PDF can actually be produced on this machine. Used by `pm doctor`. */
+export async function playwrightAvailable() {
+  try {
+    await loadPlaywright();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function footerTemplate(model, brand, fontUri) {
   const face = fontUri
     ? `@font-face{font-family:'IBM Plex Sans';src:url(${fontUri}) format('woff2');font-weight:100 700;}`

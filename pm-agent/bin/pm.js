@@ -24,6 +24,7 @@ import { runAlerts, formatAlert, formatOpenAlerts } from '../src/alerts/index.js
 import { askLedger } from '../src/bot/ask.js';
 import { openItems, writeChaseDraft } from '../src/correspondence/chase-draft.js';
 import { loadBrand } from '../src/report/html/brand.js';
+import { diagnose, formatDiagnosis } from '../src/doctor.js';
 import { today } from '../src/util/dates.js';
 import { createInterface } from 'node:readline/promises';
 
@@ -41,6 +42,7 @@ const USAGE = `pm — construction Project Ledger
   pm ask <CODE> "<question>"                 answer from the project record
   pm open <CODE>                             what is waiting on someone else
   pm nudge <CODE> <REF>                      draft a chase letter
+  pm doctor [--deep]                         check this machine is set up
   pm bot                                     run the Telegram agent
 
 Environment:
@@ -386,6 +388,12 @@ const commands = {
     console.log(draft.body);
     console.log(`\nWritten to ${draft.file}`);
     console.log('Nothing has been sent. Review it, then send it yourself.');
+  },
+
+  async doctor({ flags }) {
+    const checks = await diagnose({ deep: Boolean(flags.deep) });
+    console.log(formatDiagnosis(checks));
+    if (checks.some((c) => c.status === 'fail')) process.exit(1);
   },
 
   async bot() {

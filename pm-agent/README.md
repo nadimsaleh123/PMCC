@@ -114,7 +114,8 @@ up short"*. It extracts the date, the percentage, and recognises the delay. `ski
 `stop` work at any point.
 
 Send a photo with an activity code in the caption and it files it as evidence against
-that activity. Send a voice note and it becomes a site diary entry.
+that activity. Voice notes are filed as evidence too, and become diary entries if you
+switch transcription on — see below.
 
 ### How the chase decides what to ask
 
@@ -170,19 +171,25 @@ this on that date" is itself a contemporaneous record.
 node bin/pm.js ask MARINA-01 "when did we first raise the block shortage?"
 ```
 
-Runs Claude Code against the project folder, **strictly read-only** — the tool
-allowlist is `Read,Grep,Glob` with a redundant deny list, and the permission-bypass
-flags are deliberately never used. The ledger holds contract sums and claims strategy;
-an agent that could edit it could rewrite the contemporaneous record this whole system
-exists to protect.
+**This uses your own Claude Code CLI, not an API key.** There is no API integration in
+this repo — the bot shells out to `claude`. If Claude Code is already installed and
+logged in on the machine, `/ask` works with no further setup: the login lives in
+`~/.claude` and `claude -p` inherits it.
+
+It runs **strictly read-only** — the tool allowlist is `Read,Grep,Glob` with a
+redundant deny list, and the permission-bypass flags are deliberately never used. The
+ledger holds contract sums and claims strategy; an agent that could edit it could
+rewrite the contemporaneous record this whole system exists to protect.
 
 It is instructed to cite a file path for every claim and to answer **"Not in the
 project record"** rather than infer. Asked for a contract completion date that is still
 `_TBC_`, it says so instead of producing a plausible one.
 
-Costs roughly $0.25 a question at typical ledger size. There is a per-question cap and
-a daily ceiling — see `.env.example`. In Telegram, only `/ask` and a leading `?` spend
-money; ordinary messages still route to the chase answer.
+**Cost is not flat.** Claude Code sends a large system prompt, so the same question
+costs about **$0.01 with a warm prompt cache and about $0.25 cold**. Do not set
+`PM_CLAUDE_BUDGET_USD` below ~$0.35 or questions will work all morning and then start
+failing after an idle period. There is also a daily ceiling. In Telegram only `/ask`
+and a leading `?` spend anything; ordinary messages still route to the chase answer.
 
 ## Chasing other people
 
@@ -200,27 +207,23 @@ Where the record is thin the letter says less and lists what is missing at the b
 for you to add to the register and regenerate. Drafts land in
 `06-outputs/correspondence/`. Nothing is sent.
 
-## Voice notes
+## Voice notes — optional, off by default
 
-Send one from site and it becomes a dated diary entry — weather, manpower by trade,
-plant, works by location, delays, instructions, visitors — with the verbatim
-transcript always kept underneath.
+**Leave this alone and nothing breaks.** With no transcriber configured, a voice note
+is filed as evidence and the bot asks you to send the update as text. That is a
+perfectly reasonable way to run it.
 
-Transcription runs as a command, so the engine is yours to choose. Local keeps site
-audio on your machine, which names people and incidents:
+If you ever want it on, transcription runs as a command, so any engine works — set
+`PM_TRANSCRIBE_CMD` (see `.env.example`). A local engine such as whisper.cpp keeps site
+audio, which names people and incidents, on your own machine. The pipeline either side
+of the transcriber is built and tested; only the engine itself is your choice.
 
-```bash
-brew install ffmpeg whisper-cpp
-curl -L -o ~/.whisper/ggml-base.en.bin \
-  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
-```
-
-then set `PM_TRANSCRIBE_CMD` as shown in `.env.example`.
-
-**The record survives every failure.** No transcriber configured, transcription fails,
-or structuring fails — the audio is still filed as evidence, and any transcript still
+When it is on, a note becomes a dated diary entry — weather, manpower by trade, plant,
+works by location, delays, instructions, visitors — with the verbatim transcript kept
+underneath. **The record survives every failure**: no transcriber, failed
+transcription, or failed structuring all still file the audio, and any transcript still
 reaches the diary verbatim. A rambling dated transcript is a valid contemporaneous
-record; losing it because a parser was unhappy is not acceptable.
+record; losing it because a parser was unhappy is not.
 
 If a delay is heard, an event is opened as `unclassified` and the bot asks who caused
 it. It never decides that itself.
@@ -287,7 +290,18 @@ send it.
 
 ## Running it unattended on a Mac mini
 
-Save as `~/Library/LaunchAgents/com.pm-agent.bot.plist`, then
+First, check the machine:
+
+```bash
+node bin/pm.js doctor --deep
+```
+
+It verifies Node, `HOME`, the ledger and its git repo, the Telegram token and
+allowlist, that Claude Code is installed **and actually signed in**, Playwright, the
+report fonts, and the budget setting. Run it **as the user the service will run as** —
+that is the whole point.
+
+Then save as `~/Library/LaunchAgents/com.pm-agent.bot.plist` and
 `launchctl load ~/Library/LaunchAgents/com.pm-agent.bot.plist`.
 
 ```xml
@@ -297,6 +311,7 @@ Save as `~/Library/LaunchAgents/com.pm-agent.bot.plist`, then
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.pm-agent.bot</string>
+  <key>UserName</key><string>you</string>
   <key>ProgramArguments</key>
   <array>
     <string>/usr/local/bin/node</string>
@@ -305,9 +320,17 @@ Save as `~/Library/LaunchAgents/com.pm-agent.bot.plist`, then
   </array>
   <key>EnvironmentVariables</key>
   <dict>
+    <!-- HOME is the one that catches everybody. launchd does not set it
+         reliably, and without it `claude` cannot find the login in ~/.claude,
+         so /ask fails while working perfectly from your terminal. -->
+    <key>HOME</key><string>/Users/you</string>
+    <!-- launchd's PATH is minimal; node, claude and git all need to be on it. -->
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     <key>TELEGRAM_BOT_TOKEN</key><string>...</string>
     <key>TELEGRAM_ALLOWED_CHAT_IDS</key><string>...</string>
     <key>LEDGER_ROOT</key><string>/Users/you/ledger/projects</string>
+    <key>PM_CLAUDE_BUDGET_USD</key><string>0.5</string>
+    <key>PM_CLAUDE_DAILY_USD</key><string>5</string>
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
@@ -316,6 +339,10 @@ Save as `~/Library/LaunchAgents/com.pm-agent.bot.plist`, then
 </dict>
 </plist>
 ```
+
+**`UserName` must be the account whose `~/.claude` holds the Claude Code login**, and
+`HOME` must point at that account. If `/ask` works in your terminal but fails under
+launchd, one of those two is wrong — `pm doctor --deep` will say which.
 
 For the 07:00 push, a second agent with `StartCalendarInterval` running
 `bin/pm.js chase <CODE> --send`, or a crontab line:
@@ -337,11 +364,9 @@ audience but never widen it.
 
 Stated plainly so nothing here is mistaken for working:
 
-- **The voice engine is unverified on macOS.** The pipeline is built and tested
-  against a stub, but neither whisper.cpp nor ffmpeg existed in the environment this
-  was developed in, so the real `PM_TRANSCRIBE_CMD` needs confirming on your machine.
-  Everything either side of the transcriber — filing, diary writing, delay detection,
-  the fallbacks — is tested.
+- **Voice transcription is off** unless you configure an engine, and the engine itself
+  is unverified — the pipeline is tested against a stub. Everything either side of the
+  transcriber (filing, diary writing, delay detection, the fallbacks) is tested.
 - **No BOQ, valuation, cashflow or VO handling.** The folders exist; the logic does
   not. The report reads commercial data if you hand-enter it and marks it `manual`;
   otherwise the section does not appear.
@@ -363,7 +388,7 @@ Stated plainly so nothing here is mistaken for working:
 npm test
 ```
 
-168 tests, and no test costs money or needs a network — the Claude runner and the
+181 tests, and no test costs money or needs a network — the Claude runner and the
 transcriber are both exercised against stubs.
 
 Covering the XER parser (including the Windows-1252 encoding P6 actually writes),

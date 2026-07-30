@@ -483,10 +483,13 @@ async function handleVoice(tg, chatId, message, state) {
   });
 
   if (!result.ok) {
+    // Voice transcription being switched off is a configuration choice, not a
+    // fault, and should not be reported as one.
     await tg.send(
       chatId,
-      `The audio is filed as evidence, but I could not transcribe it.\n\n${result.error}` +
-        (result.configured ? '' : '\n\nSend the update as text and it goes straight into the diary.'),
+      result.configured
+        ? `The audio is filed as evidence, but transcription failed.\n\n${result.error}\n\nSend it as text and it goes straight into the diary.`
+        : `Filed the recording as evidence. Voice transcription is switched off, so send me the update as text and it goes straight into the diary.`,
     );
     return;
   }

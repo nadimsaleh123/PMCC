@@ -21,6 +21,15 @@ const READ_ONLY_TOOLS = 'Read,Grep,Glob';
 const DENIED_TOOLS = 'Write,Edit,NotebookEdit,Bash,WebFetch,WebSearch';
 
 const DEFAULT_TIMEOUT_MS = 120_000;
+
+/**
+ * A single call is not as cheap as it looks. Claude Code sends a large system
+ * prompt, so the same trivial question costs about $0.01 when the prompt cache is
+ * warm and about $0.25 when it is cold. A budget below roughly $0.35 therefore
+ * fails intermittently - working all morning and then aborting after an idle
+ * period, which is a miserable thing to debug.
+ */
+export const BUDGET_FLOOR_USD = 0.35;
 const DEFAULT_BUDGET_USD = 0.5;
 
 /**
@@ -160,6 +169,10 @@ export function runClaude(options) {
         }
       }
 
+      // An empty error is almost always the budget cap biting on a cold prompt
+      // cache. Say that, rather than "the model reported an error".
+      const suspectBudget = envelope.is_error === true && !text && budgetUsd < BUDGET_FLOOR_USD;
+
       resolve({
         ok: envelope.is_error !== true && code === 0,
         result: text,
@@ -167,7 +180,13 @@ export function runClaude(options) {
         costUsd: typeof envelope.total_cost_usd === 'number' ? envelope.total_cost_usd : null,
         // If it is trying to write, that is worth knowing about even though it failed.
         denials: envelope.permission_denials ?? [],
-        error: envelope.is_error === true ? text || 'The model reported an error' : null,
+        error:
+          envelope.is_error === true
+            ? text ||
+              (suspectBudget
+                ? `Stopped at the $${budgetUsd} cap. A single question costs up to about $0.25 when the prompt cache is cold — raise PM_CLAUDE_BUDGET_USD to at least ${BUDGET_FLOOR_USD}.`
+                : 'The model reported an error')
+            : null,
       });
     });
   });
