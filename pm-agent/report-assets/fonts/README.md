@@ -1,5 +1,14 @@
 # Fonts
 
+**Fraunces**, Latin subset, static instances from the `@fontsource/fraunces` npm
+package (v5.3.0). The display face — carries the PMCC brand voice from the website
+into print. Used only for the project name, hero figures and appendix titles.
+
+| File | Weight |
+|---|---|
+| `fraunces-400.woff2` | Regular — large dates where SemiBold is too heavy |
+| `fraunces-600.woff2` | SemiBold — project name, hero figures, appendix titles |
+
 **IBM Plex Sans**, Latin1 subset, from the `@ibm/plex-sans` npm package.
 
 Licensed under the [SIL Open Font License 1.1](https://openfontlicense.org/) — full

@@ -214,8 +214,9 @@ test('the S-curve plots each series and directly labels only the endpoint', () =
   );
 
   assert.match(svg, /<svg viewBox/);
-  // Two actual points, so two markers - and exactly one direct label.
-  assert.equal((svg.match(/<circle/g) ?? []).length, 2);
+  // Two actual points make two markers, plus the ring on the forecast endpoint -
+  // and exactly one direct percentage label.
+  assert.equal((svg.match(/<circle/g) ?? []).length, 3);
   assert.equal((svg.match(/45%/g) ?? []).length, 1);
   assert.match(svg, /stroke-dasharray/, 'forecast is dashed');
   assert.match(svg, /Data date/);
@@ -262,7 +263,7 @@ test('the progress meter renders nothing when progress is unknown', () => {
 test('fonts are embedded as data URIs, not linked', async () => {
   const { css, embedded, missing } = await fontFaceCss();
   assert.deepEqual(missing, [], 'all declared faces should be present in report-assets');
-  assert.equal(embedded.length, 3);
+  assert.equal(embedded.length, 5);
   assert.match(css, /src: url\(data:font\/woff2;base64,/);
   assert.doesNotMatch(css, /https?:/, 'a client report must not depend on a network fetch');
 });

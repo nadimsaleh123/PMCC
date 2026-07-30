@@ -20,8 +20,7 @@ import {
   pill,
   callout,
   figure,
-  hero,
-  tile,
+  stripCell,
   table,
   floatCell,
   dueCell,
@@ -41,8 +40,10 @@ function letterhead(model, brand) {
     ? `<img src="${brand.logoDataUri}" alt="${esc(brand.company.name)}"/>`
     : '';
 
+  // Row 1 on white - a client logo of any colour survives. The band beneath is
+  // the brand itself: charcoal, bone type, one yellow rule.
   return `
-  <div class="letterhead">
+  <div class="masthead-top">
     <div class="mark">
       ${logo}
       <div>
@@ -56,14 +57,14 @@ function letterhead(model, brand) {
       ${brand.issuer.name ? `<div class="no">Issued by ${esc(brand.issuer.name)}${brand.issuer.title ? `, ${esc(brand.issuer.title)}` : ''}</div>` : ''}
     </div>
   </div>
-  <div class="rule"></div>
-  <div class="projectline">
+  <div class="band">
     <div class="name">${esc(model.meta.name)}</div>
     <div class="meta">
-      ${esc(model.meta.code)}<br/>
+      <span class="code">${esc(model.meta.code)}</span><br/>
       Programme data date ${esc(formatHuman(model.meta.dataDate))}
     </div>
-  </div>`;
+  </div>
+  <div class="band-accent"></div>`;
 }
 
 function headline(model, brand) {
@@ -92,8 +93,8 @@ function headline(model, brand) {
           ? `On the contract completion date (${formatHuman(kpi.completion.contractDate)})`
           : `${Math.abs(variance)} days inside contract completion (${formatHuman(kpi.completion.contractDate)})`;
 
-  const progressTile = hasValue(model.kpis.progress.actual)
-    ? tile({
+  const progressCell = hasValue(model.kpis.progress.actual)
+    ? stripCell({
         label: 'Progress',
         raw: `${model.kpis.progress.actual.value}%`,
         sub: hasValue(model.kpis.progress.planned)
@@ -101,35 +102,34 @@ function headline(model, brand) {
              <div style="margin-top:0.8mm">Plan ${model.kpis.progress.planned.value}% &middot; ${model.kpis.progress.variance.value > 0 ? '+' : ''}${model.kpis.progress.variance.value ?? '—'} pts</div>`
           : 'No baseline to compare against',
       })
-    : tile({
+    : stripCell({
         label: 'Progress',
         raw: figure(model.kpis.progress.actual),
       });
 
   return `
-  <div class="headline">
-    ${hero({
+  <div class="strip">
+    ${stripCell({
+      lead: true,
       label: 'Forecast completion',
-      value: esc(formatHuman(kpi.completion.date)),
+      raw: esc(formatHuman(kpi.completion.date)),
       delta: deltaText,
       deltaTone,
-      sub,
+      sub: esc(sub),
     })}
-    <div class="tiles">
-      ${progressTile}
-      ${tile({
-        label: 'Status',
-        raw: pill(model.status.rag, model.status.label),
-        sub: esc(model.status.basis),
-      })}
-      ${tile({
-        label: 'Decisions needed',
-        raw: String(kpi.decisions.open),
-        sub: kpi.decisions.overdue > 0
-          ? `<span style="color:${c.red};font-weight:600">${kpi.decisions.overdue} overdue</span>`
-          : 'None overdue',
-      })}
-    </div>
+    ${progressCell}
+    ${stripCell({
+      label: 'Status',
+      raw: pill(model.status.rag, model.status.label),
+      sub: esc(model.status.basis),
+    })}
+    ${stripCell({
+      label: 'Decisions needed',
+      raw: String(kpi.decisions.open),
+      sub: kpi.decisions.overdue > 0
+        ? `<span style="color:${c.red};font-weight:600">${kpi.decisions.overdue} overdue</span>`
+        : 'None overdue',
+    })}
   </div>`;
 }
 
@@ -163,6 +163,7 @@ function movements(model) {
 function progressChart(model, brand) {
   const svg = sCurveSvg(model.sCurve, {
     dataDate: model.meta.dataDate,
+    contractDate: model.kpis.completion.contractDate,
     colours: brand.colours,
   });
   const legend = sCurveLegend(brand.colours, {
@@ -246,7 +247,7 @@ function provenance(model, brand) {
   const notes = [];
 
   notes.push(
-    `Progress is reported as recorded in the P6 update dated ${formatHuman(model.meta.dataDate)}, weighted by ${model.kpis.progress.weightBasis ?? 'activity duration'}.`,
+    `Progress is reported as recorded in the programme update dated ${formatHuman(model.meta.dataDate)}, weighted by ${model.kpis.progress.weightBasis ?? 'activity duration'}.`,
   );
 
   if (hasValue(model.kpis.progress.planned)) {
@@ -269,7 +270,8 @@ function provenance(model, brand) {
 function appendix(letter, title, subtitle, body) {
   return `
   <div class="appendix">
-    <div class="appendix-title">Appendix ${letter} &middot; ${esc(title)}</div>
+    <div class="appendix-eyebrow">Appendix ${letter}</div>
+    <div class="appendix-title">${esc(title)}</div>
     ${subtitle ? `<div class="appendix-sub">${esc(subtitle)}</div>` : ''}
     <div class="rule"></div>
     <div style="margin-top:4mm">${body}</div>
@@ -566,21 +568,21 @@ export async function renderWeeklyHtml(model, brand) {
     ${letterhead(model, brand)}
     ${headline(model, brand)}
     ${stale ? `<div style="margin-top:5mm">${stale}</div>` : ''}
-    ${section('What moved this week', movements(model))}
+    ${section('What moved this week', movements(model), { index: '01' })}
     <div class="section">
       <div class="cols">
         <div class="col-60">
-          <div class="eyebrow">Progress against plan</div>
+          <div class="eyebrow"><span class="index">02</span>Progress against plan</div>
           ${progressChart(model, brand)}
         </div>
         <div class="col-40">
-          <div class="eyebrow">Critical path</div>
+          <div class="eyebrow"><span class="index">03</span>Critical path</div>
           ${criticalPath(model, brand)}
         </div>
       </div>
     </div>
-    ${section('Decisions required from you', decisions(model, brand), { count: model.decisions.length ? `${model.decisions.length} open` : '' })}
-    ${section('Risks', risks(model))}
+    ${section('Decisions required from you', decisions(model, brand), { index: '04', count: model.decisions.length ? `${model.decisions.length} open` : '' })}
+    ${section('Risks', risks(model), { index: '05' })}
     ${provenance(model, brand)}
   </div>
   ${appendices.join('')}`;

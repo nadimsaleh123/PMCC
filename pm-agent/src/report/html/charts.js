@@ -40,8 +40,8 @@ const round = (n) => Math.round(n * 10) / 10;
 export function sCurveSvg(sCurve, options = {}) {
   const { colours } = options;
   const W = 660;
-  const H = 196;
-  const pad = { top: 14, right: 46, bottom: 26, left: 30 };
+  const H = 208;
+  const pad = { top: 18, right: 52, bottom: 26, left: 30 };
 
   const plotW = W - pad.left - pad.right;
   const plotH = H - pad.top - pad.bottom;
@@ -52,6 +52,12 @@ export function sCurveSvg(sCurve, options = {}) {
   }
 
   const times = allPoints.map((p) => parseDay(p.date)).filter((t) => !Number.isNaN(t));
+  // The contract completion date is part of the story even when it sits beyond
+  // every curve - a forecast drifting past it is exactly what the reader needs to
+  // see - so it participates in the domain.
+  if (options.contractDate && !Number.isNaN(parseDay(options.contractDate))) {
+    times.push(parseDay(options.contractDate));
+  }
   const minT = Math.min(...times);
   const maxT = Math.max(...times);
   const span = maxT - minT || 1;
@@ -99,6 +105,18 @@ export function sCurveSvg(sCurve, options = {}) {
     }
   }
 
+  // Contract completion - the line the whole chart is read against. Ink, solid,
+  // labelled; a forecast crossing it should be unmissable without a single word.
+  if (options.contractDate && !Number.isNaN(parseDay(options.contractDate))) {
+    const cx = round(x(options.contractDate));
+    if (cx >= pad.left && cx <= pad.left + plotW) {
+      parts.push(
+        `<line x1="${cx}" y1="${pad.top - 6}" x2="${cx}" y2="${pad.top + plotH}" stroke="${colours.ink}" stroke-width="1.2"/>`,
+        `<text x="${cx - 4}" y="${pad.top + 2}" text-anchor="end" font-size="8" font-weight="600" fill="${colours.ink}">Contract completion</text>`,
+      );
+    }
+  }
+
   // Baseline plan: neutral reference, thinner than the data series.
   if (sCurve.planned.length > 1) {
     parts.push(
@@ -107,11 +125,22 @@ export function sCurveSvg(sCurve, options = {}) {
   }
 
   // Forecast: same hue as actual, dashed. Dashing here means projection, which is
-  // exactly what it is.
+  // exactly what it is. The endpoint is labelled with its date - the forecast
+  // completion is the figure this chart exists to show arriving.
   if (sCurve.forecast.length > 1) {
     parts.push(
       `<path d="${line(sCurve.forecast)}" fill="none" stroke="${CHART.series}" stroke-width="2" stroke-dasharray="5 3" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/>`,
     );
+    const end = sCurve.forecast.at(-1);
+    if (!Number.isNaN(parseDay(end.date))) {
+      const [, m, d] = end.date.split('-');
+      // Label sits in the right padding, clear of the contract-completion label
+      // which owns the top edge.
+      parts.push(
+        `<circle cx="${round(x(end.date))}" cy="${round(y(end.percent))}" r="3" fill="none" stroke="${CHART.series}" stroke-width="1.5"/>`,
+        `<text x="${round(x(end.date)) + 7}" y="${round(y(end.percent)) + 3}" text-anchor="start" font-size="8.5" font-weight="600" fill="${CHART.series}">${Number(d)} ${MONTHS[Number(m) - 1]}</text>`,
+      );
+    }
   }
 
   // Actual: the recorded truth. Area wash beneath it, markers on every real
@@ -165,7 +194,7 @@ export function sCurveLegend(colours, { hasPlanned, hasActual }) {
   }
   if (hasActual) {
     keys.push(
-      `<span class="key"><span class="swatch" style="border-top-color:${CHART.series}"></span>Actual (per P6 update)</span>`,
+      `<span class="key"><span class="swatch" style="border-top-color:${CHART.series}"></span>Actual (recorded)</span>`,
     );
   }
   keys.push(

@@ -84,7 +84,10 @@ function footerTemplate(model, brand, fontUri) {
     font-size:7pt; color:${brand.colours.muted};
     width:100%; padding:0 ${brand.page.marginSideMm}mm;
     display:flex; justify-content:space-between; align-items:center;">
-    <span>${left}</span>
+    <span style="display:flex; align-items:center;">
+      <span style="display:inline-block; width:10px; height:3px; background:${brand.colours.accent}; margin-right:7px;"></span>
+      ${left}
+    </span>
     <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
   </div>`;
 }
@@ -181,7 +184,7 @@ export async function htmlToPng(html, outFile, options = {}) {
     // a client does. Measured, not eyeballed.
     const overflow = await page.evaluate(() => {
       const limit = document.documentElement.clientWidth;
-      return [...document.querySelectorAll('table, .cols, .tiles, .photos, svg')]
+      return [...document.querySelectorAll('table, .cols, .strip, .band, .photos, svg')]
         .filter((el) => el.getBoundingClientRect().right > limit + 0.5)
         .map((el) => `${el.tagName.toLowerCase()}.${el.className}`)
         .slice(0, 8);

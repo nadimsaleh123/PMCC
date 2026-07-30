@@ -33,6 +33,11 @@ const FACES = [
   { file: 'ibm-plex-sans-400.woff2', family: 'IBM Plex Sans', weight: '400', style: 'normal' },
   { file: 'ibm-plex-sans-500.woff2', family: 'IBM Plex Sans', weight: '500', style: 'normal' },
   { file: 'ibm-plex-sans-600.woff2', family: 'IBM Plex Sans', weight: '600', style: 'normal' },
+  // Fraunces carries the brand voice from the website into print. Display sizes
+  // only - project name, hero figures, appendix titles - never body copy, because
+  // its proportional digits would wreck a column of dates.
+  { file: 'fraunces-400.woff2', family: 'Fraunces', weight: '400', style: 'normal' },
+  { file: 'fraunces-600.woff2', family: 'Fraunces', weight: '600', style: 'normal' },
 ];
 
 /** The stack used when a face is missing. Named so the failure is diagnosable. */

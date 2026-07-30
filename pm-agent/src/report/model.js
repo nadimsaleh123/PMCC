@@ -339,7 +339,11 @@ export async function buildWeeklyModel(projectCode, options = {}) {
     } else {
       movements.push({ text: `Forecast completion unchanged at ${formatHuman(diff.to.forecastFinish)}.` });
     }
-    for (const flag of diff.redFlags) movements.push({ text: flag, flag: true });
+    // The completion-shift red flag restates the emphasis line above verbatim in
+    // different words; every other flag carries new information.
+    for (const flag of diff.redFlags.filter((f) => !f.startsWith('Forecast completion moved'))) {
+      movements.push({ text: flag, flag: true });
+    }
 
     const advanced = diff.statusChanges.filter((s) => s.toStatus === 'complete').length;
     if (advanced > 0) {
@@ -546,6 +550,12 @@ export async function buildWeeklyModel(projectCode, options = {}) {
 
   const status = computeStatus({ completionShiftDays, negativeFloatCount, overdueDecisions });
 
+  // The contract completion date is a contract fact, not a programme fact. P6
+  // carries it as must-finish-by when the scheduler set one; MS Project exports
+  // have no equivalent field, so the ledger's contract record is the fallback -
+  // and the authoritative one, since it is what was signed.
+  const contractDate = dayOf(programme.project.mustFinishBy ?? config.contract?.completionDate ?? null);
+
   return {
     meta: {
       code: projectCode,
@@ -564,11 +574,11 @@ export async function buildWeeklyModel(projectCode, options = {}) {
     kpis: {
       completion: {
         date: dayOf(programme.stats.forecastFinish),
-        contractDate: dayOf(programme.project.mustFinishBy),
+        contractDate,
         movementDays: completionShiftDays,
         varianceDays:
-          programme.project.mustFinishBy && programme.stats.forecastFinish
-            ? daysBetween(programme.project.mustFinishBy, programme.stats.forecastFinish)
+          contractDate && programme.stats.forecastFinish
+            ? daysBetween(contractDate, programme.stats.forecastFinish)
             : null,
       },
       progress,

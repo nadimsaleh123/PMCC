@@ -35,6 +35,10 @@ export const DEFAULTS = {
     green: '#15803D',
     amber: '#B45309',
     red: '#B91C1C',
+    // The masthead band: the website's charcoal-and-bone, carried into print.
+    band: '#241F1B',
+    bone: '#F4EFE6',
+    boneMuted: 'rgba(244, 239, 230, 0.66)',
   },
   page: { size: 'A4', marginTopMm: 16, marginBottomMm: 16, marginSideMm: 14 },
 };

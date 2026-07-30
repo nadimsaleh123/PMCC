@@ -16,9 +16,9 @@ export const esc = (value) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-export const section = (title, body, { count } = {}) => `
+export const section = (title, body, { count, index } = {}) => `
   <div class="section">
-    <div class="eyebrow">${esc(title)}${count !== undefined ? ` <span class="count">${esc(count)}</span>` : ''}</div>
+    <div class="eyebrow">${index ? `<span class="index">${esc(index)}</span>` : ''}${esc(title)}${count ? ` <span class="count">${esc(count)}</span>` : ''}</div>
     ${body}
   </div>`;
 
@@ -46,26 +46,16 @@ export function figure(value, { suffix = '', unmeasuredClass = 'unmeasured' } = 
 }
 
 /**
- * The hero figure. Exactly one per report - the completion date, because that is
- * the number every other number on the page exists to explain.
+ * One column of the data strip. The lead cell is the completion date, because
+ * that is the number every other number on the page exists to explain - it gets
+ * more width and a larger figure, nothing else differs.
  */
-export function hero({ label, value, delta, deltaTone, sub }) {
+export function stripCell({ label, value, raw, delta, deltaTone, sub, lead = false }) {
   return `
-  <div class="hero">
+  <div class="cell${lead ? ' lead' : ''}">
     <div class="label">${esc(label)}</div>
-    <div class="value">${value}</div>
+    <div class="value">${raw ?? esc(value)}</div>
     ${delta ? `<div class="delta" style="color:${deltaTone}">${esc(delta)}</div>` : ''}
-    ${sub ? `<div class="sub">${esc(sub)}</div>` : ''}
-  </div>`;
-}
-
-export function tile({ label, value, sub, raw }) {
-  return `
-  <div class="tile">
-    <div>
-      <div class="label">${esc(label)}</div>
-      <div class="value">${raw ?? esc(value)}</div>
-    </div>
     ${sub ? `<div class="sub">${sub}</div>` : ''}
   </div>`;
 }
