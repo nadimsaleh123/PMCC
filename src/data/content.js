@@ -55,29 +55,47 @@ export const services = [
   },
 ];
 
-/** The record, straight from the qualification statement. */
-export const works = [
-  { year: "2002", name: "Microsoft Regional Offices", place: "Beirut Central District", scope: "Office fit-out · construction management", client: "Microsoft" },
-  { year: "2003", name: "Fatka 651", place: "Fatka", scope: "Residential building · construction management" },
-  { year: "2004", name: "Hara House", place: "Baabdath", scope: "Restoration · full works" },
-  { year: "2005", name: "WWII Museum", place: "Khiam", scope: "Restoration · Mercy Corps" },
-  { year: "2005", name: "Baaklini Residence", place: "Dahr El Souane", scope: "Three houses · construction management" },
-  { year: "2006", name: "Villa Moussa", place: "Dahr El Souane", scope: "Villa · construction management" },
-  { year: "2008", name: "Villa Zreik", place: "Faqra", scope: "Villa · construction management" },
-  { year: "2008", name: "Villa Helou", place: "Yarze", scope: "Villa · concrete works" },
-  { year: "2009", name: "Villa Yazbeck", place: "Bekhaaz", scope: "Restoration · full works" },
-  { year: "2003–16", name: "MEDCO Service Stations", place: "BCD · Dora · Monsif · Joura · Jieh · Damour", scope: "Network rollout · construction management", client: "MEDCO" },
-  { year: "2011", name: "Villa Tyan", place: "Baabdath", scope: "Restoration · full works" },
-  { year: "2012", name: "Microsoft Offices, Berytus", place: "Beirut", scope: "Renovation · finishes & MEP", client: "Microsoft" },
-  { year: "2015", name: "Arab Investment Bank", place: "Beirut Central District", scope: "Offices · renovation", client: "Arab Investment Bank" },
-  { year: "2016", name: "C & F Commercial Center", place: "Zalka", scope: "Renovation · facade" },
-  { year: "2016", name: "Villa Fakhoury", place: "Kfardebian", scope: "Villa · construction management" },
-  { year: "2017", name: "Tiresmart Building", place: "Jounieh–Tripoli Highway", scope: "Commercial · concrete works" },
-  { year: "2018", name: "Zalka 208", place: "Zalka", scope: "Office building · project management" },
-  { year: "—", name: "Marina Gate Tower", place: "Jounieh", scope: "Office tower · project management", status: "under construction" },
-  { year: "2026", name: "Bcharreh Heritage Houses", place: "Bcharreh", scope: "Two mountain houses · repair & renovation", status: "under construction" },
-  { year: "2027", name: "Naccache 401–413", place: "Naccache", scope: "Two-block residential · construction management", status: "under construction" },
-  { year: "Now", name: "Daher el Souane 563", place: "Daher El Souane", scope: "Four full-floor residences · developed & built by PMCC", status: "selling", href: "/daher-el-souane-563" },
+/**
+ * Selected work, grouped the way a prospect actually reads a builder:
+ * recognisable names, breadth, and what is on site right now. All entries
+ * from the qualification statement; the full record goes out on request.
+ */
+export const workGroups = [
+  {
+    title: "Corporate & banking",
+    note: "Fit-outs and renovations for clients who audit everything.",
+    items: [
+      { name: "Microsoft Regional Offices", meta: "Beirut Central District · 2002" },
+      { name: "Microsoft Offices, Berytus", meta: "Beirut · 2012" },
+      { name: "Arab Investment Bank", meta: "Beirut Central District · 2015" },
+    ],
+  },
+  {
+    title: "The MEDCO network",
+    note: "One client, thirteen years, six service stations along the coast.",
+    items: [
+      { name: "Six stations, BCD to Damour", meta: "2003 – 2016 · construction management" },
+    ],
+  },
+  {
+    title: "Villas & restoration",
+    note: "Two generations of private houses — built new, or brought back.",
+    items: [
+      { name: "Villa Zreik", meta: "Faqra · 2008" },
+      { name: "Villa Fakhoury", meta: "Kfardebian · 2016" },
+      { name: "WWII Museum", meta: "Khiam · restoration · 2005" },
+      { name: "Villa Tyan", meta: "Baabdath · restoration · 2011" },
+    ],
+  },
+  {
+    title: "On site now",
+    note: "Four programmes running today, from Jounieh to the high mountains.",
+    items: [
+      { name: "Marina Gate Tower", meta: "Jounieh · office tower" },
+      { name: "Naccache 401–413", meta: "Naccache · residential · 2027" },
+      { name: "Bcharreh Heritage Houses", meta: "Bcharreh · restoration · 2026" },
+    ],
+  },
 ];
 
 export const clients = [

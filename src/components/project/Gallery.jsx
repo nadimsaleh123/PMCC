@@ -11,6 +11,7 @@ import { project } from "../../data/content";
 
 export default function Gallery() {
   const section = useRef(null);
+  const pinTarget = useRef(null);
   const track = useRef(null);
 
   useLayoutEffect(() => {
@@ -23,7 +24,7 @@ export default function Gallery() {
           x: () => -distance(),
           ease: "none",
           scrollTrigger: {
-            trigger: section.current,
+            trigger: pinTarget.current,
             start: "top top",
             end: () => `+=${distance()}`,
             pin: true,
@@ -55,7 +56,8 @@ export default function Gallery() {
   }, []);
 
   return (
-    <section ref={section} className="overflow-clip bg-ink motion-safe:lg:h-screen">
+    <section ref={section} className="bg-ink">
+      <div ref={pinTarget} className="overflow-clip motion-safe:lg:h-screen">
       <div className="flex items-baseline justify-between px-5 pt-20 sm:px-8 motion-safe:lg:pt-24">
         <p className="type-eyebrow text-smoke">The building</p>
         <p className="hidden font-sans text-xs text-smoke motion-safe:lg:block" aria-hidden="true">
@@ -86,6 +88,7 @@ export default function Gallery() {
             </figcaption>
           </figure>
         ))}
+      </div>
       </div>
     </section>
   );

@@ -4,7 +4,7 @@ import { gsap, reducedMotion } from "../lib/motion";
 import { Lines, Fade } from "../components/reveal";
 import WarpImage from "../components/WarpImage";
 import Timeline from "../components/home/Timeline";
-import WorksIndex from "../components/home/WorksIndex";
+import SelectedWork from "../components/home/SelectedWork";
 import { heroClaim, stats, services, clients, project } from "../data/content";
 
 function Hero() {
@@ -28,8 +28,8 @@ function Hero() {
   }, []);
 
   return (
-    <section ref={root} className="relative flex h-[100svh] flex-col pt-20">
-      <div className="flex min-h-0 flex-1 flex-col justify-center px-5 sm:px-8">
+    <section ref={root} className="relative grid h-[100svh] grid-rows-[minmax(0,1fr)_auto] pt-[72px]">
+      <div className="flex min-h-0 flex-col justify-center overflow-clip px-5 sm:px-8">
         <Fade delay={0.35}>
           <p className="type-eyebrow text-smoke">{heroClaim.eyebrow}</p>
         </Fade>
@@ -37,13 +37,13 @@ function Hero() {
           as="h1"
           trigger={false}
           delay={0.35}
-          className="type-display mt-6 max-w-6xl text-[clamp(2.9rem,9.5vw,8.6rem)] text-bone"
+          className="type-display mt-[2svh] max-w-6xl text-[clamp(2.4rem,min(8.2vw,11.5svh),7.6rem)] text-bone"
         >
           {heroClaim.lines[0]}
           <br />
           <em className="type-display-it text-stone">{heroClaim.lines[1]}</em>
         </Lines>
-        <div className="mt-8 flex items-end justify-between gap-8 pb-6">
+        <div className="mt-[3svh] flex items-end justify-between gap-8 pb-[2svh]">
           <p data-hero-sub className="max-w-md font-sans text-sm leading-relaxed text-smoke">
             {heroClaim.sub}
           </p>
@@ -52,12 +52,13 @@ function Hero() {
           </p>
         </div>
       </div>
-      <div data-hero-strip className="h-[32svh] shrink-0">
+      <div data-hero-strip className="h-[30svh]">
         <WarpImage
-          src="/im/elevation-front-2560.webp"
-          srcSet="/im/elevation-front-1280.webp 1280w, /im/elevation-front-2560.webp 2560w"
-          alt="Daher el Souane 563 by PMCC — front elevation among the pines"
+          src="/im/rear-three-quarter-2560.webp"
+          srcSet="/im/rear-three-quarter-1280.webp 1280w, /im/rear-three-quarter-2560.webp 2560w"
+          alt="Daher el Souane 563 by PMCC — glazed gables above the gardens"
           className="h-full"
+          imgClassName="object-[center_38%]"
           priority
         />
       </div>
@@ -122,15 +123,6 @@ function Manifesto() {
           We are all three — so the schedule, the budget and the workmanship
           answer to <em className="type-display-it">one name.</em>
         </Lines>
-        <Fade className="mt-12 max-w-xl">
-          <p className="font-sans text-sm leading-relaxed text-ink/70">
-            More than two decades of managing and contracting for Microsoft,
-            MEDCO and two generations of private clients taught us exactly
-            where projects go wrong. Now we have put that discipline into the
-            first building we develop ourselves — Daher el Souane 563 — and
-            signed it with our own name.
-          </p>
-        </Fade>
       </div>
     </section>
   );
@@ -171,11 +163,11 @@ function Clients() {
         {row.map((c, i) => (
           <span
             key={`${c}-${i}`}
-            className="type-display flex items-center whitespace-nowrap text-[clamp(2.4rem,6vw,5rem)] text-stone"
+            className="type-display flex items-center whitespace-nowrap text-[clamp(1.7rem,3.8vw,3.1rem)] text-stone"
             aria-hidden={i >= clients.length}
           >
             {c}
-            <span aria-hidden className="mx-10 inline-block h-2 w-2 rounded-full bg-pmcc" />
+            <span aria-hidden className="mx-8 inline-block h-1.5 w-1.5 rounded-full bg-pmcc" />
           </span>
         ))}
       </div>
@@ -230,7 +222,7 @@ export default function Home() {
       <Manifesto />
       <Services />
       <Timeline />
-      <WorksIndex />
+      <SelectedWork />
       <FlagshipPromo />
     </>
   );

@@ -10,6 +10,7 @@ import { timeline } from "../../data/content";
 
 export default function Timeline() {
   const section = useRef(null);
+  const pinTarget = useRef(null);
   const track = useRef(null);
 
   useLayoutEffect(() => {
@@ -22,7 +23,9 @@ export default function Timeline() {
           x: () => -distance(),
           ease: "none",
           scrollTrigger: {
-            trigger: section.current,
+            // Pin the inner wrapper so the section itself is never
+            // re-parented out from under React.
+            trigger: pinTarget.current,
             start: "top top",
             end: () => `+=${distance()}`,
             pin: true,
@@ -36,7 +39,8 @@ export default function Timeline() {
   }, []);
 
   return (
-    <section ref={section} className="overflow-clip bg-coal">
+    <section ref={section} className="bg-coal">
+      <div ref={pinTarget} className="overflow-clip">
       <div className="px-5 pt-24 sm:px-8">
         <p className="type-eyebrow text-smoke">Since 2002</p>
         <h2 className="type-display mt-6 text-[clamp(2.2rem,5vw,4.2rem)] text-bone">
@@ -59,6 +63,7 @@ export default function Timeline() {
             </article>
           ))}
         </div>
+      </div>
       </div>
     </section>
   );

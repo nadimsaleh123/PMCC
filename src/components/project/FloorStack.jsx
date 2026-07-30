@@ -21,6 +21,7 @@ const DWELL = 0.6;
 
 export default function FloorStack() {
   const section = useRef(null);
+  const pinTarget = useRef(null);
   const [active, setActive] = useState(0);
 
   useLayoutEffect(() => {
@@ -42,7 +43,10 @@ export default function FloorStack() {
 
         const tl = gsap.timeline({
           scrollTrigger: {
-            trigger: section.current,
+            // Pin the inner wrapper, never the section: pinning re-parents
+            // the element into a pin-spacer, and React must keep owning the
+            // section's position among its siblings.
+            trigger: pinTarget.current,
             start: "top top",
             end: () => `+=${(steps + DWELL) * window.innerHeight}`,
             pin: true,
@@ -92,10 +96,11 @@ export default function FloorStack() {
   }, []);
 
   return (
-    <section
-      ref={section}
-      className="relative bg-ink motion-safe:lg:h-screen motion-safe:lg:overflow-clip"
-    >
+    <section ref={section} className="bg-ink">
+      <div
+        ref={pinTarget}
+        className="relative motion-safe:lg:h-screen motion-safe:lg:overflow-clip"
+      >
       <div className="px-5 pt-20 sm:px-8 motion-safe:lg:absolute motion-safe:lg:inset-x-0 motion-safe:lg:top-0 motion-safe:lg:z-10 motion-safe:lg:pt-24">
         <p className="type-eyebrow text-smoke">The residences</p>
         <h2 className="type-display mt-4 text-[clamp(2rem,4.4vw,3.6rem)] text-bone">
@@ -160,6 +165,7 @@ export default function FloorStack() {
             </div>
           </article>
         ))}
+      </div>
       </div>
     </section>
   );

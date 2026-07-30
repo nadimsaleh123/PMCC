@@ -9,8 +9,8 @@
  * section appears on its own.
  */
 import { useLayoutEffect, useRef, useState } from "react";
-import { gsap } from "../../lib/motion";
-import { Lines, Fade } from "../reveal";
+import { gsap, ScrollTrigger } from "../../lib/motion";
+import { Fade } from "../reveal";
 
 // The owner's drone pair: the structure on site today, and the finished
 // building montaged into the same hillside.
@@ -34,6 +34,9 @@ export default function BeforeAfter() {
 
   useLayoutEffect(() => {
     if (!available) return undefined;
+    // The section just became visible and added its height to the page —
+    // every trigger measured below it is now stale.
+    requestAnimationFrame(() => ScrollTrigger.refresh());
     // Tween a proxy value; clip-path strings and % positions are derived from
     // it every frame. quickTo can't ease non-numeric properties.
     const state = { p: pos.current };
@@ -53,21 +56,22 @@ export default function BeforeAfter() {
     };
   }, [available]);
 
-  if (!available) return null;
-
   const fromEvent = (e) => {
     const r = frame.current.getBoundingClientRect();
     const pct = gsap.utils.clamp(2, 98, ((e.clientX - r.left) / r.width) * 100);
     setters.current?.(pct);
   };
 
+  // Never mount this section late: inserting a node before a GSAP-pinned
+  // sibling crashes React's reconciler (the sibling was re-parented into a
+  // pin-spacer). The section is always in the tree; only visibility changes.
   return (
-    <section className="bg-coal px-5 py-28 sm:px-8">
+    <section hidden={!available} className="bg-coal px-5 py-28 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <p className="type-eyebrow text-smoke">On site now</p>
-        <Lines className="type-display mt-6 text-[clamp(2rem,4.6vw,3.8rem)] text-bone">
+        <h2 className="type-display mt-6 text-[clamp(2rem,4.6vw,3.8rem)] text-bone">
           Drag between today <em className="type-display-it text-stone">and the day you move in.</em>
-        </Lines>
+        </h2>
         <Fade className="mt-12">
           <div
             ref={frame}

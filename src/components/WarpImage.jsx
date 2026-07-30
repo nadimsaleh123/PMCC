@@ -57,7 +57,10 @@ export default function WarpImage({
         sizes={srcSet ? sizes ?? "100vw" : undefined}
         alt={alt}
         className={`absolute inset-0 h-full w-full object-cover ${imgClassName}`}
-        fetchPriority={priority ? "high" : "auto"}
+        // React 18 only forwards the lowercase form; the camelCase prop
+        // arrives in React 19. eslint's rule is ahead of the runtime here.
+        // eslint-disable-next-line react/no-unknown-property
+        fetchpriority={priority ? "high" : "auto"}
         loading={priority ? "eager" : "lazy"}
       />
       <canvas
