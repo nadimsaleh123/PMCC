@@ -16,8 +16,8 @@ function Hero() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         "[data-hero-strip]",
-        { clipPath: "inset(100% 0 0 0)" },
-        { clipPath: "inset(0% 0 0 0)", duration: 1.2, delay: 0.5, ease: "power4.inOut" },
+        { clipPath: "inset(0 0 100% 0)" },
+        { clipPath: "inset(0 0 0% 0)", duration: 1.2, delay: 0.5, ease: "power4.inOut" },
       );
       gsap.fromTo(
         "[data-hero-sub]",
@@ -25,10 +25,10 @@ function Hero() {
         { autoAlpha: 1, y: 0, duration: 1, delay: 0.7 },
       );
 
-      // The smart bit: scrolling grows the roofline band downward until the
-      // whole facade fills the screen — the building reveals itself from the
-      // sky down — then the page releases. Desktop only; the pin targets an
-      // inner wrapper so React keeps owning the section.
+      // The smart bit: scrolling grows the image band upward over the claim
+      // until the dawn frame fills the screen, then the page releases.
+      // Desktop only; the pin targets an inner wrapper so React keeps owning
+      // the section.
       const mm = gsap.matchMedia();
       mm.add("(min-width: 1024px)", () => {
         const tl = gsap.timeline({
@@ -50,18 +50,7 @@ function Hero() {
 
   return (
     <section ref={root} className="bg-ink">
-      <div ref={pinTarget} className="grid h-[100svh] grid-rows-[auto_minmax(0,1fr)] pt-[64px]">
-      <div data-hero-strip className="relative z-10 h-[34svh]">
-        <WarpImage
-          src="/im/hero-reveal-2560.webp"
-          srcSet="/im/hero-reveal-1280.webp 1280w, /im/hero-reveal-2560.webp 2560w"
-          alt="Daher el Souane 563 by PMCC — the front elevation revealed from the roofline down"
-          className="h-full"
-          imgClassName="object-top"
-          anchor="top"
-          priority
-        />
-      </div>
+      <div ref={pinTarget} className="grid h-[100svh] grid-rows-[minmax(0,1fr)_auto] pt-[64px]">
       <div data-hero-copy className="flex min-h-0 flex-col justify-center overflow-clip px-5 sm:px-8">
         <Fade delay={0.35}>
           <p className="type-eyebrow text-smoke">{heroClaim.eyebrow}</p>
@@ -84,6 +73,15 @@ function Hero() {
             Scroll ↓
           </p>
         </div>
+      </div>
+      <div data-hero-strip className="relative z-10 h-[38svh]">
+        <WarpImage
+          src="/im/hero-reveal-2560.webp"
+          srcSet="/im/hero-reveal-1280.webp 1280w, /im/hero-reveal-2560.webp 2560w"
+          alt="A concrete frame at first light — the quiet hours of a build"
+          className="h-full"
+          priority
+        />
       </div>
       </div>
     </section>
@@ -264,8 +262,8 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <Stats />
       <Clients />
+      <Stats />
       <Manifesto />
       <Services />
       <Timeline />
