@@ -33,6 +33,19 @@ export default function SelectedWork() {
               <div>
                 <h3 className="type-display text-2xl text-bone sm:text-3xl">{g.title}</h3>
                 <p className="mt-3 max-w-xs font-sans text-sm leading-relaxed text-smoke">{g.note}</p>
+                {g.image ? (
+                  <figure className="mt-6 max-w-[24rem]">
+                    <img
+                      src={g.image.src}
+                      alt={g.image.alt}
+                      width={776}
+                      height={500}
+                      loading="lazy"
+                      className="w-full"
+                    />
+                    <figcaption className="mt-2 font-sans text-xs text-smoke">{g.image.caption}</figcaption>
+                  </figure>
+                ) : null}
               </div>
               <ul className="self-center">
                 {g.items.map((item) => (

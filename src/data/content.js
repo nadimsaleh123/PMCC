@@ -80,6 +80,7 @@ export const workGroups = [
   {
     title: "Villas & restoration",
     note: "Two generations of private houses — built new, or brought back.",
+    image: { src: "/im/villa-fakhoury.jpg", alt: "Villa Fakhoury, Kfardebian — dark stone volumes in the pines", caption: "Villa Fakhoury · Kfardebian · 2016" },
     items: [
       { name: "Villa Zreik", meta: "Faqra · 2008" },
       { name: "Villa Fakhoury", meta: "Kfardebian · 2016" },

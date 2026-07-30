@@ -28,7 +28,10 @@ function Hero() {
   }, []);
 
   return (
-    <section ref={root} className="relative grid h-[100svh] grid-rows-[minmax(0,1fr)_auto] pt-[72px]">
+    <section
+      ref={root}
+      className="relative grid h-[100svh] grid-rows-[minmax(0,1fr)_auto] gap-y-4 pt-[72px] lg:grid-cols-[1.15fr_0.85fr] lg:grid-rows-none lg:gap-x-10 lg:pb-8 lg:pr-8"
+    >
       <div className="flex min-h-0 flex-col justify-center overflow-clip px-5 sm:px-8">
         <Fade delay={0.35}>
           <p className="type-eyebrow text-smoke">{heroClaim.eyebrow}</p>
@@ -37,7 +40,7 @@ function Hero() {
           as="h1"
           trigger={false}
           delay={0.35}
-          className="type-display mt-[2svh] max-w-6xl text-[clamp(2.4rem,min(8.2vw,11.5svh),7.6rem)] text-bone"
+          className="type-display mt-[2svh] text-[clamp(2.4rem,min(8vw,11.5svh),7.2rem)] text-bone"
         >
           {heroClaim.lines[0]}
           <br />
@@ -52,15 +55,16 @@ function Hero() {
           </p>
         </div>
       </div>
-      <div data-hero-strip className="h-[30svh]">
+      <div data-hero-strip className="relative h-[30svh] lg:h-auto lg:self-stretch">
         <WarpImage
-          src="/im/rear-three-quarter-2560.webp"
-          srcSet="/im/rear-three-quarter-1280.webp 1280w, /im/rear-three-quarter-2560.webp 2560w"
-          alt="Daher el Souane 563 by PMCC — glazed gables above the gardens"
+          src="/im/site-finished.jpg"
+          alt="Daher el Souane 563 — PMCC's own development on the ridge above the coast"
           className="h-full"
-          imgClassName="object-[center_38%]"
           priority
         />
+        <p className="absolute bottom-3 left-4 bg-ink/60 px-3 py-1 font-sans text-[0.65rem] uppercase tracking-wideish text-bone">
+          Daher el Souane 563 · our own development
+        </p>
       </div>
     </section>
   );

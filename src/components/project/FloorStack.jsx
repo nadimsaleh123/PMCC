@@ -103,7 +103,7 @@ export default function FloorStack() {
       >
       <div className="px-5 pt-20 sm:px-8 motion-safe:lg:absolute motion-safe:lg:inset-x-0 motion-safe:lg:top-0 motion-safe:lg:z-10 motion-safe:lg:pt-24">
         <p className="type-eyebrow text-smoke">The residences</p>
-        <h2 className="type-display mt-4 text-[clamp(2rem,4.4vw,3.6rem)] text-bone">
+        <h2 className="type-display mt-4 max-w-5xl text-[clamp(1.8rem,3.4vw,3rem)] text-bone">
           Four floors. Four homes.{" "}
           <em className="type-display-it text-stone">No neighbours on your landing.</em>
         </h2>
@@ -128,7 +128,7 @@ export default function FloorStack() {
           <article
             key={f.id}
             data-floor
-            className="mb-20 grid gap-8 px-5 sm:px-8 motion-safe:lg:absolute motion-safe:lg:inset-0 motion-safe:lg:mb-0 motion-safe:lg:grid-cols-[1.25fr_1fr] motion-safe:lg:items-center motion-safe:lg:gap-14 motion-safe:lg:px-24 motion-safe:lg:pb-6 motion-safe:lg:pt-[24vh]"
+            className="mb-20 grid gap-8 px-5 sm:px-8 motion-safe:lg:absolute motion-safe:lg:inset-0 motion-safe:lg:mb-0 motion-safe:lg:grid-cols-[1.25fr_1fr] motion-safe:lg:items-center motion-safe:lg:gap-14 motion-safe:lg:px-24 motion-safe:lg:pb-6 motion-safe:lg:pt-[clamp(17rem,30vh,22rem)]"
           >
             <a
               data-plan
@@ -143,7 +143,7 @@ export default function FloorStack() {
                 alt={`${f.name} — floor plan, ${f.level}`}
                 width={2200}
                 height={1420}
-                className="mx-auto w-full motion-safe:lg:max-h-[52vh] motion-safe:lg:w-auto motion-safe:lg:object-contain"
+                className="mx-auto w-full motion-safe:lg:max-h-[46vh] motion-safe:lg:w-auto motion-safe:lg:object-contain"
                 loading={i === 0 ? "eager" : "lazy"}
               />
               <span className="mt-2 block px-1 font-sans text-[0.65rem] uppercase tracking-wideish text-ink/50">
