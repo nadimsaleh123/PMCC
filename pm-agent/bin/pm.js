@@ -26,6 +26,7 @@ import { openItems, writeChaseDraft } from '../src/correspondence/chase-draft.js
 import { loadBrand } from '../src/report/html/brand.js';
 import { diagnose, formatDiagnosis } from '../src/doctor.js';
 import { drainInbox } from '../src/documents/intake.js';
+import { syncLedger } from '../src/ledger/sync.js';
 import { today } from '../src/util/dates.js';
 import { createInterface } from 'node:readline/promises';
 
@@ -44,6 +45,7 @@ const USAGE = `pm — construction Project Ledger
   pm open <CODE>                             what is waiting on someone else
   pm nudge <CODE> <REF>                      draft a chase letter
   pm inbox <CODE> [--dir PATH] [--keep]      file everything dropped in the inbox
+  pm sync [--no-push]                        pull and push the ledger (laptop <-> mini)
   pm doctor [--deep]                         check this machine is set up
   pm bot                                     run the Telegram agent
 
@@ -418,6 +420,15 @@ const commands = {
     for (const item of result.skipped) {
       console.log(`skipped    ${item.file} — ${item.reason}`);
     }
+  },
+
+  async sync({ flags }) {
+    const result = await syncLedger({ push: !flags['no-push'] });
+    console.log(result.message);
+    if (result.committed) {
+      console.log(`(committed ${result.committedFiles} local change(s) first)`);
+    }
+    if (result.status !== 'ok') process.exit(1);
   },
 
   async doctor({ flags }) {

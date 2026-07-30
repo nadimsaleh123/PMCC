@@ -84,10 +84,70 @@ echo 'export LEDGER_ROOT=~/PMCC/ledger/projects' >> ~/.zshrc
 echo 'export PM_INBOX=~/PMCC/inbox'              >> ~/.zshrc
 ```
 
-**Do not put the Ledger inside a Drive, Dropbox or iCloud folder.** They sync `.git`
-internals and corrupt the repository — you would lose exactly the audit trail this
-system exists to keep. Sync the **inbox** instead: it is a plain folder, so every sync
-tool handles it safely, and `pm inbox` moves files across into the repo properly.
+## Working from a laptop as well
+
+The Mac mini runs the bot around the clock. You also want the project on a laptop.
+**Use a git remote for that — not file sync.**
+
+```bash
+# once, on the Mac mini
+git -C ~/PMCC/ledger remote add origin <private-repo-url>
+git -C ~/PMCC/ledger push -u origin main
+
+# once, on the laptop
+git clone <private-repo-url> ~/PMCC/ledger
+echo 'export LEDGER_ROOT=~/PMCC/ledger/projects' >> ~/.zshrc
+
+# then, on either machine, whenever
+node bin/pm.js sync
+```
+
+`pm sync` commits anything you edited by hand, pulls, pushes, and tells you what
+moved. If both machines changed the same thing it **rolls the merge back rather than
+leaving you mid-rebase**, and prints the three commands to resolve it.
+
+Put it on the Mac mini's cron so the laptop never waits:
+
+```cron
+*/10 * * * * cd /Users/you/PMCC/website/pm-agent && /usr/local/bin/node bin/pm.js sync
+```
+
+### Why not Google Drive for the Ledger
+
+Drive, Dropbox and iCloud sync `.git` internals file-by-file and out of order. Two
+machines writing a synced repository corrupts it — and the thing you lose is the
+tamper-evident history that makes the record worth having. For something that may end
+up in a dispute, "usually works" is not a standard.
+
+Git remotes solve this exact problem properly: atomic pushes, real conflict detection,
+and full history on both machines.
+
+**Where to put the remote** is a genuine choice:
+
+| | |
+|---|---|
+| **Private GitHub/GitLab repo** | Easiest, and gives you off-site backup. Contract sums live on their servers — private and encrypted at rest, which most firms accept. |
+| **The Mac mini itself, over Tailscale** | `git clone ssh://macmini/~/PMCC/ledger.git`. Nothing ever leaves your own machines. Ten minutes to set up, and the most private option. |
+
+Either way, **make it private**. If you skip the remote entirely, everything still
+works — but the Mac mini's disk is your only copy.
+
+### Where Google Drive *is* the right tool
+
+Two jobs, both of which avoid touching a repository:
+
+- **Documents in.** Point Drive at `~/PMCC/inbox`. Drop a contract in from the laptop
+  or phone and `pm inbox` files it into the Ledger properly. This is the auto-updating
+  setup you were after.
+- **Reports out.** Mirror finished outputs to Drive so they are on every device
+  without cloning anything:
+
+  ```cron
+  0 * * * * rsync -a --delete ~/PMCC/ledger/projects/MARINA-01/06-outputs/ ~/"Google Drive/My Drive/PMCC/MARINA-01-reports/"
+  ```
+
+  Mirror `06-outputs/` only. Pointing that at the project root would put
+  `00-contract/` and `05-commercial/` into a folder you may later share with someone.
 
 ## Getting documents in when you are not at the machine
 
@@ -479,7 +539,7 @@ Stated plainly so nothing here is mistaken for working:
 npm test
 ```
 
-198 tests, and no test costs money or needs a network — the Claude runner and the
+204 tests, and no test costs money or needs a network — the Claude runner and the
 transcriber are both exercised against stubs.
 
 Covering the XER parser (including the Windows-1252 encoding P6 actually writes),
