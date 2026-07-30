@@ -217,6 +217,28 @@ Registers are YAML so you can hand-edit them; hand edits are preserved. Parsed
 programmes are JSON because they are machine-written and large. The diary is Markdown
 because it gets quoted verbatim in claims.
 
+### What you put in, and how
+
+Four kinds of input, four ways in — and only the first two need a laptop.
+
+| What | Where it lives | How you maintain it |
+|---|---|---|
+| **The brief** — parties, contract form, sum, notice periods | `<CODE>/CLAUDE.md` | Edit the file. `/brief` in Telegram shows the current one. |
+| **Config** — your role, chase settings, contract response periods | `<CODE>/project.yaml` | Edit the file. |
+| **The programme** | `01-programme/` | `pm ingest <CODE> export.xml`, or send the export to the bot. |
+| **Registers** — risks, decisions, actions, RFIs, procurement | `02-ledger/`, `03-registers/` | Edit the YAML, or `/risk`, `/decision`, `/action` from the phone. |
+| **Evidence** — photos, letters, drawings, the contract PDF | `04-evidence/`, `00-contract/` | Send it to the bot, or drop it in the inbox. |
+
+**The brief is the one that matters most.** `CLAUDE.md` is read before anything is
+written — it is what lets a chase letter cite Article 9.2 rather than waffle about
+"the contract". A project without one still runs, but every clause reference and
+notice deadline it would otherwise compute quietly disappears. Fill it in once, at
+the start, from the signed contract.
+
+Everything else can start empty and accumulate. The registers in particular are meant
+to be written the way you actually work: a line typed into Telegram on the drive home
+is worth more than a perfect risk register you never open.
+
 ## The Telegram agent
 
 ### Set it up
@@ -249,19 +271,46 @@ node bin/pm.js bot
 
 ### What it does
 
+Every command is listed in Telegram's own **Menu** button — the bot registers it with
+`setMyCommands` on startup, so there is nothing to memorise at a site gate. `/menu`
+gives the same list as tappable buttons.
+
 | Command | |
 |---|---|
+| `/menu` | everything, as buttons |
 | `/chase` | the daily update — it asks, you answer |
 | `/status` | forecast completion, progress, critical path count |
 | `/alerts` | everything currently flagged |
-| `/report` | this week's client report as a PDF |
-| `/ask <question>` | anything about the project record (or start a message with `?`) |
 | `/open` | decisions, actions and RFIs waiting on someone else |
+| `/risk`, `/decision`, `/action` | log one from the phone — see below |
+| `/report` | this week's client report as a PDF |
 | `/nudge REF` | draft a chase letter for that reference |
-| `/diff` | what changed between the last two P6 updates |
+| `/diff` | what changed between the last two programme updates |
 | `/health` | DCMA 14-point check |
 | `/lookahead [days]` | what is coming up and what is at risk |
+| `/ask <question>` | anything about the project record (or start a message with `?`) |
+| `/brief` | the project brief the agent is working to |
 | `/projects`, `/project CODE` | list and switch |
+
+### Logging a risk, decision or action from the phone
+
+```
+/risk Snow closes the Bcharreh road in December | owner: PMCC | impact: 2 weeks lost on external works
+/decision Approve balcony tile sample | owner: Client | due: 2026-08-20
+/action Issue revised setting-out drawing | owner: Consultant | due: 2026-08-12
+```
+
+The subject is the only required part; the pipe-separated fields are optional, because
+the alternative to a badly-recorded risk at 19:00 is no risk recorded at all. Whatever
+you leave out is **named back to you as missing, never filled in** — an invented owner
+or deadline would flow straight into an alert and a chase letter. A segment this parser
+does not recognise as `key: value` is kept verbatim rather than dropped.
+
+Entries land in `03-registers/risk.yaml`, `02-ledger/decisions.yaml` and
+`03-registers/actions.yaml` with the next sequential reference, your name against them,
+and a git commit. They then drive the alerts, the `/open` list, the chase letters and
+the Risks and Decisions sections of the weekly report — the same as anything typed on
+the laptop.
 
 During a chase, answer naturally — *"started tuesday, about 30%, block delivery came
 up short"*. It extracts the date, the percentage, and recognises the delay. `skip` and

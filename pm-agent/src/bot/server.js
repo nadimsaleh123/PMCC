@@ -18,6 +18,7 @@ import {
   RESPONSIBILITY_BUTTONS,
 } from './chase.js';
 import { askLedger } from './ask.js';
+import { captureEntry, CAPTURE_KINDS } from './capture.js';
 import { ingestVoiceNote } from './diary.js';
 import { entriesOf } from '../ledger/registers.js';
 import { openItems, writeChaseDraft } from '../correspondence/chase-draft.js';
@@ -33,7 +34,7 @@ import { renderDiff, renderHealth, renderExceptions } from '../report/render.js'
 import { generateWeeklyReport } from '../report/generate.js';
 import { runAlerts, formatAlertBatch, formatOpenAlerts } from '../alerts/index.js';
 import { commitLedger } from '../ledger/git.js';
-import { writeFile } from 'node:fs/promises';
+import { writeFile, readFile } from 'node:fs/promises';
 import { today, formatHuman, addDays } from '../util/dates.js';
 
 const STATE_FILE = () => path.join(ledgerRoot(), '.agent-state.yaml');
@@ -91,20 +92,92 @@ function authorOf(message) {
   return { id: from.id ?? message.chat.id, name, username: from.username ?? null };
 }
 
+/**
+ * The command list Telegram shows in its own Menu button.
+ *
+ * Registered with setMyCommands at startup, so the blue Menu beside the message
+ * box lists every action with a description - no memorising, and no typing on a
+ * phone at a site gate. Telegram caps descriptions at 256 characters and the
+ * command itself at 32, lowercase.
+ */
+export const COMMAND_MENU = [
+  { command: 'menu', description: 'Everything I can do, as buttons' },
+  { command: 'chase', description: 'Daily site update — I ask, you answer' },
+  { command: 'status', description: 'Where the project stands right now' },
+  { command: 'alerts', description: 'What is currently flagged' },
+  { command: 'open', description: 'Decisions, actions and RFIs waiting on someone' },
+  { command: 'report', description: "This week's client report as a PDF" },
+  { command: 'diff', description: 'What changed between the last two programmes' },
+  { command: 'health', description: 'DCMA 14-point check on the programme' },
+  { command: 'lookahead', description: 'What is coming up, ready or blocked' },
+  { command: 'risk', description: 'Log a risk — /risk subject | owner: X | impact: Y' },
+  { command: 'decision', description: 'Log a decision needed — /decision subject | owner: X | due: date' },
+  { command: 'action', description: 'Log an action — /action subject | owner: X | due: date' },
+  { command: 'nudge', description: 'Draft a chase letter — /nudge DEC-001' },
+  { command: 'ask', description: 'Ask anything about the project record' },
+  { command: 'brief', description: 'Show the project brief the agent is working to' },
+  { command: 'projects', description: 'List projects, or /project CODE to switch' },
+  { command: 'help', description: 'What I can do' },
+];
+
+/**
+ * The button panel. Rows are the shape of a working day: look at it, act on it,
+ * record something, ask something.
+ */
+const MENU_ROWS = [
+  [
+    { label: '📋 Status', send: '/status' },
+    { label: '🔔 Alerts', send: '/alerts' },
+  ],
+  [
+    { label: '🎙 Daily update', send: '/chase' },
+    { label: '📮 Open items', send: '/open' },
+  ],
+  [
+    { label: '⚠️ Log a risk', send: '/risk' },
+    { label: '📌 Log a decision', send: '/decision' },
+  ],
+  [
+    { label: '📄 Weekly report', send: '/report' },
+    { label: '📈 Programme change', send: '/diff' },
+  ],
+  [
+    { label: '🔭 Look-ahead', send: '/lookahead' },
+    { label: '🩺 Programme health', send: '/health' },
+  ],
+  [
+    { label: '📖 Project brief', send: '/brief' },
+    { label: '🗂 Switch project', send: '/projects' },
+  ],
+];
+
 const HELP = `*Construction PM agent*
 
-\`/chase\` — start the daily update (I ask, you answer)
+Tap *Menu* beside the message box for the full list, or \`/menu\` for buttons.
+
+*Look*
 \`/status\` — where the project stands right now
 \`/alerts\` — what is currently flagged
-\`/report\` — this week's client report as a PDF
-\`/ask <question>\` — anything about the project record (or just start with \`?\`)
 \`/open\` — decisions, actions and RFIs waiting on someone
+\`/lookahead [days]\` — what is coming up, ready or blocked
+
+*Record*
+\`/chase\` — the daily update (I ask, you answer)
+\`/risk <subject> | owner: X | impact: Y\`
+\`/decision <subject> | owner: X | due: 2026-08-20\`
+\`/action <subject> | owner: X | due: 2026-08-12\`
+Send a photo or a document and I file it as evidence.
+
+*Produce*
+\`/report\` — this week's client report as a PDF
 \`/nudge REF\` — draft a chase letter for that reference
-\`/diff\` — what changed between the last two P6 updates
-\`/health\` — DCMA 14-point check on the current programme
-\`/lookahead [days]\` — exceptions coming up in the window
+\`/diff\` — what changed between the last two programmes
+\`/health\` — DCMA 14-point check on the programme
+
+*Ask*
+\`/ask <question>\` — anything about the project record (or just start with \`?\`)
+\`/brief\` — the brief I am working to
 \`/projects\` — list projects · \`/project CODE\` — switch
-\`/help\` — this
 
 During a chase: answer naturally, or \`skip\` / \`stop\`.
 Anything else I treat as an answer to the question on the table.`;
@@ -125,8 +198,84 @@ async function handleCommand(tg, chatId, text, state, author) {
   switch (command) {
     case '/start':
     case '/help':
-      await tg.send(chatId, HELP);
+      await tg.send(chatId, HELP, keyboard(MENU_ROWS));
       return true;
+
+    case '/menu':
+      await tg.send(
+        chatId,
+        project ? `*${project}* — what would you like?` : 'What would you like?',
+        keyboard(MENU_ROWS),
+      );
+      return true;
+
+    /**
+     * The brief is the contract context every skill reads before it writes a word.
+     * Being able to see it from the phone is what stops it silently going stale.
+     */
+    case '/brief': {
+      if (!project) return true;
+      const paths = projectPaths(project);
+      const brief = (await exists(paths.projectBrief)) ? await readFile(paths.projectBrief, 'utf8') : null;
+
+      if (!brief) {
+        await tg.send(
+          chatId,
+          `*${project}* has no brief yet.\n\n` +
+            'The brief is `CLAUDE.md` in the project folder — parties, contract form, ' +
+            'sums, notice periods. Everything I write cites it, so a chase letter ' +
+            'without one cannot quote a clause.\n\n' +
+            'Edit it on the laptop, or send me the contract as a document and I will file it.',
+        );
+        return true;
+      }
+
+      for (const part of chunk(brief)) await tg.send(chatId, part);
+      await tg.send(chatId, '_Edit this in `CLAUDE.md` in the project folder._');
+      return true;
+    }
+
+    case '/risk':
+    case '/decision':
+    case '/action': {
+      if (!project) return true;
+      const kind = command.slice(1);
+      const spec = CAPTURE_KINDS[kind];
+      const body = args.join(' ').trim();
+
+      if (!body) {
+        await tg.send(
+          chatId,
+          `*Log a ${kind}*\n\nSend it as one line:\n\`${spec.example}\`\n\n` +
+            'Only the first part is required — everything after a `|` is optional, ' +
+            'and I record what is missing rather than guessing it.',
+        );
+        return true;
+      }
+
+      const result = await captureEntry(project, kind, body, { author });
+      if (!result) {
+        await tg.send(chatId, `I need something to record. \`${spec.example}\``);
+        return true;
+      }
+
+      const lines = [`${result.label} \`${result.ref}\` logged.`, '', `*${result.entry.subject}*`];
+      if (result.entry.owner) lines.push(`Owner: ${result.entry.owner}`);
+      if (result.entry.dueDate) lines.push(`Due: ${formatHuman(result.entry.dueDate)}`);
+      if (result.entry.impact) lines.push(`Impact: ${result.entry.impact}`);
+
+      // Named, never filled in. An invented owner or deadline would flow straight
+      // into an alert and a chase letter.
+      if (result.missing.length > 0) {
+        lines.push('', `_Not recorded: ${result.missing.join(', ')}. Add with \`| owner: …\` next time._`);
+      }
+      if (result.unparsed.length > 0) {
+        lines.push('', `_Kept as written but not understood as a field: ${result.unparsed.join('; ')}_`);
+      }
+
+      await tg.send(chatId, lines.join('\n'));
+      return true;
+    }
 
     case '/projects': {
       const projects = await listProjects();
@@ -733,6 +882,17 @@ export async function runBot({ token = process.env.TELEGRAM_BOT_TOKEN } = {}) {
   const tg = new Telegram(token);
   const me = await tg.call('getMe');
   console.log(`[bot] running as @${me.username}; ledger root ${ledgerRoot()}`);
+
+  // Populate Telegram's own Menu button. Not cosmetic: it is the difference
+  // between remembering a command at a site gate and tapping one from a list.
+  // A failure here must never stop the bot - the commands all still work typed.
+  try {
+    await tg.call('setMyCommands', { commands: COMMAND_MENU });
+    await tg.call('setChatMenuButton', { menu_button: { type: 'commands' } });
+    console.log(`[bot] command menu registered (${COMMAND_MENU.length} entries)`);
+  } catch (error) {
+    console.warn('[bot] could not register the command menu:', error.message);
+  }
 
   if (!process.env.TELEGRAM_ALLOWED_CHAT_IDS) {
     console.warn(
