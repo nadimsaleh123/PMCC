@@ -158,9 +158,15 @@ function Clients() {
   const [failed, setFailed] = useState(() => new Set());
   const row = [...clients, ...clients, ...clients];
   return (
-    <section className="overflow-clip bg-ink pb-6 pt-16" aria-label="Selected clients">
-      <p className="type-eyebrow px-5 text-smoke sm:px-8">They trusted us with their name</p>
-      <div className="marquee mt-8 flex w-max items-center pr-0">
+    // The label is positioned rather than stacked, so the only thing in the
+    // normal flow is the belt itself. Equal padding then lands the logos on the
+    // exact centre line between the rule above and the panel below - stacked,
+    // the label's own height pushed them a third of the band too low.
+    <section className="relative overflow-clip bg-ink py-14 sm:py-16" aria-label="Selected clients">
+      <p className="type-eyebrow absolute left-5 top-6 text-smoke sm:left-8 sm:top-7">
+        They trusted us with their name
+      </p>
+      <div className="marquee flex w-max items-center pr-0">
         {row.map((c, i) => (
           <span
             key={`${c.slug}-${i}`}
