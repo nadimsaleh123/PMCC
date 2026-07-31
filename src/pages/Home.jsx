@@ -248,8 +248,8 @@ export default function Home() {
       <Manifesto />
       <Services />
       <Timeline />
-      <Booklet />
       <SelectedWork />
+      <Booklet />
       <FlagshipPromo />
     </>
   );
