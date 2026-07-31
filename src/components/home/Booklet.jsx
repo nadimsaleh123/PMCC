@@ -221,7 +221,6 @@ export default function Booklet() {
   const mbook = useRef(null);
   const mturner = useRef(null);
   const mShadeF = useRef(null);
-  const mShadeB = useRef(null);
   const mCast = useRef(null);
 
   const busy = useRef(false);
@@ -317,16 +316,25 @@ export default function Booklet() {
     return () => ctx.revert();
   }, [turning]);
 
-  // Mobile: the whole page flips around the binding at the left edge.
+  // Mobile: we see one page of the book, so a full card-flip reads wrong.
+  // Forward, the page lifts at the fore-edge, swings over the binding and
+  // leaves the frame - its second half-turn happens over the half of the book
+  // the camera cannot see - while the next page is revealed beneath. Backward,
+  // a page swings in from over the binding and lays down on top. Only the
+  // paper back of the sheet is ever glimpsed, edge-on.
   useLayoutEffect(() => {
     if (!mturning) return undefined;
     const { to, dir } = mturning;
+    const OUT = -112;
 
     const ctx = gsap.context(() => {
-      const from = dir === 1 ? 0 : -180;
-      const end = dir === 1 ? -180 : 0;
-
-      gsap.set(mturner.current, { rotateY: from, transformOrigin: "left center", force3D: true });
+      gsap.set(mturner.current, {
+        transformOrigin: "left center",
+        force3D: true,
+        rotateY: dir === 1 ? 0 : OUT,
+        autoAlpha: dir === 1 ? 1 : 0,
+        rotateX: 0,
+      });
 
       const tl = gsap.timeline({
         onComplete: () => {
@@ -336,12 +344,25 @@ export default function Booklet() {
         },
       });
 
-      tl.to(mturner.current, { rotateY: from + (end - from) * (176 / 180), duration: 0.95, ease: "power2.inOut" }, 0)
-        .to(mturner.current, { rotateY: end, duration: 0.14, ease: "power1.out" }, 0.95)
-        .fromTo(mShadeF.current, { opacity: dir === 1 ? 0 : 0.45 }, { opacity: dir === 1 ? 0.45 : 0, duration: 0.46, ease: dir === 1 ? "power1.in" : "power1.out" }, dir === 1 ? 0 : 0.52)
-        .fromTo(mShadeB.current, { opacity: dir === 1 ? 0.45 : 0 }, { opacity: dir === 1 ? 0 : 0.45, duration: 0.46, ease: dir === 1 ? "power1.out" : "power1.in" }, dir === 1 ? 0.52 : 0)
-        .fromTo(mCast.current, { opacity: 0 }, { opacity: 0.35, duration: 0.42, ease: "power1.in" }, 0.08)
-        .to(mCast.current, { opacity: 0, duration: 0.4, ease: "power1.out" }, 0.6);
+      if (dir === 1) {
+        tl.to(mturner.current, { rotateY: OUT, duration: 0.7, ease: "power2.in" }, 0)
+          .to(mturner.current, { rotateY: OUT - 42, autoAlpha: 0, duration: 0.32, ease: "power1.out" }, 0.7)
+          // A touch of gravity as the sheet stands
+          .to(mturner.current, { rotateX: 2.2, duration: 0.45, ease: "sine.in" }, 0.12)
+          .to(mturner.current, { rotateX: 0, duration: 0.35, ease: "sine.out" }, 0.6)
+          // The page darkens as it turns out of the light
+          .fromTo(mShadeF.current, { opacity: 0 }, { opacity: 0.5, duration: 0.62, ease: "power1.in" }, 0)
+          // Its shadow sweeps the page being revealed, hinging at the binding
+          .fromTo(mCast.current, { opacity: 0 }, { opacity: 0.4, duration: 0.45, ease: "power1.in" }, 0.08)
+          .to(mCast.current, { opacity: 0, duration: 0.4, ease: "power1.out" }, 0.62);
+      } else {
+        tl.to(mturner.current, { autoAlpha: 1, duration: 0.1 }, 0)
+          .to(mturner.current, { rotateY: 0, duration: 0.85, ease: "power2.out" }, 0.04)
+          .to(mturner.current, { rotateX: 2, duration: 0.35, ease: "sine.in" }, 0.1)
+          .to(mturner.current, { rotateX: 0, duration: 0.4, ease: "sine.out" }, 0.5)
+          .fromTo(mShadeF.current, { opacity: 0.5 }, { opacity: 0, duration: 0.6, ease: "power1.out" }, 0.25)
+          .fromTo(mCast.current, { opacity: 0.35 }, { opacity: 0, duration: 0.55, ease: "power1.out" }, 0.3);
+      }
     }, mbook.current);
 
     return () => ctx.revert();
@@ -355,13 +376,10 @@ export default function Booklet() {
   const rightSpread = booklet[turning ? (dir === 1 ? turning.to : turning.from) : page];
   const shown = turning ? turning.to : page;
 
-  // Mobile: beneath the flipping page is always the destination.
-  const mShown = mturning ? mturning.to : mpage;
-  const mFaces = mturning
-    ? mturning.dir === 1
-      ? { front: mturning.from, back: mturning.to }
-      : { front: mturning.to, back: mturning.from }
-    : null;
+  // Beneath the flight: forward reveals the destination as the page lifts
+  // away; backward keeps the origin until the incoming page lays over it.
+  const mShown = mturning ? (mturning.dir === 1 ? mturning.to : mturning.from) : mpage;
+  const mFace = mturning ? (mturning.dir === 1 ? mturning.from : mturning.to) : null;
 
   const faceStyle = (isBack) => ({
     backfaceVisibility: "hidden",
@@ -583,19 +601,21 @@ export default function Booklet() {
                         ref={mCast}
                         aria-hidden
                         className="pointer-events-none absolute inset-0 z-20 opacity-0"
-                        style={{ background: "linear-gradient(to left, rgba(28,22,15,0.55), rgba(28,22,15,0.12) 55%, transparent)" }}
+                        style={{ background: "linear-gradient(to right, rgba(28,22,15,0.55), rgba(28,22,15,0.12) 55%, transparent)" }}
                       />
                     ) : null}
 
                     {mturning ? (
                       <div ref={mturner} aria-hidden className="absolute inset-0 z-30" style={{ transformStyle: "preserve-3d" }}>
                         <div className="absolute inset-0 overflow-hidden" style={faceStyle(false)}>
-                          <MobilePage index={mFaces.front} plain />
+                          <MobilePage index={mFace} plain />
                           <span ref={mShadeF} className="pointer-events-none absolute inset-0 opacity-0" style={{ background: shadeGradient("left") }} />
+                          <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-[3px]" style={{ background: "linear-gradient(to left, rgba(255,238,205,0.85), transparent)" }} />
                         </div>
-                        <div className="absolute inset-0 overflow-hidden" style={faceStyle(true)}>
-                          <MobilePage index={mFaces.back} plain />
-                          <span ref={mShadeB} className="pointer-events-none absolute inset-0 opacity-0" style={{ background: shadeGradient("right") }} />
+                        {/* The back of the sheet: plain paper, seen only edge-on */}
+                        <div className="absolute inset-0 overflow-hidden bg-bone" style={faceStyle(true)}>
+                          <PaperGrain />
+                          <span aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(105deg, rgba(20,17,15,0.16), transparent 40%, rgba(20,17,15,0.1))" }} />
                         </div>
                       </div>
                     ) : null}
