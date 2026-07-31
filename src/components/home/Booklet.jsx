@@ -63,7 +63,7 @@ function LeftPage({ spread, eager = false }) {
           <p className="mt-5 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/40">Selected plates</p>
         )}
       </div>
-      <div className="overflow-hidden">
+      <div className="aspect-[4/5] overflow-hidden lg:aspect-auto">
         <Plate img={f.img} eager={eager} />
       </div>
     </div>
@@ -76,7 +76,7 @@ function RightPage({ spread, eager = false }) {
     <div className="grid h-full grid-cols-2 gap-x-5 gap-y-4 bg-bone p-6 sm:p-8 lg:p-10">
       {spread.grid.map((item) => (
         <figure key={item.name} className="flex min-h-0 flex-col">
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="aspect-[4/3] overflow-hidden lg:aspect-auto lg:min-h-0 lg:flex-1">
             <Plate img={item.img} eager={eager} />
           </div>
           <figcaption className="mt-2 shrink-0">
@@ -238,10 +238,10 @@ export default function Booklet() {
                 <SheetEdges side="right" />
 
                 {/* The open spread */}
-                <div className="relative grid bg-bone lg:aspect-[15/7] lg:grid-cols-2">
+                <div className="relative grid bg-bone lg:block lg:aspect-[15/7]">
                   {/* Left page (mobile: the feature, stacked) */}
-                  <div ref={flat} className="relative">
-                    <div className="lg:aspect-auto lg:h-full">
+                  <div ref={flat} className="relative lg:absolute lg:inset-y-0 lg:left-0 lg:w-1/2">
+                    <div className="lg:h-full">
                       <LeftPage spread={leftSpread} eager />
                     </div>
                     {/* Bow of the page toward the gutter */}
@@ -253,7 +253,7 @@ export default function Booklet() {
                   </div>
 
                   {/* Right page */}
-                  <div className="relative hidden lg:block">
+                  <div className="hidden lg:absolute lg:inset-y-0 lg:right-0 lg:block lg:w-1/2">
                     <RightPage spread={rightSpread} eager />
                     <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-ink/25 via-ink/5 to-transparent" />
                   </div>
