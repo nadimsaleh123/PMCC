@@ -270,6 +270,26 @@ export default function Booklet() {
     else turnMobile(mpage + delta);
   };
 
+  // Swiping the page is how a phone turns it. Handlers never preventDefault
+  // and the card declares touch-action: pan-y, so vertical scrolling through
+  // the section stays native - only a decisively horizontal gesture turns.
+  const touchStart = useRef(null);
+  const onTouchStart = (e) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    // A swipe, not a scroll or a tap: far enough, and clearly horizontal.
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    go(dx < 0 ? 1 : -1);
+  };
+
   // Desktop: the spread turn.
   useLayoutEffect(() => {
     if (!turning) return undefined;
@@ -551,7 +571,7 @@ export default function Booklet() {
             </div>
 
             {/* ------------------------------------------------- mobile book */}
-            <div className="relative min-w-0 flex-1 lg:hidden">
+            <div className="relative min-w-0 flex-1 lg:hidden" style={{ touchAction: "pan-y" }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
               <span
                 aria-hidden
                 className="pointer-events-none absolute -inset-x-10 -inset-y-8"
