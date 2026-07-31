@@ -11,7 +11,7 @@ import { workGroups, project } from "../../data/content";
 
 export default function SelectedWork() {
   return (
-    <section className="bg-ink px-5 py-28 sm:px-8">
+    <section id="record" className="bg-ink px-5 py-28 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <p className="type-eyebrow text-smoke">Selected work</p>
         <Lines className="type-display mt-6 max-w-3xl text-[clamp(2rem,4.6vw,3.8rem)] text-bone">

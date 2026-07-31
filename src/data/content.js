@@ -114,49 +114,42 @@ export const clients = [
 ];
 
 /**
- * The booklet — one spread per project.
+ * The booklet — spreads of an open monograph. Left page features one project;
+ * the right page carries a grid of four, captioned, exactly as a printed
+ * portfolio lays them out.
  *
- * PLACEHOLDER IMAGES. Every photo below is a Daher el Souane render or site
+ * PLACEHOLDER IMAGES. Every photo is a Daher el Souane render or site
  * photograph standing in until each project's own photography arrives; swap
- * `img` per entry and nothing else changes. Names, places and years are the
+ * the `img` entries and nothing else changes. Names, places and years are the
  * real record, from the qualification statement.
  */
 export const booklet = [
   {
-    name: "Villa Zreik",
-    place: "Faqra",
-    year: "2008",
-    note: "A mountain house built for winter first — stone mass, deep reveals, and a frame detailed for snow load rather than for the brochure.",
-    img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" },
+    feature: {
+      name: "Villa Zreik",
+      meta: "Faqra · 2008",
+      img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" },
+    },
+    grid: [
+      { name: "Villa Fakhoury", meta: "Kfardebian · 2016", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Garden elevation in evening light" } },
+      { name: "Villa Tyan", meta: "Baabdath · 2011", img: { src: "/im/site-finished.jpg", src2x: "/im/site-finished.jpg", alt: "Completed house from above" } },
+      { name: "WWII Museum", meta: "Khiam · 2005", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
+      { name: "Marina Gate", meta: "On site now", img: { src: "/im/site-progress.jpg", src2x: "/im/site-progress.jpg", alt: "Concrete frame under construction" } },
+    ],
   },
   {
-    name: "WWII Museum",
-    place: "Khiam · restoration",
-    year: "2005",
-    note: "Restoration as a discipline: existing fabric surveyed, kept and repaired — the building is the exhibit, and it had to stay authentic to remain one.",
-    img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" },
-  },
-  {
-    name: "Villa Tyan",
-    place: "Baabdath · restoration",
-    year: "2011",
-    note: "A family house brought back rather than replaced — new services threaded through old walls without the house noticing.",
-    img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Garden elevation in evening light" },
-  },
-  {
-    name: "Villa Fakhoury",
-    place: "Kfardebian",
-    year: "2016",
-    note: "Concrete, glass and a long view — engineered and built by one team, so the schedule and the workmanship answered to one name.",
-    img: { src: "/im/elevation-front-1280.webp", src2x: "/im/elevation-front-2560.webp", alt: "Front elevation at dusk" },
-  },
-  {
-    name: "Daher el Souane 563",
-    place: "Daher el Souane · our own development",
-    year: "Now selling",
-    note: "The proof of the argument: when we build for ourselves, this is what we choose to build.",
-    img: { src: "/im/hero-three-quarter-1280.webp", src2x: "/im/hero-three-quarter-2560.webp", alt: "Daher el Souane 563, three-quarter view" },
-    link: "/daher-el-souane-563",
+    feature: {
+      name: "Daher el Souane 563",
+      meta: "Our own development · now selling",
+      img: { src: "/im/hero-three-quarter-1280.webp", src2x: "/im/hero-three-quarter-2560.webp", alt: "Daher el Souane 563, three-quarter view" },
+      link: "/daher-el-souane-563",
+    },
+    grid: [
+      { name: "South elevation", meta: "Daher el Souane 563", img: { src: "/im/elevation-front-1280.webp", src2x: "/im/elevation-front-2560.webp", alt: "South elevation at dusk" } },
+      { name: "North elevation", meta: "Daher el Souane 563", img: { src: "/im/elevation-rear-1280.webp", src2x: "/im/elevation-rear-2560.webp", alt: "North elevation" } },
+      { name: "Massing study", meta: "Daher el Souane 563", img: { src: "/im/aerial-model-b.webp", src2x: "/im/aerial-model-b.webp", alt: "Aerial massing model" } },
+      { name: "Ground floor", meta: "Daher el Souane 563", img: { src: "/im/plan-ground.webp", src2x: "/im/plan-ground.webp", alt: "Ground floor plan" } },
+    ],
   },
 ];
 

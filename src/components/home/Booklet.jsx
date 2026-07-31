@@ -1,25 +1,26 @@
 /**
- * The booklet — selected projects as spreads of a monograph, with a real
+ * The booklet — an open monograph photographed on the table, with a real
  * page-turn.
  *
- * The turn is built the way a book actually works, not as a crossfade with
- * perspective sprinkled on. A leaf lifts at the gutter and rotates through
- * 180°; its front face is the page you were looking at and its back face is
- * the page that lands, so at every angle both sides are the truth. Light
- * leaves the page as it tilts away (a shade that peaks at 90°) and the leaf
- * casts a moving shadow on the page it is about to cover. Forward turns the
- * photograph over the words; backward lifts the words back over the
- * photograph — the two directions are mirror images, as they are in hand.
+ * Modelled on the printed object, not on a carousel wearing one: the heading
+ * sits beside the book, not inside it; the pages carry a featured plate on
+ * the left and a captioned grid on the right, the way a portfolio is actually
+ * laid out; and the book has a body — a dark cover proud of the pages, the
+ * stacked sheet edges of the closed leaves, a bowed gutter, and a pool of
+ * shadow underneath it.
  *
- * The 3D turn runs on large screens with motion allowed. Small screens get a
- * flat wipe from the gutter — a phone shows one page, and half a book
- * flipping over nothing reads as broken — and reduced-motion gets an
- * instant swap.
+ * The turn is built the way a book works. A leaf lifts at the gutter and
+ * rotates through 180° in perspective; its front face is the right-hand page
+ * you were looking at and its back face is the left-hand page of the next
+ * spread, so at every angle both sides are the truth. Light leaves the page
+ * as it tilts away, and the leaf casts a moving shadow on the page it is
+ * about to cover.
  *
- * Both leaves are equal halves because a book's are; the photography loses a
- * little width to the text page and gains an object that behaves.
+ * The 3D turn runs on large screens with motion allowed. Small screens show
+ * the plates stacked flat with a crossfade — half a book turning over
+ * nothing on a phone reads as broken — and reduced-motion swaps instantly.
  */
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { gsap, reducedMotion } from "../../lib/motion";
 import { Fade, Lines } from "../reveal";
@@ -27,47 +28,79 @@ import { booklet } from "../../data/content";
 
 const pad = (n) => String(n + 1).padStart(2, "0");
 
-/** One text leaf. Rendered statically and on the faces of the turning page. */
-function TextLeaf({ p, index }) {
+function Plate({ img, eager = false, className = "" }) {
   return (
-    <div className="flex h-full flex-col justify-between gap-10 bg-bone p-8 sm:p-12">
-      <div>
-        <p className="font-sans text-xs tabular-nums text-ink/45">{pad(index)}</p>
-        <h3 className="type-display mt-6 text-[clamp(1.9rem,3vw,2.8rem)] leading-[1.05] text-ink">
-          {p.name}
-        </h3>
-        <p className="mt-3 font-sans text-xs uppercase tracking-[0.14em] text-ink/55">
-          {p.place} · {p.year}
-        </p>
-        <p className="mt-6 max-w-sm font-sans text-sm leading-relaxed text-ink/70">{p.note}</p>
+    <img
+      src={img.src}
+      srcSet={`${img.src} 1280w, ${img.src2x} 2560w`}
+      sizes="40vw"
+      alt={img.alt}
+      loading={eager ? "eager" : "lazy"}
+      className={`h-full w-full object-cover ${className}`}
+    />
+  );
+}
+
+/** The left page: one featured plate with its caption beside it. */
+function LeftPage({ spread, eager = false }) {
+  const f = spread.feature;
+  return (
+    <div className="grid h-full grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-5 bg-bone p-6 sm:p-8 lg:p-10">
+      <div className="flex flex-col justify-center">
+        <h3 className="type-display text-[clamp(1.3rem,1.9vw,1.9rem)] leading-tight text-ink">{f.name}</h3>
+        <p className="mt-2 font-sans text-[0.7rem] text-ink/55">{f.meta}</p>
+        <span aria-hidden className="mt-5 block h-px w-16 bg-ink/25" />
+        {f.link ? (
+          <Link
+            to={f.link}
+            data-cursor="view"
+            className="group mt-5 inline-flex items-center gap-2 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/70 transition-colors hover:text-pmcc"
+          >
+            View project
+            <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+          </Link>
+        ) : (
+          <p className="mt-5 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/40">Selected plates</p>
+        )}
       </div>
-      {p.link ? (
-        <Link
-          to={p.link}
-          data-cursor="view"
-          className="group inline-flex items-center gap-3 font-sans text-xs uppercase tracking-[0.14em] text-pmcc"
-        >
-          View the project
-          <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1.5">→</span>
-        </Link>
-      ) : (
-        <p className="font-sans text-xs uppercase tracking-[0.14em] text-ink/40">
-          Full record with every proposal
-        </p>
-      )}
+      <div className="overflow-hidden">
+        <Plate img={f.img} eager={eager} />
+      </div>
     </div>
   );
 }
 
-function ImageFace({ p, eager = false }) {
+/** The right page: four captioned plates, gridded as a printed portfolio. */
+function RightPage({ spread, eager = false }) {
   return (
-    <img
-      src={p.img.src}
-      srcSet={`${p.img.src} 1280w, ${p.img.src2x} 2560w`}
-      sizes="(min-width: 1024px) 50vw, 100vw"
-      alt={p.img.alt}
-      loading={eager ? "eager" : "lazy"}
-      className="h-full w-full object-cover"
+    <div className="grid h-full grid-cols-2 gap-x-5 gap-y-4 bg-bone p-6 sm:p-8 lg:p-10">
+      {spread.grid.map((item) => (
+        <figure key={item.name} className="flex min-h-0 flex-col">
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <Plate img={item.img} eager={eager} />
+          </div>
+          <figcaption className="mt-2 shrink-0">
+            <p className="type-display text-[0.95rem] leading-tight text-ink">{item.name}</p>
+            <p className="mt-0.5 font-sans text-[0.62rem] text-ink/50">{item.meta}</p>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+/** The stacked edges of the closed leaves — the tell that this is a book. */
+function SheetEdges({ side }) {
+  return (
+    <span
+      aria-hidden
+      className={`pointer-events-none absolute inset-y-1 ${side === "left" ? "-left-2" : "-right-2"} hidden w-2 lg:block`}
+      style={{
+        background:
+          "repeating-linear-gradient(to right, #efe9dd 0px, #efe9dd 1.5px, #d9d2c2 1.5px, #d9d2c2 2.5px)",
+        borderRadius: side === "left" ? "2px 0 0 2px" : "0 2px 2px 0",
+        boxShadow: side === "left" ? "inset 2px 0 3px rgba(0,0,0,0.25)" : "inset -2px 0 3px rgba(0,0,0,0.25)",
+      }}
     />
   );
 }
@@ -77,272 +110,220 @@ export default function Booklet() {
   // {from, to, dir} while a leaf is in the air; null when the book is at rest.
   const [turning, setTurning] = useState(null);
 
-  const spread = useRef(null);
-  const stack = useRef(null);
-  const leafText = useRef(null);
+  const book = useRef(null);
   const turner = useRef(null);
   const shadeFront = useRef(null);
   const shadeBack = useRef(null);
   const cast = useRef(null);
+  const flat = useRef(null);
   const busy = useRef(false);
-  const skipFlat = useRef(false);
-  const previous = useRef(0);
 
-  const setStack = (index) => {
-    (stack.current?.querySelectorAll("[data-page]") ?? []).forEach((el, i) => {
-      el.style.clipPath = i === index ? "inset(0 0 0 0)" : "inset(0 0 0 100%)";
+  // Warm every plate once so a leaf never turns onto an undecoded image.
+  useEffect(() => {
+    booklet.forEach((s) => {
+      [s.feature.img, ...s.grid.map((g) => g.img)].forEach(({ src }) => {
+        const img = new Image();
+        img.src = src;
+      });
     });
-  };
+  }, []);
 
   const turn = (next) => {
     if (busy.current) return;
     const target = (next + booklet.length) % booklet.length;
     if (target === page) return;
 
-    const canFlip =
-      !reducedMotion() && window.matchMedia("(min-width: 1024px)").matches;
-
+    const canFlip = !reducedMotion() && window.matchMedia("(min-width: 1024px)").matches;
     if (!canFlip) {
-      previous.current = page;
       setPage(target);
+      if (!reducedMotion() && flat.current) {
+        gsap.fromTo(flat.current, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: "power2.out" });
+      }
       return;
     }
 
     busy.current = true;
-    setTurning({ from: page, to: target, dir: target > page || (page === booklet.length - 1 && target === 0) ? 1 : -1 });
+    setTurning({ from: page, to: target, dir: 1 });
   };
 
-  // The flat path: a wipe from the gutter on small screens, instant under
-  // reduced motion. Runs only when the 3D leaf did not already do the work.
-  useLayoutEffect(() => {
-    const from = previous.current;
-    if (from === page) return undefined;
-    if (skipFlat.current) {
-      skipFlat.current = false;
-      previous.current = page;
-      return undefined;
-    }
-    previous.current = page;
-
-    const images = stack.current?.querySelectorAll("[data-page]") ?? [];
-    if (reducedMotion()) {
-      setStack(page);
-      return undefined;
-    }
-    const ctx = gsap.context(() => {
-      const incoming = images[page];
-      images.forEach((el, i) => {
-        if (i !== page) gsap.set(el, { clipPath: i === from ? "inset(0 0 0 0)" : "inset(0 0 0 100%)", zIndex: 1 });
-      });
-      gsap.set(incoming, { zIndex: 2 });
-      gsap.fromTo(incoming, { clipPath: "inset(0 0 0 100%)" }, { clipPath: "inset(0 0 0 0%)", duration: 0.9, ease: "power3.inOut" });
-      gsap.fromTo(leafText.current, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.65, delay: 0.15, ease: "power2.out" });
-    }, stack.current);
-    return () => ctx.revert();
-  }, [page]);
-
-  // The 3D turn. Mounts the leaf, flies it, then commits the state - by which
-  // point the static spread underneath already looks exactly like the leaf's
-  // landing position, so the unmount is invisible.
+  // The 3D turn: mount the leaf, fly it, then commit the state - by which
+  // point the static spread beneath already looks like the landing position,
+  // so the handoff is invisible.
   useLayoutEffect(() => {
     if (!turning) return undefined;
-    const { to, dir } = turning;
-
-    setStack(dir === 1 ? to : turning.from);
+    const { to } = turning;
 
     const ctx = gsap.context(() => {
-      const rotation = dir === 1 ? -180 : 180;
-      gsap.set(turner.current, {
-        rotateY: 0,
-        transformOrigin: dir === 1 ? "left center" : "right center",
-        force3D: true,
-      });
+      gsap.set(turner.current, { rotateY: 0, transformOrigin: "left center", force3D: true });
 
       const tl = gsap.timeline({
         defaults: { ease: "power2.inOut" },
         onComplete: () => {
-          setStack(to);
-          skipFlat.current = true;
           busy.current = false;
           setPage(to);
           setTurning(null);
         },
       });
 
-      tl.to(turner.current, { rotateY: rotation, duration: 1.15 }, 0)
-        // Light leaves the page as it tilts away, and finds the back face as
-        // it tilts in - both peak at the vertical.
-        .fromTo(shadeFront.current, { opacity: 0 }, { opacity: 0.45, duration: 0.55, ease: "power1.in" }, 0)
-        .set(shadeFront.current, { opacity: 0 }, 0.58)
-        .fromTo(shadeBack.current, { opacity: 0.45 }, { opacity: 0, duration: 0.55, ease: "power1.out" }, 0.6)
-        // The leaf's shadow sweeps the page it is about to cover.
-        .fromTo(cast.current, { opacity: 0 }, { opacity: 0.35, duration: 0.55, ease: "power1.in" }, 0)
-        .to(cast.current, { opacity: 0, duration: 0.55, ease: "power1.out" }, 0.6)
-        // The book breathes once with the turn.
-        .to(spread.current, { scale: 1.005, duration: 0.575, ease: "power1.inOut" }, 0)
-        .to(spread.current, { scale: 1, duration: 0.575, ease: "power1.inOut" }, 0.575);
-    }, spread.current);
+      tl.to(turner.current, { rotateY: -180, duration: 1.2 }, 0)
+        .fromTo(shadeFront.current, { opacity: 0 }, { opacity: 0.45, duration: 0.58, ease: "power1.in" }, 0)
+        .set(shadeFront.current, { opacity: 0 }, 0.6)
+        .fromTo(shadeBack.current, { opacity: 0.45 }, { opacity: 0, duration: 0.58, ease: "power1.out" }, 0.62)
+        .fromTo(cast.current, { opacity: 0 }, { opacity: 0.4, duration: 0.58, ease: "power1.in" }, 0)
+        .to(cast.current, { opacity: 0, duration: 0.58, ease: "power1.out" }, 0.62)
+        .to(book.current, { scale: 1.006, duration: 0.6, ease: "power1.inOut" }, 0)
+        .to(book.current, { scale: 1, duration: 0.6, ease: "power1.inOut" }, 0.6);
+    }, book.current);
 
     return () => ctx.revert();
   }, [turning]);
 
-  // While a leaf is in the air the static spread shows what sits beneath it:
-  // forward keeps the old words and reveals the new photograph; backward
-  // reveals the old words and keeps the new... exactly as the physical pages
-  // would stack.
-  const leftIndex = turning ? (turning.dir === 1 ? turning.from : turning.to) : page;
-  const turnFaces = turning
-    ? turning.dir === 1
-      ? { front: <ImageFace p={booklet[turning.from]} eager />, back: <TextLeaf p={booklet[turning.to]} index={turning.to} /> }
-      : { front: <TextLeaf p={booklet[turning.from]} index={turning.from} />, back: <ImageFace p={booklet[turning.to]} eager /> }
-    : null;
+  // While a leaf is in the air the static book shows what sits beneath it:
+  // the old left page (until the leaf lands on it) and the new right page
+  // (revealed as the leaf lifts away).
+  const leftSpread = booklet[turning ? turning.from : page];
+  const rightSpread = booklet[turning ? turning.to : page];
+  const shown = turning ? turning.to : page;
 
   return (
-    <section className="bg-ink px-5 py-28 sm:px-8" aria-label="Project booklet">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className="type-eyebrow text-smoke">The portfolio</p>
-            <Lines className="type-display mt-6 text-[clamp(2rem,4.6vw,3.8rem)] text-bone">
-              Spaces <em className="type-display-it text-stone">that last.</em>
-            </Lines>
-          </div>
-          <Fade className="flex items-center gap-5 pb-1">
-            <p className="font-sans text-xs tabular-nums text-smoke" aria-live="polite">
-              <span className="text-bone">{pad(turning ? turning.to : page)}</span> / {pad(booklet.length - 1)}
+    <section className="overflow-x-clip bg-ink px-5 py-28 sm:px-8" aria-label="Project booklet">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,3.4fr)] lg:gap-16">
+        {/* The heading lives beside the book, as it does in the photograph. */}
+        <div>
+          <Lines className="type-display text-[clamp(2rem,3.4vw,3.2rem)] leading-[1.08] text-bone">
+            Selected <em className="type-display-it text-stone">Projects</em>
+          </Lines>
+          <Fade className="mt-6">
+            <p className="max-w-[16rem] font-sans text-sm leading-relaxed text-smoke">
+              A closer look at the spaces we&rsquo;ve shaped over the years. Timeless design.
+              Lasting impact.
             </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => turn((turning ? turning.to : page) - 1)}
-                aria-label="Previous project"
-                className="grid h-11 w-11 place-items-center rounded-full border border-seam text-bone transition-colors duration-300 hover:border-bone/60"
-              >
-                <span aria-hidden>←</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => turn((turning ? turning.to : page) + 1)}
-                aria-label="Next project"
-                className="grid h-11 w-11 place-items-center rounded-full border border-seam text-bone transition-colors duration-300 hover:border-bone/60"
-              >
-                <span aria-hidden>→</span>
-              </button>
-            </div>
+          </Fade>
+          <Fade className="mt-10">
+            <a
+              href="#record"
+              className="group inline-flex items-center gap-3 font-sans text-xs uppercase tracking-[0.16em] text-bone/80 transition-colors hover:text-bone"
+            >
+              View full portfolio
+              <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1.5">→</span>
+            </a>
+          </Fade>
+          <Fade className="mt-10 flex items-center gap-4 lg:mt-14">
+            <p className="font-sans text-xs tabular-nums text-smoke" aria-live="polite">
+              <span className="text-bone">{pad(shown)}</span> / {pad(booklet.length - 1)}
+            </p>
           </Fade>
         </div>
 
-        {/* The book. Perspective lives on this wrapper so the leaf turns in
-            the room, not on the glass. */}
-        <Fade className="mt-12">
-          <div style={{ perspective: "2400px" }}>
-          <div
-            ref={spread}
-            className="relative grid bg-bone shadow-[0_40px_80px_-30px_rgba(0,0,0,0.6)] lg:grid-cols-2"
-          >
-            {/* Left leaf - the words (what sits beneath during a turn) */}
-            <div className="relative order-2 lg:order-1">
-              <div ref={leafText} className="h-full">
-                <TextLeaf p={booklet[leftIndex]} index={leftIndex} />
-              </div>
-              {/* The gutter fold */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 right-0 hidden w-10 bg-gradient-to-l from-ink/15 to-transparent lg:block"
-              />
-              {/* Shadow cast by a leaf landing here (forward turns) */}
-              {turning?.dir === 1 ? (
-                <span ref={cast} aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-l from-ink/60 to-ink/10 opacity-0" />
-              ) : null}
-            </div>
-
-            {/* Right leaf - the photograph stack */}
-            <div ref={stack} className="relative order-1 aspect-[4/3] lg:order-2 lg:aspect-auto lg:min-h-[32rem]">
-              {booklet.map((p, i) => (
-                <img
-                  key={p.name}
-                  data-page
-                  src={p.img.src}
-                  srcSet={`${p.img.src} 1280w, ${p.img.src2x} 2560w`}
-                  sizes="(min-width: 1024px) 50vw, 100vw"
-                  alt={p.img.alt}
-                  loading={i === 0 ? "eager" : "lazy"}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  style={{ clipPath: i === page ? "inset(0 0 0 0)" : "inset(0 0 0 100%)" }}
-                />
-              ))}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 left-0 hidden w-10 bg-gradient-to-r from-ink/20 to-transparent lg:block"
-              />
-              {/* Shadow cast by a leaf landing here (backward turns) */}
-              {turning?.dir === -1 ? (
-                <span ref={cast} aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink/60 to-ink/10 opacity-0" />
-              ) : null}
-            </div>
-
-            {/* The turning leaf. Exists only mid-flight. */}
-            {turnFaces ? (
-              <div
-                ref={turner}
-                aria-hidden
-                className="absolute inset-y-0 z-20 hidden lg:block"
-                style={{
-                  left: turning.dir === 1 ? "50%" : 0,
-                  width: "50%",
-                  transformStyle: "preserve-3d",
-                }}
-              >
-                <div className="absolute inset-0 overflow-hidden bg-bone" style={{ backfaceVisibility: "hidden" }}>
-                  {turnFaces.front}
-                  <span
-                    ref={shadeFront}
-                    className="pointer-events-none absolute inset-0 opacity-0"
-                    style={{
-                      background:
-                        turning.dir === 1
-                          ? "linear-gradient(to right, rgba(20,17,15,0.9), rgba(20,17,15,0.2))"
-                          : "linear-gradient(to left, rgba(20,17,15,0.9), rgba(20,17,15,0.2))",
-                    }}
-                  />
-                </div>
-                <div
-                  className="absolute inset-0 overflow-hidden bg-bone"
-                  style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-                >
-                  {turnFaces.back}
-                  <span
-                    ref={shadeBack}
-                    className="pointer-events-none absolute inset-0 opacity-0"
-                    style={{
-                      background:
-                        turning.dir === 1
-                          ? "linear-gradient(to left, rgba(20,17,15,0.9), rgba(20,17,15,0.2))"
-                          : "linear-gradient(to right, rgba(20,17,15,0.9), rgba(20,17,15,0.2))",
-                    }}
-                  />
-                </div>
-              </div>
-            ) : null}
-          </div>
-          </div>
-        </Fade>
-
-        {/* The contents page */}
-        <Fade className="mt-6 flex flex-wrap gap-x-8 gap-y-2">
-          {booklet.map((p, i) => (
+        {/* The book, flanked by its page-turn controls. */}
+        <Fade>
+          <div className="flex items-center gap-4 sm:gap-6">
             <button
-              key={p.name}
               type="button"
-              onClick={() => turn(i)}
-              aria-current={i === (turning ? turning.to : page) ? "true" : undefined}
-              className={`font-sans text-xs uppercase tracking-[0.14em] transition-colors duration-300 ${
-                i === (turning ? turning.to : page) ? "text-pmcc" : "text-smoke hover:text-bone"
-              }`}
+              onClick={() => turn(page - 1)}
+              aria-label="Previous spread"
+              className="hidden h-12 w-12 shrink-0 place-items-center rounded-full border border-seam text-bone transition-colors duration-300 hover:border-bone/60 sm:grid"
             >
-              {pad(i)} {p.name}
+              <span aria-hidden>←</span>
             </button>
-          ))}
+
+            <div className="min-w-0 flex-1" style={{ perspective: "2600px" }}>
+              <div ref={book} className="relative">
+                {/* The cover, proud of the pages on every side */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-x-3 -inset-y-2 rounded-[4px] bg-[#171310] shadow-[0_60px_90px_-30px_rgba(0,0,0,0.85)]"
+                />
+                <SheetEdges side="left" />
+                <SheetEdges side="right" />
+
+                {/* The open spread */}
+                <div className="relative grid bg-bone lg:aspect-[15/7] lg:grid-cols-2">
+                  {/* Left page (mobile: the feature, stacked) */}
+                  <div ref={flat} className="relative">
+                    <div className="lg:aspect-auto lg:h-full">
+                      <LeftPage spread={leftSpread} eager />
+                    </div>
+                    {/* Bow of the page toward the gutter */}
+                    <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-16 bg-gradient-to-l from-ink/20 via-ink/5 to-transparent lg:block" />
+                    {/* Shadow cast by the landing leaf */}
+                    {turning ? (
+                      <span ref={cast} aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-l from-ink/60 to-ink/10 opacity-0" />
+                    ) : null}
+                  </div>
+
+                  {/* Right page */}
+                  <div className="relative hidden lg:block">
+                    <RightPage spread={rightSpread} eager />
+                    <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-ink/25 via-ink/5 to-transparent" />
+                  </div>
+                  {/* Mobile: the grid below the feature, flat */}
+                  <div className="lg:hidden">
+                    <RightPage spread={rightSpread} eager />
+                  </div>
+
+                  {/* The turning leaf. Exists only mid-flight. */}
+                  {turning ? (
+                    <div
+                      ref={turner}
+                      aria-hidden
+                      className="absolute inset-y-0 left-1/2 z-20 hidden w-1/2 lg:block"
+                      style={{ transformStyle: "preserve-3d" }}
+                    >
+                      <div className="absolute inset-0 overflow-hidden" style={{ backfaceVisibility: "hidden" }}>
+                        <RightPage spread={booklet[turning.from]} eager />
+                        <span
+                          ref={shadeFront}
+                          className="pointer-events-none absolute inset-0 opacity-0"
+                          style={{ background: "linear-gradient(to right, rgba(20,17,15,0.9), rgba(20,17,15,0.2))" }}
+                        />
+                      </div>
+                      <div
+                        className="absolute inset-0 overflow-hidden"
+                        style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                      >
+                        <LeftPage spread={booklet[turning.to]} eager />
+                        <span
+                          ref={shadeBack}
+                          className="pointer-events-none absolute inset-0 opacity-0"
+                          style={{ background: "linear-gradient(to left, rgba(20,17,15,0.9), rgba(20,17,15,0.2))" }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => turn(page + 1)}
+              aria-label="Next spread"
+              className="hidden h-12 w-12 shrink-0 place-items-center rounded-full border border-seam text-bone transition-colors duration-300 hover:border-bone/60 sm:grid"
+            >
+              <span aria-hidden>→</span>
+            </button>
+          </div>
+
+          {/* Mobile turn controls */}
+          <div className="mt-6 flex justify-center gap-3 sm:hidden">
+            <button
+              type="button"
+              onClick={() => turn(page - 1)}
+              aria-label="Previous spread"
+              className="grid h-11 w-11 place-items-center rounded-full border border-seam text-bone"
+            >
+              <span aria-hidden>←</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => turn(page + 1)}
+              aria-label="Next spread"
+              className="grid h-11 w-11 place-items-center rounded-full border border-seam text-bone"
+            >
+              <span aria-hidden>→</span>
+            </button>
+          </div>
         </Fade>
       </div>
     </section>
