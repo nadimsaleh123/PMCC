@@ -4,6 +4,7 @@ import { gsap, reducedMotion } from "../lib/motion";
 import { Lines, Fade } from "../components/reveal";
 import WarpImage from "../components/WarpImage";
 import Timeline from "../components/home/Timeline";
+import Booklet from "../components/home/Booklet";
 import SelectedWork from "../components/home/SelectedWork";
 import { heroClaim, stats, services, clients, project } from "../data/content";
 
@@ -247,6 +248,7 @@ export default function Home() {
       <Manifesto />
       <Services />
       <Timeline />
+      <Booklet />
       <SelectedWork />
       <FlagshipPromo />
     </>

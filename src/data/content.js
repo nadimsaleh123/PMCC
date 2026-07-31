@@ -113,6 +113,53 @@ export const clients = [
   { name: "JDM", slug: "jdm" },
 ];
 
+/**
+ * The booklet — one spread per project.
+ *
+ * PLACEHOLDER IMAGES. Every photo below is a Daher el Souane render or site
+ * photograph standing in until each project's own photography arrives; swap
+ * `img` per entry and nothing else changes. Names, places and years are the
+ * real record, from the qualification statement.
+ */
+export const booklet = [
+  {
+    name: "Villa Zreik",
+    place: "Faqra",
+    year: "2008",
+    note: "A mountain house built for winter first — stone mass, deep reveals, and a frame detailed for snow load rather than for the brochure.",
+    img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" },
+  },
+  {
+    name: "WWII Museum",
+    place: "Khiam · restoration",
+    year: "2005",
+    note: "Restoration as a discipline: existing fabric surveyed, kept and repaired — the building is the exhibit, and it had to stay authentic to remain one.",
+    img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" },
+  },
+  {
+    name: "Villa Tyan",
+    place: "Baabdath · restoration",
+    year: "2011",
+    note: "A family house brought back rather than replaced — new services threaded through old walls without the house noticing.",
+    img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Garden elevation in evening light" },
+  },
+  {
+    name: "Villa Fakhoury",
+    place: "Kfardebian",
+    year: "2016",
+    note: "Concrete, glass and a long view — engineered and built by one team, so the schedule and the workmanship answered to one name.",
+    img: { src: "/im/elevation-front-1280.webp", src2x: "/im/elevation-front-2560.webp", alt: "Front elevation at dusk" },
+  },
+  {
+    name: "Daher el Souane 563",
+    place: "Daher el Souane · our own development",
+    year: "Now selling",
+    note: "The proof of the argument: when we build for ourselves, this is what we choose to build.",
+    img: { src: "/im/hero-three-quarter-1280.webp", src2x: "/im/hero-three-quarter-2560.webp", alt: "Daher el Souane 563, three-quarter view" },
+    link: "/daher-el-souane-563",
+  },
+];
+
 export const timeline = [
   { year: "2002", text: "PMCC is founded by Jihad Saleh. First engagement: managing construction of Microsoft's regional offices in Beirut Central District." },
   { year: "2003–10", text: "The villa years — Fatka, Faqra, Yarze, Baabdath, Dahr El Souane — alongside the MEDCO service-station network across the coast." },
