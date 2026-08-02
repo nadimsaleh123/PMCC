@@ -20,6 +20,12 @@ services:
     # difference between the project page working and working only if you
     # happen to arrive via the homepage.
     routes:
+      # The development has its own baked-in <head> so a link forwarded on
+      # WhatsApp previews the apartments, not the company homepage. This must
+      # come before the catch-all.
+      - type: rewrite
+        source: /daher-el-souane-563
+        destination: /daher-el-souane-563.html
       - type: rewrite
         source: /*
         destination: /index.html

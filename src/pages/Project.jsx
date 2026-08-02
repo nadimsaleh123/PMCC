@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
+import { applySeo } from "../lib/seo";
 import { gsap, reducedMotion } from "../lib/motion";
 import { Lines, Fade } from "../components/reveal";
 import Magnetic from "../components/Magnetic";
@@ -193,6 +194,10 @@ function Availability() {
 }
 
 export default function Project() {
+  // Client-side navigation leaves the baked-in <head> describing the wrong
+  // page; put it right. Scrapers read the baked copy, Google reads this.
+  useLayoutEffect(() => applySeo("project"), []);
+
   return (
     <>
       <ProjectHero />

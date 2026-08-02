@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { applySeo } from "../lib/seo";
 import { gsap, reducedMotion } from "../lib/motion";
 import { Lines, Fade } from "../components/reveal";
 import WarpImage from "../components/WarpImage";
@@ -240,6 +241,10 @@ function FlagshipPromo() {
 }
 
 export default function Home() {
+  // Client-side navigation leaves the baked-in <head> describing the wrong
+  // page; put it right. Scrapers read the baked copy, Google reads this.
+  useLayoutEffect(() => applySeo("home"), []);
+
   return (
     <>
       <Hero />
