@@ -16,7 +16,7 @@
 export const GA4_ID = "G-3JSXJJ0Y35";
 
 /** Paste the Meta pixel ID here, e.g. "1234567890123456". Empty = off. */
-export const META_PIXEL_ID = "";
+export const META_PIXEL_ID = "1373538834137149";
 
 let booted = false;
 
