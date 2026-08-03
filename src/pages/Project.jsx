@@ -8,6 +8,7 @@ import FloorStack from "../components/project/FloorStack";
 import BeforeAfter from "../components/project/BeforeAfter";
 import Gallery from "../components/project/Gallery";
 import LeadForm from "../components/LeadForm";
+import ShareButton from "../components/ShareButton";
 import { project, company } from "../data/content";
 import { track } from "../lib/analytics";
 
@@ -244,6 +245,15 @@ function Availability() {
               Or enquire on WhatsApp →
             </a>
           </Magnetic>
+        </Fade>
+        <Fade className="mt-10">
+          <p className="font-sans text-xs text-ink/55">
+            Know someone this would suit?{" "}
+            <ShareButton
+              url="https://pmcclb.com/daher-el-souane-563"
+              className="text-ink underline underline-offset-4 transition-colors hover:text-pmcc"
+            />
+          </p>
         </Fade>
       </div>
     </section>
