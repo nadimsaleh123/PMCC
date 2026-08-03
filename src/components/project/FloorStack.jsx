@@ -170,6 +170,18 @@ export default function FloorStack() {
               </div>
               <h3 className="type-display mt-3 text-3xl text-bone sm:text-4xl">{f.name}</h3>
               <p className="mt-5 max-w-md font-sans text-sm leading-relaxed text-smoke">{f.brief}</p>
+              {f.specs && (
+                <ul className="mt-6 flex flex-wrap gap-2">
+                  {f.specs.map(([k, v]) => (
+                    <li
+                      key={k}
+                      className="border border-seam px-3 py-1.5 font-sans text-[0.65rem] uppercase tracking-wideish text-smoke"
+                    >
+                      {k} · <span className="font-semibold text-bone">{v}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <ul className="mt-6 space-y-2">
                 {f.features.map((feat) => (
                   <li key={feat} className="flex items-baseline gap-3 font-sans text-xs text-bone/80">

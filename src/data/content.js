@@ -177,17 +177,24 @@ export const project = {
     "There are no corridors of doors here. The building holds four apartments — one per floor, each the full plate, each with four bedrooms. Parking and plant sit in the basement below the garden residence, and an elevator serves every level.",
   ],
   facts: [
-    { value: "4", label: "Residences — one full floor each" },
-    { value: "4", label: "Bedrooms in every residence" },
-    { value: "5", label: "Levels served by elevator" },
-    { value: "563", label: "The plot — one terraced garden site in Daher El Souane" },
+    { value: "4", label: "Residences — one full floor each, four bedrooms each" },
+    { value: "330 m²", label: "Per full-floor residence · 300 m² on the roof" },
+    { value: "900 m", label: "Above the sea — village air, minutes from the city" },
+    { value: "$500k", label: "Prices from — reserve with a deposit, balance on completion" },
   ],
+  /** Stated plainly because a buyer at this level checks before asking. */
+  priceFrom: "From $500,000",
   floors: [
     {
       id: "garden",
       level: "Basement 1",
       name: "The Garden Residence",
       availability: "available", // "available" | "reserved" | "sold"
+      specs: [
+        ["Area", "330 m²"],
+        ["Garden", "210 m²"],
+        ["Parking", "4 cars"],
+      ],
       plan: "/im/plan-basement1.webp",
       brief: "Opens straight onto the terraced gardens. Reception, dining and kitchen along the garden front; two master suites and two bedrooms; a gym and playroom of its own; a walk-in closet off the first master.",
       features: ["Direct garden frontage", "Gym / playroom", "Walk-in master closet", "Wrap-around balcony"],
@@ -197,6 +204,11 @@ export const project = {
       level: "Ground Floor",
       name: "The Ground Residence",
       availability: "available",
+      specs: [
+        ["Area", "330 m²"],
+        ["Garden", "152 m²"],
+        ["Parking", "3 cars"],
+      ],
       plan: "/im/plan-ground.webp",
       brief: "The full ground plate with planted balcony borders on every edge. Two master suites with their own baths, two further bedrooms, maid's room and guest WC off the service side.",
       features: ["Full-plate reception & dining", "Two master suites", "Maid's room", "Planted balcony borders"],
@@ -206,6 +218,10 @@ export const project = {
       level: "First Floor",
       name: "The First-Floor Residence",
       availability: "available",
+      specs: [
+        ["Area", "330 m²"],
+        ["Parking", "4 cars"],
+      ],
       plan: "/im/plan-first.webp",
       brief: "The same generous plan lifted above the gardens — longer sightlines over the pines, the ridge light in every room, balconies off reception and both masters.",
       features: ["Elevated pine views", "Two master suites", "Maid's room", "Balconies on both fronts"],
@@ -215,6 +231,10 @@ export const project = {
       level: "Roof Floor",
       name: "The Roof Residence",
       availability: "available",
+      specs: [
+        ["Area", "300 m²"],
+        ["Terraces", "Two, off reception & master"],
+      ],
       plan: "/im/plan-roof.webp",
       brief: "Under the glazed gables of the terracotta roof, with two large terraces in place of balconies — one off the reception, one off the master suite. The building's crown.",
       features: ["Two large terraces", "Glazed gable ceilings", "Four bedrooms", "The top of the ridge"],
@@ -246,8 +266,33 @@ export const project = {
    * "twenty minutes from the city" already in the narrative. Update here if
    * the owner measures different ones.
    */
+  /**
+   * From the developer's own project book (Dahr el Sawan — Private
+   * Residences, PMCC Development): the general specification and the gated
+   * domain. Facts, not adjectives — a buyer at this level reads spec sheets.
+   */
+  specs: {
+    residence: [
+      "Façade finished in 100% natural stone",
+      "Double-glazed aluminium openings with electric rolling shutters",
+      "60×60 Botticino marble through reception, dining and main terraces",
+      "Solid natural-wood entrance door; veneered reception doors",
+      "Marble-topped vanities · Duravit sanitary ware · Grohe mixers",
+      "Legrand wiring devices · video intercom to the gate",
+      "Radiator heating and provision for central air conditioning",
+      "Elevator serving every level, basement to roof",
+    ],
+    domain: [
+      "Gated domain with a single controlled entrance",
+      "Guard post and security system across the project",
+      "Covered parking with each residence, plus visitor parking",
+      "Dedicated water storage and boiler plant in the basement",
+      "Hard and soft landscaping throughout the grounds",
+    ],
+  },
   location: {
     line: "On the green ridge above the coast — close enough to use the city, far enough not to hear it.",
+    altitude: "900",
     driveTimes: [
       { place: "Beirut", minutes: 20 },
       { place: "ABC Dbayeh", minutes: 15 },

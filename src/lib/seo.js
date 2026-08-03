@@ -38,7 +38,7 @@ export const PAGES = {
     path: "/daher-el-souane-563",
     title: "Daher el Souane 563 — Four-Bedroom Full-Floor Apartments for Sale, Mount Lebanon",
     description:
-      "Four full-floor residences, one apartment per floor, each with four bedrooms — on a terraced garden site in Daher el Souane, 20 minutes above Beirut. Developed, managed and built by PMCC. Areas, finishes and pricing on request.",
+      "Four full-floor residences of 330 m², one per floor, four bedrooms each — in a gated domain 900 m above Beirut. Private gardens and terraces, from $500,000, delivery summer 2027. Developed, managed and built by PMCC.",
     image: abs("/im/og-card.jpg"),
     imageAlt: "Daher el Souane 563 — three-quarter view among the umbrella pines",
   },
@@ -108,6 +108,15 @@ export const PROJECT_LD = {
     { "@type": "LocationFeatureSpecification", name: "Basement parking", value: true },
   ],
   developer: { "@id": `${SITE}/#organisation` },
+  // The price floor, so listings surfaces can show "from $500,000" without
+  // crawling the page copy.
+  offers: {
+    "@type": "AggregateOffer",
+    lowPrice: "500000",
+    priceCurrency: "USD",
+    offerCount: 4,
+    availability: "https://schema.org/InStock",
+  },
 };
 
 /** Set or replace one meta/link tag in the live document. */

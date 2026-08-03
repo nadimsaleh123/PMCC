@@ -61,6 +61,95 @@ function FactsStrip() {
   );
 }
 
+/**
+ * The real photograph from the site, full bleed, with the altitude counting
+ * itself up as the section scrolls in. Renders sell the building; this photo
+ * sells the reason the building is here.
+ */
+function TheView() {
+  const root = useRef(null);
+
+  useLayoutEffect(() => {
+    if (reducedMotion()) return undefined;
+    const ctx = gsap.context(() => {
+      const el = root.current.querySelector("[data-altitude]");
+      gsap.fromTo(
+        el,
+        { textContent: 0 },
+        {
+          textContent: Number(project.location.altitude),
+          duration: 2,
+          ease: "power2.out",
+          snap: { textContent: 1 },
+          scrollTrigger: { trigger: el, start: "top 85%", once: true },
+        },
+      );
+    }, root.current);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section ref={root} className="relative">
+      <div className="relative h-[92svh] overflow-clip">
+        <WarpImage
+          src="/im/view-ridge-2444.webp"
+          srcSet="/im/view-ridge-1280.webp 1280w, /im/view-ridge-2444.webp 2444w"
+          alt="The view from the site — the Metn valley and the mountains beyond, photographed at Daher el Souane"
+          className="h-full"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/10 to-ink/30" />
+        <div className="absolute inset-x-0 bottom-0 px-5 pb-14 sm:px-8">
+          <p className="type-eyebrow text-bone/90">The view · photographed on site</p>
+          <p className="type-display mt-4 text-[clamp(3.4rem,11vw,9rem)] leading-none text-bone">
+            <span data-altitude>{project.location.altitude}</span>
+            <span className="text-stone"> m</span>
+          </p>
+          <p className="mt-4 max-w-md font-sans text-sm leading-relaxed text-bone/85">
+            above the sea. The valley below, the mountains across — and Beirut twenty
+            minutes down the hill.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** The general specification, verbatim from the project book. */
+function TheStandard() {
+  const groups = [
+    { title: "The residence", items: project.specs.residence },
+    { title: "The domain", items: project.specs.domain },
+  ];
+  return (
+    <section className="border-t border-seam bg-coal px-5 py-28 sm:px-8">
+      <div className="mx-auto max-w-6xl">
+        <p className="type-eyebrow text-smoke">The standard</p>
+        <Lines className="type-display mt-6 max-w-4xl text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
+          Specified like a private house,{" "}
+          <em className="type-display-it text-stone">secured like a gated estate.</em>
+        </Lines>
+        <div className="mt-14 grid gap-14 lg:grid-cols-2">
+          {groups.map((g) => (
+            <Fade key={g.title}>
+              <p className="font-sans text-xs font-semibold uppercase tracking-wideish text-stone">
+                {g.title}
+              </p>
+              <ul className="mt-6 space-y-3">
+                {g.items.map((item) => (
+                  <li key={item} className="flex items-baseline gap-3 border-t border-seam pt-3 font-sans text-sm leading-relaxed text-bone/85">
+                    <span aria-hidden className="inline-block h-[3px] w-[14px] shrink-0 translate-y-[-3px] bg-pmcc" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </Fade>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Narrative() {
   return (
     <section className="bg-bone px-5 py-28 text-ink sm:px-8 sm:py-36">
@@ -251,6 +340,14 @@ function Faq() {
       a: "Yes — and we encourage it. Message us on WhatsApp and we'll arrange a walk of the site and the floor you're considering.",
     },
     {
+      q: "Is the project permitted?",
+      a: "Fully permitted. And the company that holds the permit is the company that builds — PMCC develops, manages and constructs the project under one name.",
+    },
+    {
+      q: "What do prices start at?",
+      a: "From $500,000 for a full-floor, four-bedroom residence of 330 m². The full price list per floor — with gardens, terraces and parking — comes with the floor plans when you leave your number above.",
+    },
+    {
       q: "How do I get areas, finishes and pricing?",
       a: "Leave your number in the form above or message us on WhatsApp — the full price list, floor areas and finishes schedule come to you the same day.",
     },
@@ -296,9 +393,14 @@ function Availability() {
         <Lines className="type-display mx-auto mt-8 max-w-3xl text-[clamp(2.2rem,5.4vw,4.6rem)]">
           Four residences. <em className="type-display-it">One per floor.</em>
         </Lines>
-        <Fade className="mx-auto mt-8 max-w-md">
+        <Fade>
+          <p className="type-display mt-6 text-[clamp(1.6rem,3vw,2.2rem)] text-ink">
+            From <em className="type-display-it text-pmcc">$500,000</em>
+          </p>
+        </Fade>
+        <Fade className="mx-auto mt-6 max-w-md">
           <p className="font-sans text-sm leading-relaxed text-ink/70">
-            {summary} {project.onRequest}
+            {summary} Fully permitted. {project.onRequest}
           </p>
         </Fade>
         <Fade>
@@ -388,10 +490,12 @@ export default function Project() {
       <ProjectHero />
       <FactsStrip />
       <Narrative />
+      <TheView />
       <BeforeAfter />
       <FloorStack />
       <Gallery />
       <AerialModel />
+      <TheStandard />
       <Location />
       <Availability />
       <Faq />
