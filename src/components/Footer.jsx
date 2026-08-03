@@ -3,6 +3,7 @@ import { Lines, Fade } from "./reveal";
 import Monogram from "./Monogram";
 import Magnetic from "./Magnetic";
 import LeadForm from "./LeadForm";
+import ShareButton from "./ShareButton";
 import { company } from "../data/content";
 import { track } from "../lib/analytics";
 
@@ -73,6 +74,12 @@ export default function Footer() {
             <Link to="/daher-el-souane-563" className="transition-colors hover:text-bone">
               Daher el Souane 563
             </Link>
+            {/* Shares the bare URL — unlike the browser's share button, which
+                wraps it in share.google and breaks the preview card. */}
+            <ShareButton
+              url="https://pmcclb.com"
+              className="text-left transition-colors hover:text-bone sm:text-right"
+            />
             <p className="mt-4">© {year} PMCC S.A.R.L. · Since {company.since}</p>
           </div>
         </div>

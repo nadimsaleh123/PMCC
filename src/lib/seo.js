@@ -31,7 +31,7 @@ export const PAGES = {
     // ?v= is for Meta's image CDN, which caches by exact URL and ignores
     // re-scrapes: bump it whenever the card's pixels change, or WhatsApp
     // and Facebook keep showing the previous artwork indefinitely.
-    image: abs("/im/og-card-home.jpg?v=2"),
+    image: abs("/im/og-card-home.jpg?v=3"),
     imageAlt: "PMCC — We manage what we build. Construction & project management, Lebanon, since 2002",
   },
   project: {
@@ -39,7 +39,7 @@ export const PAGES = {
     title: "Daher el Souane 563 — Four-Bedroom Full-Floor Apartments for Sale, Mount Lebanon",
     description:
       "Four full-floor residences of 330 m², one per floor, four bedrooms each — in a gated domain 900 m above Beirut. Private gardens and terraces, from $500,000, delivery summer 2027. Developed, managed and built by PMCC.",
-    image: abs("/im/og-card.jpg"),
+    image: abs("/im/og-card.jpg?v=2"),
     imageAlt: "Daher el Souane 563 — three-quarter view among the umbrella pines",
   },
 };

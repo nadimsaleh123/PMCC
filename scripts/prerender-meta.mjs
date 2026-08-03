@@ -53,8 +53,8 @@ function applyMeta(html, page, extraLd) {
     ["og:title", page.title],
     ["og:description", page.description],
     ["og:image", page.image],
-    ["og:image:width", "1200"],
-    ["og:image:height", "630"],
+    ["og:image:width", "2400"],
+    ["og:image:height", "1260"],
     ["og:image:alt", page.imageAlt],
     ["og:url", url],
   ];
