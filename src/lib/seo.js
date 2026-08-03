@@ -24,10 +24,12 @@ export const PAGES = {
     title: "PMCC — Construction & Project Management in Lebanon since 2002",
     description:
       "PMCC S.A.R.L. builds and manages in Lebanon since 2002 — Microsoft, MEDCO, McDonald's, Arab Investment Bank. Engineering, contracting and development under one team. Now selling: Daher el Souane 563.",
-    // A dedicated 1200×630 JPEG card: exactly the aspect the scrapers crop
+    // Dedicated 1200×630 JPEG cards: exactly the aspect the scrapers crop
     // to, and JPEG because WhatsApp/Facebook handle webp og:images unreliably.
-    image: abs("/im/og-card.jpg"),
-    imageAlt: "PMCC — Daher el Souane 563, Mount Lebanon",
+    // Two cards on purpose — the company link previews as the brand, the
+    // development link previews as the building.
+    image: abs("/im/og-card-home.jpg"),
+    imageAlt: "PMCC — We manage what we build. Construction & project management, Lebanon, since 2002",
   },
   project: {
     path: "/daher-el-souane-563",
