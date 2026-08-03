@@ -228,6 +228,15 @@ function Availability() {
             {summary} {project.onRequest}
           </p>
         </Fade>
+        <Fade className="mx-auto mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          <p className="font-sans text-xs font-semibold uppercase tracking-wideish text-ink/80">
+            {project.terms.delivery}
+          </p>
+          <span aria-hidden className="hidden h-1 w-1 rounded-full bg-pmcc sm:inline-block" />
+          <p className="font-sans text-xs font-semibold uppercase tracking-wideish text-ink/80">
+            {project.terms.payment}
+          </p>
+        </Fade>
         <Fade className="mt-12">
           <LeadForm tone="light" source="project" showWhatsApp={false} />
         </Fade>

@@ -236,6 +236,11 @@ export const project = {
     "Architecture by A20/partners",
   ],
   onRequest: "Areas, finishes schedule and pricing on request.",
+  /** The two facts every buyer asks first — stated, not hidden. */
+  terms: {
+    delivery: "Delivery summer 2027",
+    payment: "Reserve with a deposit — balance on completion",
+  },
   /**
    * Drive times are typical light-traffic figures, consistent with the
    * "twenty minutes from the city" already in the narrative. Update here if
