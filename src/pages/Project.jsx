@@ -92,8 +92,8 @@ function TheView() {
     <section ref={root} className="relative">
       <div className="relative h-[92svh] overflow-clip">
         <WarpImage
-          src="/im/view-ridge-2444.webp"
-          srcSet="/im/view-ridge-1280.webp 1280w, /im/view-ridge-2444.webp 2444w"
+          src="/im/view-ridge-3200.webp"
+          srcSet="/im/view-ridge-1280.webp 1280w, /im/view-ridge-2444.webp 2444w, /im/view-ridge-3200.webp 3200w"
           alt="The view from the site — the Metn valley and the mountains beyond, photographed at Daher el Souane"
           className="h-full"
         />
