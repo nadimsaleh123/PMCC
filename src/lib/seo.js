@@ -28,7 +28,10 @@ export const PAGES = {
     // to, and JPEG because WhatsApp/Facebook handle webp og:images unreliably.
     // Two cards on purpose — the company link previews as the brand, the
     // development link previews as the building.
-    image: abs("/im/og-card-home.jpg"),
+    // ?v= is for Meta's image CDN, which caches by exact URL and ignores
+    // re-scrapes: bump it whenever the card's pixels change, or WhatsApp
+    // and Facebook keep showing the previous artwork indefinitely.
+    image: abs("/im/og-card-home.jpg?v=2"),
     imageAlt: "PMCC — We manage what we build. Construction & project management, Lebanon, since 2002",
   },
   project: {
