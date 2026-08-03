@@ -8,10 +8,15 @@ import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Project from "./pages/Project";
+import NotFound from "./pages/NotFound";
+import { trackPageView } from "./lib/analytics";
 
 function ScrollReset() {
   const { pathname } = useLocation();
   const lenisRef = useLenis();
+  useEffect(() => {
+    trackPageView(pathname);
+  }, [pathname]);
   useEffect(() => {
     // Through Lenis, not window.scrollTo: a plain reset issued mid-inertia is
     // overwritten by Lenis's next raf frame with the in-flight scroll value.
@@ -44,7 +49,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/daher-el-souane-563" element={<Project />} />
-          <Route path="*" element={<Home />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Footer />
       </main>

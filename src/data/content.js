@@ -132,9 +132,9 @@ export const booklet = [
     },
     grid: [
       { name: "Villa Fakhoury", meta: "Kfardebian · 2016", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Garden elevation in evening light" } },
-      { name: "Villa Tyan", meta: "Baabdath · 2011", img: { src: "/im/site-finished.jpg", src2x: "/im/site-finished.jpg", alt: "Completed house from above" } },
+      { name: "Villa Tyan", meta: "Baabdath · 2011", img: { src: "/im/site-finished-1280.webp", src2x: "/im/site-finished-1280.webp", alt: "Completed house from above" } },
       { name: "WWII Museum", meta: "Khiam · 2005", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
-      { name: "Marina Gate", meta: "On site now", img: { src: "/im/site-progress.jpg", src2x: "/im/site-progress.jpg", alt: "Concrete frame under construction" } },
+      { name: "Marina Gate", meta: "On site now", img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" } },
     ],
   },
   {
@@ -187,6 +187,7 @@ export const project = {
       id: "garden",
       level: "Basement 1",
       name: "The Garden Residence",
+      availability: "available", // "available" | "reserved" | "sold"
       plan: "/im/plan-basement1.webp",
       brief: "Opens straight onto the terraced gardens. Reception, dining and kitchen along the garden front; two master suites and two bedrooms; a gym and playroom of its own; a walk-in closet off the first master.",
       features: ["Direct garden frontage", "Gym / playroom", "Walk-in master closet", "Wrap-around balcony"],
@@ -195,6 +196,7 @@ export const project = {
       id: "ground",
       level: "Ground Floor",
       name: "The Ground Residence",
+      availability: "available",
       plan: "/im/plan-ground.webp",
       brief: "The full ground plate with planted balcony borders on every edge. Two master suites with their own baths, two further bedrooms, maid's room and guest WC off the service side.",
       features: ["Full-plate reception & dining", "Two master suites", "Maid's room", "Planted balcony borders"],
@@ -203,6 +205,7 @@ export const project = {
       id: "first",
       level: "First Floor",
       name: "The First-Floor Residence",
+      availability: "available",
       plan: "/im/plan-first.webp",
       brief: "The same generous plan lifted above the gardens — longer sightlines over the pines, the ridge light in every room, balconies off reception and both masters.",
       features: ["Elevated pine views", "Two master suites", "Maid's room", "Balconies on both fronts"],
@@ -211,6 +214,7 @@ export const project = {
       id: "roof",
       level: "Roof Floor",
       name: "The Roof Residence",
+      availability: "available",
       plan: "/im/plan-roof.webp",
       brief: "Under the glazed gables of the terracotta roof, with two large terraces in place of balconies — one off the reception, one off the master suite. The building's crown.",
       features: ["Two large terraces", "Glazed gable ceilings", "Four bedrooms", "The top of the ridge"],
@@ -232,4 +236,18 @@ export const project = {
     "Architecture by A20/partners",
   ],
   onRequest: "Areas, finishes schedule and pricing on request.",
+  /**
+   * Drive times are typical light-traffic figures, consistent with the
+   * "twenty minutes from the city" already in the narrative. Update here if
+   * the owner measures different ones.
+   */
+  location: {
+    line: "On the green ridge above the coast — close enough to use the city, far enough not to hear it.",
+    driveTimes: [
+      { place: "Beirut", minutes: 20 },
+      { place: "ABC Dbayeh", minutes: 15 },
+      { place: "Rafic Hariri Int'l Airport", minutes: 35 },
+    ],
+    note: "Typical driving times in light traffic.",
+  },
 };

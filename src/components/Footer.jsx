@@ -2,7 +2,9 @@ import { Link } from "react-router-dom";
 import { Lines, Fade } from "./reveal";
 import Monogram from "./Monogram";
 import Magnetic from "./Magnetic";
+import LeadForm from "./LeadForm";
 import { company } from "../data/content";
+import { track } from "../lib/analytics";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -22,6 +24,7 @@ export default function Footer() {
               href={`https://wa.me/${company.whatsapp}`}
               target="_blank"
               rel="noreferrer"
+              onClick={() => track("whatsapp_click", { source: "footer" })}
               className="group inline-flex items-center gap-3 bg-pmcc px-7 py-4 font-sans text-sm font-semibold text-bone"
             >
               WhatsApp {company.mobile}
@@ -30,16 +33,28 @@ export default function Footer() {
           </Magnetic>
           <a
             href={`tel:${company.phone.replace(/\s/g, "")}`}
+            onClick={() => track("call_click", { source: "footer" })}
             className="inline-flex items-center gap-3 border border-seam px-7 py-4 font-sans text-sm text-bone transition-colors hover:border-stone"
           >
             {company.phone}
           </a>
           <a
             href={`mailto:${company.email}`}
+            onClick={() => track("email_click", { source: "footer" })}
             className="inline-flex items-center gap-3 border border-seam px-7 py-4 font-sans text-sm text-bone transition-colors hover:border-stone"
           >
             {company.email}
           </a>
+        </Fade>
+
+        <Fade className="mt-16 max-w-3xl">
+          <p className="type-eyebrow text-smoke">Daher el Souane 563</p>
+          <p className="mt-3 font-sans text-sm leading-relaxed text-smoke">
+            Leave your details and the price list &amp; floor plans come to you.
+          </p>
+          <div className="mt-6">
+            <LeadForm tone="dark" source="footer" showWhatsApp={false} />
+          </div>
         </Fade>
 
         <div className="rule mt-20" />

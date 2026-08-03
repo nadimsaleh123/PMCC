@@ -24,7 +24,9 @@ export const PAGES = {
     title: "PMCC — Construction & Project Management in Lebanon since 2002",
     description:
       "PMCC S.A.R.L. builds and manages in Lebanon since 2002 — Microsoft, MEDCO, McDonald's, Arab Investment Bank. Engineering, contracting and development under one team. Now selling: Daher el Souane 563.",
-    image: abs("/im/hero-three-quarter-1280.webp"),
+    // A dedicated 1200×630 JPEG card: exactly the aspect the scrapers crop
+    // to, and JPEG because WhatsApp/Facebook handle webp og:images unreliably.
+    image: abs("/im/og-card.jpg"),
     imageAlt: "PMCC — Daher el Souane 563, Mount Lebanon",
   },
   project: {
@@ -32,7 +34,7 @@ export const PAGES = {
     title: "Daher el Souane 563 — Four-Bedroom Full-Floor Apartments for Sale, Mount Lebanon",
     description:
       "Four full-floor residences, one apartment per floor, each with four bedrooms — on a terraced garden site in Daher el Souane, 20 minutes above Beirut. Developed, managed and built by PMCC. Areas, finishes and pricing on request.",
-    image: abs("/im/hero-three-quarter-1280.webp"),
+    image: abs("/im/og-card.jpg"),
     imageAlt: "Daher el Souane 563 — three-quarter view among the umbrella pines",
   },
 };

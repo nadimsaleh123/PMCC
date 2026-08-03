@@ -7,7 +7,9 @@ import WarpImage from "../components/WarpImage";
 import FloorStack from "../components/project/FloorStack";
 import BeforeAfter from "../components/project/BeforeAfter";
 import Gallery from "../components/project/Gallery";
+import LeadForm from "../components/LeadForm";
 import { project, company } from "../data/content";
+import { track } from "../lib/analytics";
 
 function ProjectHero() {
   return (
@@ -163,18 +165,72 @@ function AerialModel() {
   );
 }
 
+function Location() {
+  const { location } = project;
+  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=Daher+El+Souane,+Mount+Lebanon";
+  return (
+    <section className="border-t border-seam bg-ink px-5 py-24 sm:px-8">
+      <div className="mx-auto max-w-6xl">
+        <p className="type-eyebrow text-smoke">Getting there</p>
+        <Lines className="type-display mt-6 max-w-3xl text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
+          {location.line}
+        </Lines>
+        <div className="mt-12 grid border border-seam sm:grid-cols-3">
+          {location.driveTimes.map((d) => (
+            <Fade
+              key={d.place}
+              className="border-b border-seam px-8 py-10 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+            >
+              <p className="type-display text-5xl text-bone">
+                {d.minutes}
+                <span className="ml-2 font-sans text-sm font-normal text-smoke">min</span>
+              </p>
+              <p className="mt-3 font-sans text-xs uppercase tracking-wideish text-smoke">
+                {d.place}
+              </p>
+            </Fade>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+          <p className="font-sans text-xs text-smoke/70">{location.note}</p>
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-sans text-xs text-bone underline underline-offset-4 transition-colors hover:text-pmcc"
+          >
+            Open in Google Maps →
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Availability() {
+  const total = project.floors.length;
+  const remaining = project.floors.filter((f) => f.availability !== "sold").length;
+  const summary =
+    remaining === total
+      ? "All four residences are currently available."
+      : `${remaining} of ${total} residences remain.`;
+
   return (
     <section className="bg-bone px-5 py-28 text-ink sm:px-8">
-      <div className="mx-auto max-w-6xl text-center">
+      <div className="mx-auto max-w-3xl text-center">
         <p className="type-eyebrow text-ink/65">Availability</p>
         <Lines className="type-display mx-auto mt-8 max-w-3xl text-[clamp(2.2rem,5.4vw,4.6rem)]">
           Four residences. <em className="type-display-it">One per floor.</em>
         </Lines>
         <Fade className="mx-auto mt-8 max-w-md">
-          <p className="font-sans text-sm leading-relaxed text-ink/70">{project.onRequest}</p>
+          <p className="font-sans text-sm leading-relaxed text-ink/70">
+            {summary} {project.onRequest}
+          </p>
         </Fade>
-        <Fade className="mt-10 flex justify-center">
+        <Fade className="mt-12">
+          <LeadForm tone="light" source="project" showWhatsApp={false} />
+        </Fade>
+        <Fade className="mt-8 flex justify-center">
           <Magnetic>
             <a
               href={`https://wa.me/${company.whatsapp}?text=${encodeURIComponent(
@@ -182,9 +238,10 @@ function Availability() {
               )}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-3 bg-pmcc px-8 py-4 font-sans text-sm font-semibold text-bone"
+              onClick={() => track("whatsapp_click", { source: "project-availability" })}
+              className="inline-flex items-center gap-3 bg-ink px-8 py-4 font-sans text-sm font-semibold text-bone"
             >
-              Enquire on WhatsApp →
+              Or enquire on WhatsApp →
             </a>
           </Magnetic>
         </Fade>
@@ -207,6 +264,7 @@ export default function Project() {
       <FloorStack />
       <Gallery />
       <AerialModel />
+      <Location />
       <Availability />
     </>
   );

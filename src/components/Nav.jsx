@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { gsap } from "../lib/motion";
 import Monogram from "./Monogram";
 import { company } from "../data/content";
+import { track } from "../lib/analytics";
 
 /**
  * Fixed minimal bar. Transparent over the hero, then a dark scrim once
@@ -67,6 +68,7 @@ export default function Nav() {
             href={`https://wa.me/${company.whatsapp}`}
             target="_blank"
             rel="noreferrer"
+            onClick={() => track("whatsapp_click", { source: "nav" })}
             className={`${linkCls} hidden sm:inline-flex`}
           >
             Contact

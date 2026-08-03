@@ -4,9 +4,9 @@
  * and a visually-hidden range input drives the same value for keyboard and
  * assistive tech.
  *
- * The section renders only when the site photo exists at /im/site-progress.jpg
- * — no placeholder, no fake imagery. Drop the drone photo there and this
- * section appears on its own.
+ * The section renders only when the site photo exists at
+ * /im/site-progress-1280.webp — no placeholder, no fake imagery. Drop the
+ * drone photo there and this section appears on its own.
  */
 import { useLayoutEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger } from "../../lib/motion";
@@ -14,8 +14,8 @@ import { Fade } from "../reveal";
 
 // The owner's drone pair: the structure on site today, and the finished
 // building montaged into the same hillside.
-const BEFORE = "/im/site-progress.jpg";
-const AFTER = "/im/site-finished.jpg";
+const BEFORE = "/im/site-progress-1280.webp";
+const AFTER = "/im/site-finished-1280.webp";
 
 export default function BeforeAfter() {
   const [available, setAvailable] = useState(null);

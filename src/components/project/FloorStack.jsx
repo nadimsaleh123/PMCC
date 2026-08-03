@@ -16,6 +16,13 @@ import { gsap, reducedMotion } from "../../lib/motion";
 import { project } from "../../data/content";
 
 const MARKS = ["B1", "GF", "F1", "RF"];
+
+/** Stamp styling per state. The word is the record; the colour just ranks it. */
+const AVAILABILITY = {
+  available: { label: "Available", cls: "border-pmcc/70 text-pmcc" },
+  reserved: { label: "Reserved", cls: "border-stone/70 text-stone" },
+  sold: { label: "Sold", cls: "border-smoke/40 text-smoke/70" },
+};
 /** Extra scroll (in viewport-heights) the roof residence is held before release. */
 const DWELL = 0.6;
 
@@ -151,7 +158,16 @@ export default function FloorStack() {
               </span>
             </a>
             <div data-text>
-              <p className="type-eyebrow text-stone">{f.level}</p>
+              <div className="flex items-center gap-4">
+                <p className="type-eyebrow text-stone">{f.level}</p>
+                {AVAILABILITY[f.availability] && (
+                  <span
+                    className={`inline-block border px-2.5 py-1 font-sans text-[0.6rem] font-semibold uppercase tracking-wideish ${AVAILABILITY[f.availability].cls}`}
+                  >
+                    {AVAILABILITY[f.availability].label}
+                  </span>
+                )}
+              </div>
               <h3 className="type-display mt-3 text-3xl text-bone sm:text-4xl">{f.name}</h3>
               <p className="mt-5 max-w-md font-sans text-sm leading-relaxed text-smoke">{f.brief}</p>
               <ul className="mt-6 space-y-2">
