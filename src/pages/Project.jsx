@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { applySeo } from "../lib/seo";
 import { gsap, reducedMotion } from "../lib/motion";
 import { Lines, Fade } from "../components/reveal";
@@ -208,6 +208,79 @@ function Location() {
   );
 }
 
+/** The three-step journey from deposit to keys — the "how does buying work" answer. */
+function PaymentPath() {
+  const steps = [
+    { n: "01", title: "Reserve", body: "Choose your floor and place a deposit. The residence is yours — off the market." },
+    { n: "02", title: "Follow the build", body: "We build; you watch it rise. One company is the developer, manager and builder." },
+    { n: "03", title: "Move in", body: "Settle the balance on completion. Keys in hand, summer 2027." },
+  ];
+  return (
+    <div className="mx-auto mt-12 grid max-w-4xl gap-px border border-ink/15 bg-ink/15 sm:grid-cols-3">
+      {steps.map((s) => (
+        <div key={s.n} className="bg-bone px-7 py-8 text-left">
+          <p className="font-sans text-xs text-pmcc">{s.n}</p>
+          <p className="type-display mt-2 text-2xl text-ink">{s.title}</p>
+          <p className="mt-3 font-sans text-xs leading-relaxed text-ink/65">{s.body}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Faq() {
+  const items = [
+    {
+      q: "When is the building delivered?",
+      a: "Summer 2027. The programme is managed by PMCC's own project team — the same discipline we've applied to client projects since 2002.",
+    },
+    {
+      q: "How does payment work?",
+      a: "A deposit reserves your residence and takes it off the market; the balance is settled on completion. The detailed schedule is shared when we send the price list.",
+    },
+    {
+      q: "Who is behind the project?",
+      a: "PMCC is the developer, the project manager and the builder — one company, one name accountable since 2002, with Microsoft, MEDCO, McDonald's and Arab Investment Bank among past clients. Architecture by A20/partners.",
+    },
+    {
+      q: "How private is 'one residence per floor'?",
+      a: "The elevator opens to your floor; there is no shared landing and no neighbour behind a facing door. Four families in the whole building, each with a full floor and four bedrooms.",
+    },
+    {
+      q: "Can I visit the site?",
+      a: "Yes — and we encourage it. Message us on WhatsApp and we'll arrange a walk of the site and the floor you're considering.",
+    },
+    {
+      q: "How do I get areas, finishes and pricing?",
+      a: "Leave your number in the form above or message us on WhatsApp — the full price list, floor areas and finishes schedule come to you the same day.",
+    },
+  ];
+  return (
+    <section className="border-t border-seam bg-ink px-5 py-24 sm:px-8">
+      <div className="mx-auto max-w-3xl">
+        <p className="type-eyebrow text-smoke">Before you ask</p>
+        <h2 className="type-display mt-6 text-[clamp(1.9rem,4.2vw,3.2rem)] text-bone">
+          The questions every buyer asks{" "}
+          <em className="type-display-it text-stone">answered straight.</em>
+        </h2>
+        <div className="mt-10">
+          {items.map((item) => (
+            <details key={item.q} className="group border-t border-seam last:border-b">
+              <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 py-5 font-sans text-sm font-semibold text-bone transition-colors hover:text-stone [&::-webkit-details-marker]:hidden">
+                {item.q}
+                <span aria-hidden className="shrink-0 text-pmcc transition-transform duration-300 group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="max-w-xl pb-6 font-sans text-sm leading-relaxed text-smoke">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Availability() {
   const total = project.floors.length;
   const remaining = project.floors.filter((f) => f.availability !== "sold").length;
@@ -217,8 +290,8 @@ function Availability() {
       : `${remaining} of ${total} residences remain.`;
 
   return (
-    <section className="bg-bone px-5 py-28 text-ink sm:px-8">
-      <div className="mx-auto max-w-3xl text-center">
+    <section id="enquire" className="bg-bone px-5 py-28 text-ink sm:px-8">
+      <div className="mx-auto max-w-4xl text-center">
         <p className="type-eyebrow text-ink/65">Availability</p>
         <Lines className="type-display mx-auto mt-8 max-w-3xl text-[clamp(2.2rem,5.4vw,4.6rem)]">
           Four residences. <em className="type-display-it">One per floor.</em>
@@ -228,14 +301,8 @@ function Availability() {
             {summary} {project.onRequest}
           </p>
         </Fade>
-        <Fade className="mx-auto mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-          <p className="font-sans text-xs font-semibold uppercase tracking-wideish text-ink/80">
-            {project.terms.delivery}
-          </p>
-          <span aria-hidden className="hidden h-1 w-1 rounded-full bg-pmcc sm:inline-block" />
-          <p className="font-sans text-xs font-semibold uppercase tracking-wideish text-ink/80">
-            {project.terms.payment}
-          </p>
+        <Fade>
+          <PaymentPath />
         </Fade>
         <Fade className="mt-12">
           <LeadForm tone="light" source="project" showWhatsApp={false} />
@@ -269,6 +336,48 @@ function Availability() {
   );
 }
 
+/**
+ * Mobile-only action bar, appearing once the hero has made its case. On a
+ * phone the money actions must never be more than a thumb away — scrolling
+ * back up to find a button is where enquiries die.
+ */
+function StickyCta() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > window.innerHeight * 1.1);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return (
+    <div
+      className={`fixed inset-x-0 bottom-0 z-[80] flex border-t border-seam bg-ink/95 backdrop-blur-sm transition-transform duration-300 ease-out-expo lg:hidden ${
+        visible ? "" : "translate-y-full"
+      }`}
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      <a
+        href={`https://wa.me/${company.whatsapp}?text=${encodeURIComponent(
+          "Hello PMCC — I'm interested in Daher el Souane 563.",
+        )}`}
+        target="_blank"
+        rel="noreferrer"
+        onClick={() => track("whatsapp_click", { source: "sticky-bar" })}
+        className="flex-1 bg-pmcc py-4 text-center font-sans text-sm font-semibold text-bone"
+      >
+        WhatsApp
+      </a>
+      <button
+        type="button"
+        onClick={() => document.getElementById("enquire")?.scrollIntoView({ behavior: "smooth" })}
+        className="flex-1 py-4 text-center font-sans text-sm font-semibold text-bone"
+      >
+        Price list ↓
+      </button>
+    </div>
+  );
+}
+
 export default function Project() {
   // Client-side navigation leaves the baked-in <head> describing the wrong
   // page; put it right. Scrapers read the baked copy, Google reads this.
@@ -285,6 +394,8 @@ export default function Project() {
       <AerialModel />
       <Location />
       <Availability />
+      <Faq />
+      <StickyCta />
     </>
   );
 }

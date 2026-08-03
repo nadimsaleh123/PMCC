@@ -1,17 +1,13 @@
 /**
- * The lead form: three fields, because every field beyond three costs
- * enquiries. Name, one way to reach them, and country — country because
- * knowing where buyers actually are is what decides where the ad money goes.
+ * The lead form, phone-first. In this market WhatsApp is how deals start, so
+ * the phone number is the required field and email is optional. The dial-code
+ * picker does double duty: it removes the "how do I write my number" friction
+ * for diaspora buyers AND records which country the enquiry came from — the
+ * datum that decides where the ad budget goes.
  *
  * Submissions go to info@pmcclb.com through FormSubmit's AJAX endpoint — a
  * static site has no server, and this keeps the enquiry in the inbox the
- * company already reads. The WhatsApp line beneath is not decoration: it is
- * the fallback if the service ever fails, and for half of Lebanon it is the
- * preferred channel anyway.
- *
- * NOTE: FormSubmit sends a one-time activation email to info@pmcclb.com on
- * the first real submission. Someone must click that link once; after that,
- * delivery is automatic.
+ * company already reads. (Activated: the confirmation link was clicked.)
  */
 import { useState } from "react";
 import { company, project } from "../data/content";
@@ -19,12 +15,52 @@ import { track } from "../lib/analytics";
 
 const ENDPOINT = `https://formsubmit.co/ajax/${company.email}`;
 
+/**
+ * Dial codes the diaspora actually calls from, Lebanon first. The label is
+ * what gets recorded as the enquiry's country.
+ */
+const DIAL_CODES = [
+  ["+961", "Lebanon"],
+  ["+971", "UAE"],
+  ["+966", "Saudi Arabia"],
+  ["+974", "Qatar"],
+  ["+965", "Kuwait"],
+  ["+973", "Bahrain"],
+  ["+968", "Oman"],
+  ["+962", "Jordan"],
+  ["+20", "Egypt"],
+  ["+90", "Türkiye"],
+  ["+357", "Cyprus"],
+  ["+33", "France"],
+  ["+44", "United Kingdom"],
+  ["+49", "Germany"],
+  ["+41", "Switzerland"],
+  ["+32", "Belgium"],
+  ["+31", "Netherlands"],
+  ["+34", "Spain"],
+  ["+39", "Italy"],
+  ["+30", "Greece"],
+  ["+46", "Sweden"],
+  ["+1", "USA / Canada"],
+  ["+55", "Brazil"],
+  ["+52", "Mexico"],
+  ["+54", "Argentina"],
+  ["+61", "Australia"],
+  ["+234", "Nigeria"],
+  ["+233", "Ghana"],
+  ["+225", "Côte d'Ivoire"],
+  ["+221", "Senegal"],
+  ["+243", "DR Congo"],
+  ["+27", "South Africa"],
+];
+
 /** Palette per background: the form sits on bone on the project page, ink in the footer. */
 const TONES = {
   light: {
     label: "text-ink/60",
     input:
       "border-ink/25 bg-transparent text-ink placeholder:text-ink/35 focus:border-ink",
+    select: "border-ink/25 bg-bone text-ink focus:border-ink",
     button: "bg-pmcc text-bone hover:bg-pmcc/90",
     fine: "text-ink/55",
     link: "text-ink underline underline-offset-4 hover:text-pmcc",
@@ -34,6 +70,7 @@ const TONES = {
     label: "text-smoke",
     input:
       "border-seam bg-transparent text-bone placeholder:text-smoke/60 focus:border-stone",
+    select: "border-seam bg-ink text-bone focus:border-stone",
     button: "bg-pmcc text-bone hover:bg-pmcc/90",
     fine: "text-smoke",
     link: "text-bone underline underline-offset-4 hover:text-pmcc",
@@ -50,6 +87,7 @@ export default function LeadForm({ tone = "light", source = "site", showWhatsApp
     const form = e.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
     if (data._honey) return; // bot filled the invisible field
+    const country = DIAL_CODES.find(([code]) => code === data.dial)?.[1] ?? data.dial;
     setStatus("sending");
     try {
       const res = await fetch(ENDPOINT, {
@@ -57,16 +95,17 @@ export default function LeadForm({ tone = "light", source = "site", showWhatsApp
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           name: data.name,
-          "email or phone": data.contact,
-          country: data.country,
-          _subject: `Price list request — ${project.name} (${data.name})`,
+          phone: `${data.dial} ${data.phone}`,
+          country,
+          email: data.email || "not provided",
+          _subject: `Price list request — ${project.name} (${data.name}, ${country})`,
           _template: "table",
           _captcha: "false",
         }),
       });
       if (!res.ok) throw new Error(`FormSubmit ${res.status}`);
       setStatus("sent");
-      track("generate_lead", { source, country: data.country });
+      track("generate_lead", { source, country });
     } catch {
       setStatus("error");
     }
@@ -88,7 +127,7 @@ export default function LeadForm({ tone = "light", source = "site", showWhatsApp
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate={false}>
+    <form onSubmit={onSubmit}>
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="block text-left">
           <span className={`font-sans text-xs uppercase tracking-wideish ${t.label}`}>Name</span>
@@ -101,27 +140,45 @@ export default function LeadForm({ tone = "light", source = "site", showWhatsApp
             className={`mt-2 w-full border px-4 py-3 font-sans text-sm outline-none transition-colors ${t.input}`}
           />
         </label>
+        <div className="block text-left">
+          <span className={`font-sans text-xs uppercase tracking-wideish ${t.label}`}>
+            Phone / WhatsApp
+          </span>
+          <div className="mt-2 flex gap-2">
+            <select
+              name="dial"
+              defaultValue="+961"
+              aria-label="Country code"
+              className={`w-[7.5rem] shrink-0 border px-2 py-3 font-sans text-sm outline-none transition-colors ${t.select}`}
+            >
+              {DIAL_CODES.map(([code, country]) => (
+                <option key={code + country} value={code}>
+                  {country} {code}
+                </option>
+              ))}
+            </select>
+            <input
+              name="phone"
+              type="tel"
+              required
+              inputMode="tel"
+              pattern="[0-9 ]{5,15}"
+              title="Digits only, e.g. 3 616 222"
+              autoComplete="tel-national"
+              placeholder="3 616 222"
+              className={`min-w-0 flex-1 border px-4 py-3 font-sans text-sm outline-none transition-colors ${t.input}`}
+            />
+          </div>
+        </div>
         <label className="block text-left">
           <span className={`font-sans text-xs uppercase tracking-wideish ${t.label}`}>
-            Email or phone
+            Email <span className="normal-case opacity-60">(optional)</span>
           </span>
           <input
-            name="contact"
-            type="text"
-            required
+            name="email"
+            type="email"
             autoComplete="email"
-            placeholder="How do we reach you?"
-            className={`mt-2 w-full border px-4 py-3 font-sans text-sm outline-none transition-colors ${t.input}`}
-          />
-        </label>
-        <label className="block text-left">
-          <span className={`font-sans text-xs uppercase tracking-wideish ${t.label}`}>Country</span>
-          <input
-            name="country"
-            type="text"
-            required
-            autoComplete="country-name"
-            placeholder="Where are you based?"
+            placeholder="you@example.com"
             className={`mt-2 w-full border px-4 py-3 font-sans text-sm outline-none transition-colors ${t.input}`}
           />
         </label>
