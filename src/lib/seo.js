@@ -21,9 +21,9 @@ const abs = (path) => `${SITE}${path}`;
 export const PAGES = {
   home: {
     path: "/",
-    title: "PMCC — Construction & Project Management in Lebanon since 2002",
+    title: "PMCC — General Contracting & Project Management in Lebanon since 1996",
     description:
-      "PMCC S.A.R.L. builds and manages in Lebanon since 2002 — Microsoft, MEDCO, McDonald's, Arab Investment Bank. Engineering, contracting and development under one team. Now selling: Daher el Souane 563.",
+      "PMCC S.A.R.L. — general contracting and project management across Lebanon since 1996. Microsoft, MEDCO, McDonald's, Arab Investment Bank among past clients. Now selling: Daher el Souane 563.",
     // Dedicated 1200×630 JPEG cards: exactly the aspect the scrapers crop
     // to, and JPEG because WhatsApp/Facebook handle webp og:images unreliably.
     // Two cards on purpose — the company link previews as the brand, the
@@ -32,13 +32,13 @@ export const PAGES = {
     // re-scrapes: bump it whenever the card's pixels change, or WhatsApp
     // and Facebook keep showing the previous artwork indefinitely.
     image: abs("/im/og-card-home.jpg?v=3"),
-    imageAlt: "PMCC — We manage what we build. Construction & project management, Lebanon, since 2002",
+    imageAlt: "PMCC — We manage what we build. General contracting & project management, Lebanon, since 1996",
   },
   project: {
     path: "/daher-el-souane-563",
     title: "Daher el Souane 563 — Four-Bedroom Full-Floor Apartments for Sale, Mount Lebanon",
     description:
-      "Four full-floor residences of 330 m², one per floor, four bedrooms each — in a gated domain 900 m above Beirut. Private gardens and terraces, from $500,000, delivery summer 2027. Developed, managed and built by PMCC.",
+      "Four full-floor residences of 330 m², one per floor, four bedrooms each — in a gated domain 900 m above Beirut. Private gardens and terraces, delivery summer 2027. Developed, managed and built by PMCC.",
     image: abs("/im/og-card.jpg?v=2"),
     imageAlt: "Daher el Souane 563 — three-quarter view among the umbrella pines",
   },
@@ -58,16 +58,16 @@ export const ORGANISATION_LD = {
   url: SITE,
   logo: abs("/im/logo.png"),
   image: abs("/im/hero-three-quarter-1280.webp"),
-  foundingDate: "2002",
+  foundingDate: "1996",
   description:
-    "Engineering, construction and general contracting in Lebanon since 2002. Project management, contracting and development under one team.",
+    "General contracting and project management across Lebanon since 1996 — one team from budgeting to execution and handover.",
   address: {
     "@type": "PostalAddress",
     streetAddress: "Al-Bustan Building, Amaret Chalhoub, Nahr El Mot Highway",
     addressRegion: "Metn",
     addressCountry: "LB",
   },
-  telephone: "+961 1 886 608",
+  telephone: "+961 3 616 222",
   email: "info@pmcclb.com",
   areaServed: { "@type": "Country", name: "Lebanon" },
   knowsAbout: [
@@ -108,15 +108,6 @@ export const PROJECT_LD = {
     { "@type": "LocationFeatureSpecification", name: "Basement parking", value: true },
   ],
   developer: { "@id": `${SITE}/#organisation` },
-  // The price floor, so listings surfaces can show "from $500,000" without
-  // crawling the page copy.
-  offers: {
-    "@type": "AggregateOffer",
-    lowPrice: "500000",
-    priceCurrency: "USD",
-    offerCount: 4,
-    availability: "https://schema.org/InStock",
-  },
 };
 
 /** Set or replace one meta/link tag in the live document. */

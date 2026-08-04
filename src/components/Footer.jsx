@@ -32,13 +32,6 @@ export default function Footer() {
             </a>
           </Magnetic>
           <a
-            href={`tel:${company.phone.replace(/\s/g, "")}`}
-            onClick={() => track("call_click", { source: "footer" })}
-            className="inline-flex items-center gap-3 border border-seam px-7 py-4 font-sans text-sm text-bone transition-colors hover:border-stone"
-          >
-            {company.phone}
-          </a>
-          <a
             href={`mailto:${company.email}`}
             onClick={() => track("email_click", { source: "footer" })}
             className="inline-flex items-center gap-3 border border-seam px-7 py-4 font-sans text-sm text-bone transition-colors hover:border-stone"

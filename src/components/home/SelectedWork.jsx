@@ -19,7 +19,7 @@ export default function SelectedWork() {
         </Lines>
         <Fade className="mt-4">
           <p className="max-w-md font-sans text-sm leading-relaxed text-smoke">
-            A selection from a hundred-plus projects since 2002. The full record
+            A selection from a hundred-plus projects since 1996. The full record
             travels with every proposal.
           </p>
         </Fade>

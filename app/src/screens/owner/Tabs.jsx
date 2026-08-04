@@ -331,7 +331,7 @@ export function More() {
         </div>
       </div>
       <p className="mt-8 pb-4 text-center font-sans text-[0.65rem] text-smoke/70">
-        PMCC S.A.R.L. · We manage what we build · Since 2002
+        PMCC S.A.R.L. · We manage what we build · Since 1996
       </p>
     </Screen>
   );

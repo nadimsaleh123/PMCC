@@ -98,7 +98,7 @@ function Stats() {
 
   return (
     <section ref={root} className="border-y border-seam bg-ink px-5 py-16 sm:px-8">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-8 gap-y-12">
         {stats.map((s) => (
           <Fade key={s.label}>
             <p data-stat={s.value} className="type-display text-5xl text-bone sm:text-6xl">
@@ -109,21 +109,6 @@ function Stats() {
             </p>
           </Fade>
         ))}
-      </div>
-    </section>
-  );
-}
-
-function Manifesto() {
-  return (
-    <section className="bg-bone px-5 py-28 text-ink sm:px-8 sm:py-40">
-      <div className="mx-auto max-w-6xl">
-        <p className="type-eyebrow text-ink/65">The difference</p>
-        <Lines className="type-display mt-8 text-[clamp(2.2rem,5.6vw,4.8rem)]">
-          Most developers hire a builder. Most builders answer to a manager.
-          We are all three — so the schedule, the budget and the workmanship
-          answer to <em className="type-display-it">one name.</em>
-        </Lines>
       </div>
     </section>
   );
@@ -250,7 +235,6 @@ export default function Home() {
       <Hero />
       <Stats />
       <Clients />
-      <Manifesto />
       <Services />
       <Timeline />
       <SelectedWork />

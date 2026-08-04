@@ -10,9 +10,8 @@
 export const company = {
   name: "PMCC",
   legalName: "Project Management and Construction Company S.A.R.L.",
-  since: 2002,
+  since: 1996,
   address: "Al-Bustan Building, Amaret Chalhoub, Nahr El Mot Highway, Metn, Lebanon",
-  phone: "+961 1 886 608",
   mobile: "+961 3 616 222",
   whatsapp: "9613616222",
   email: "info@pmcclb.com",
@@ -22,36 +21,34 @@ export const heroClaim = {
   eyebrow: "Project management · Construction · Lebanon",
   // The claim is the company's actual shape: builder and manager in one.
   lines: ["We manage", "what we build."],
-  sub: "Engineering, construction and general contracting on Mount Lebanon and in Beirut — since 2002, under one team.",
+  sub: "General contracting and project management — across Lebanon, under one team.",
 };
 
 export const stats = [
-  { value: "2002", label: "Founded — first project: Microsoft's regional offices, Beirut" },
-  { value: "100+", label: "Projects delivered across Lebanon, from villas to office towers" },
-  { value: "13", label: "Engineers, foremen and technicians in-house" },
-  { value: "4", label: "Projects under construction today across Lebanon" },
+  { value: "1996", label: "Established — building across Lebanon ever since" },
+  { value: "100+", label: "Projects delivered, from villas to office towers" },
 ];
 
 export const services = [
   {
     n: "01",
     title: "Construction management",
-    body: "Site, concrete, finishes, decoration and MEP, run as one contract with one accountable team — the service most of our projects were built under.",
+    body: "We run the site day to day — one team accountable for the schedule and the workmanship.",
   },
   {
     n: "02",
     title: "General contracting",
-    body: "Full execution from structure to handover, including concrete-works-only engagements where a client needed a frame they could trust.",
+    body: "Full execution, from structure to handover.",
   },
   {
     n: "03",
     title: "Project management",
-    body: "Owner-side management of larger developments — programmes, procurement and consultants held to the schedule, the way we run our own.",
+    body: "We manage everything from budgeting and procurement to execution and handover.",
   },
   {
     n: "04",
     title: "Restoration",
-    body: "Heritage mountain houses, a WWII museum, and mid-century villas returned to service without erasing what made them worth keeping.",
+    body: "Older and heritage buildings brought back to use, without losing their character.",
   },
 ];
 
@@ -66,7 +63,7 @@ export const workGroups = [
     note: "Fit-outs and renovations for clients who audit everything.",
     items: [
       { name: "Microsoft Regional Offices", meta: "Beirut Central District · 2002" },
-      { name: "Microsoft Offices, Berytus", meta: "Beirut · 2012" },
+      { name: "Microsoft Offices, Berytus", meta: "Beirut Central District · 2012" },
       { name: "Arab Investment Bank", meta: "Beirut Central District · 2015" },
     ],
   },
@@ -110,7 +107,6 @@ export const clients = [
   { name: "Arab Investment Bank", slug: "aib" },
   { name: "Mercy Corps", slug: "mercycorps" },
   { name: "Rise Properties", slug: "rise" },
-  { name: "JDM", slug: "jdm" },
 ];
 
 /**
@@ -153,13 +149,17 @@ export const booklet = [
   },
 ];
 
-export const timeline = [
-  { year: "2002", text: "PMCC is founded by Jihad Saleh. First engagement: managing construction of Microsoft's regional offices in Beirut Central District." },
-  { year: "2003–10", text: "The villa years — Fatka, Faqra, Yarze, Baabdath, Dahr El Souane — alongside the MEDCO service-station network across the coast." },
-  { year: "2005", text: "Restoration becomes a discipline of its own: the WWII Museum at Khiam, then heritage houses that were built to outlive their owners." },
-  { year: "2012–16", text: "Beirut office work compounds — Microsoft again at Berytus, Arab Investment Bank, commercial centers — repeat clients, larger plates." },
-  { year: "2017–25", text: "Towers and buildings: Tiresmart, Zalka 208, Marina Gate. Management of programmes measured in years, not seasons." },
-  { year: "Today", text: "PMCC builds for itself for the first time: Daher el Souane 563, our own development — alongside contracting at Naccache, Bcharreh and Marina Gate." },
+/**
+ * Since 1996 — not a year-by-year journey, but what three decades of work
+ * actually produced. Concise, real, and in the company's own order.
+ */
+export const achievements = [
+  { title: "Offices for Microsoft — twice", text: "Their regional offices in Beirut Central District, then again at Berytus ten years later." },
+  { title: "The MEDCO network", text: "Six service stations along the coast, for one client, over thirteen years of repeat work." },
+  { title: "Banks and brands", text: "Arab Investment Bank, McDonald's and commercial centres — clients who audit everything." },
+  { title: "Two generations of villas", text: "Private houses in Faqra, Kfardebian, Fatka, Yarze and Baabdath — built new, or brought back." },
+  { title: "Restoration", text: "The WWII Museum at Khiam and heritage mountain houses returned to service." },
+  { title: "Building today", text: "On site at Marina Gate, Naccache and Bcharreh — and developing Daher el Souane 563, our own." },
 ];
 
 /** ——— Daher el Souane 563 ——— */
@@ -176,14 +176,6 @@ export const project = {
     "On plot 563, A20/partners drew a building that steps with the slope instead of flattening it: sandstone volumes under a terracotta roof, black metal gables glazed to the view, gardens terraced into the hillside.",
     "There are no corridors of doors here. The building holds four apartments — one per floor, each the full plate, each with four bedrooms. Parking and plant sit in the basement below the garden residence, and an elevator serves every level.",
   ],
-  facts: [
-    { value: "4", label: "Residences — one full floor each, four bedrooms each" },
-    { value: "330 m²", label: "Per full-floor residence · 300 m² on the roof" },
-    { value: "900 m", label: "Above the sea — village air, minutes from the city" },
-    { value: "$500k", label: "Prices from — reserve with a deposit, balance on completion" },
-  ],
-  /** Stated plainly because a buyer at this level checks before asking. */
-  priceFrom: "From $500,000",
   floors: [
     {
       id: "garden",

@@ -145,7 +145,7 @@ export default function SignIn() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setRole("team"); setPhone("+961 1 886 608"); setErr(""); }}
+                    onClick={() => { setRole("team"); setPhone("+961 3 616 222"); setErr(""); }}
                     className={`flex-1 border px-3 py-3 font-sans text-xs transition-colors ${role === "team" ? "border-stone text-bone" : "border-seam text-smoke"}`}
                   >
                     PMCC team
@@ -189,7 +189,7 @@ export default function SignIn() {
           </>
         )}
         <p className="mt-10 text-center font-sans text-[0.65rem] leading-relaxed text-smoke/70">
-          PMCC S.A.R.L. · Since 2002 · By invitation only
+          PMCC S.A.R.L. · Since 1996 · By invitation only
         </p>
       </div>
     </div>

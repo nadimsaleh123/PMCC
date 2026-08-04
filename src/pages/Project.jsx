@@ -46,21 +46,6 @@ function ProjectHero() {
   );
 }
 
-function FactsStrip() {
-  return (
-    <section className="border-y border-seam bg-ink px-5 py-14 sm:px-8">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-10 lg:grid-cols-4">
-        {project.facts.map((f) => (
-          <Fade key={f.label}>
-            <p className="type-display text-5xl text-bone">{f.value}</p>
-            <p className="mt-3 max-w-[15rem] font-sans text-xs leading-relaxed text-smoke">{f.label}</p>
-          </Fade>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 /**
  * The real photograph from the site, full bleed, with the altitude counting
  * itself up as the section scrolls in. Renders sell the building; this photo
@@ -321,7 +306,7 @@ function Faq() {
   const items = [
     {
       q: "When is the building delivered?",
-      a: "Summer 2027. The programme is managed by PMCC's own project team — the same discipline we've applied to client projects since 2002.",
+      a: "Summer 2027. The programme is managed by PMCC's own project team — the same discipline we've applied to client projects since 1996.",
     },
     {
       q: "How does payment work?",
@@ -329,7 +314,7 @@ function Faq() {
     },
     {
       q: "Who is behind the project?",
-      a: "PMCC is the developer, the project manager and the builder — one company, one name accountable since 2002, with Microsoft, MEDCO, McDonald's and Arab Investment Bank among past clients. Architecture by A20/partners.",
+      a: "PMCC is the developer, the project manager and the builder — one company, one name accountable since 1996, with Microsoft, MEDCO, McDonald's and Arab Investment Bank among past clients. Architecture by A20/partners.",
     },
     {
       q: "How private is 'one residence per floor'?",
@@ -342,10 +327,6 @@ function Faq() {
     {
       q: "Is the project permitted?",
       a: "Fully permitted. And the company that holds the permit is the company that builds — PMCC develops, manages and constructs the project under one name.",
-    },
-    {
-      q: "What do prices start at?",
-      a: "From $500,000 for a full-floor, four-bedroom residence of 330 m². The full price list per floor — with gardens, terraces and parking — comes with the floor plans when you leave your number above.",
     },
     {
       q: "How do I get areas, finishes and pricing?",
@@ -393,11 +374,6 @@ function Availability() {
         <Lines className="type-display mx-auto mt-8 max-w-3xl text-[clamp(2.2rem,5.4vw,4.6rem)]">
           Four residences. <em className="type-display-it">One per floor.</em>
         </Lines>
-        <Fade>
-          <p className="type-display mt-6 text-[clamp(1.6rem,3vw,2.2rem)] text-ink">
-            From <em className="type-display-it text-pmcc">$500,000</em>
-          </p>
-        </Fade>
         <Fade className="mx-auto mt-6 max-w-md">
           <p className="font-sans text-sm leading-relaxed text-ink/70">
             {summary} Fully permitted. {project.onRequest}
@@ -488,7 +464,6 @@ export default function Project() {
   return (
     <>
       <ProjectHero />
-      <FactsStrip />
       <Narrative />
       <TheView />
       <BeforeAfter />
