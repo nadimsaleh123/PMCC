@@ -19,13 +19,107 @@ function load() {
   } catch {
     /* corrupted or unavailable storage: fall through to a clean seed */
   }
-  return { ...structuredClone(seed), session: null, chat: [] };
+  return {
+    ...structuredClone(seed),
+    session: null,
+    chat: [],
+    copilot: [],
+    activeProjectId: "d563",
+    projectsMeta: [{ id: "d563", name: "Daher el Souane 563" }],
+    vault: {},
+  };
+}
+
+/** The slice of state that belongs to one project (the rest is Rami's). */
+const PROJECT_FIELDS = ["project", "diary", "lookahead", "risks", "questions", "team"];
+
+function stash(state) {
+  const slice = {};
+  for (const f of PROJECT_FIELDS) slice[f] = state[f];
+  return { ...(state.vault ?? {}), [state.activeProjectId ?? "d563"]: slice };
+}
+
+/** A believable empty shell for a freshly created project. */
+function shellFor(meta) {
+  return {
+    project: {
+      name: meta.name,
+      short: meta.name,
+      location: meta.location,
+      delivery: meta.delivery,
+      hero: "/im/hero-reveal-1280.webp",
+      overall: 0,
+      phases: [
+        { name: "Permits", pct: 0 },
+        { name: "Earthworks", pct: 0 },
+        { name: "Structure", pct: 0 },
+        { name: "Envelope", pct: 0 },
+        { name: "Finishes", pct: 0 },
+        { name: "Handover", pct: 0 },
+      ],
+      milestones: [
+        { name: "Construction permit", date: "—", done: false, next: true },
+        { name: "Handover", date: meta.delivery, done: false },
+      ],
+    },
+    diary: [],
+    lookahead: {
+      updated: "not yet",
+      weeks: [
+        { label: "This week", range: "—", items: [] },
+        { label: "Next week", range: "—", items: [] },
+        { label: "Week after", range: "—", items: [] },
+      ],
+    },
+    risks: [],
+    questions: [],
+    team: { members: [], owners: [] },
+  };
 }
 
 function reducer(state, action) {
   switch (action.type) {
-    case "signin":
-      return { ...state, session: action.session };
+    case "signin": {
+      let s = state;
+      // The owner demo lives in Daher 563 — if the team left the console on
+      // another project, bring the flat slice home before Rami sees it.
+      if (action.session.role === "owner" && (state.activeProjectId ?? "d563") !== "d563") {
+        const vault = stash(state);
+        s = { ...state, ...vault.d563, vault, activeProjectId: "d563" };
+      }
+      return { ...s, session: action.session };
+    }
+    case "switchProject": {
+      if (action.id === (state.activeProjectId ?? "d563")) return state;
+      const vault = stash(state);
+      const slice = vault[action.id];
+      if (!slice) return state;
+      return { ...state, ...slice, vault, activeProjectId: action.id };
+    }
+    case "createProject": {
+      const vault = stash(state);
+      const shell = shellFor(action.meta);
+      return {
+        ...state,
+        ...shell,
+        vault,
+        activeProjectId: action.meta.id,
+        projectsMeta: [...(state.projectsMeta ?? DEFAULT_META), { id: action.meta.id, name: action.meta.name }],
+      };
+    }
+    case "setActivity": {
+      const weeks = state.lookahead.weeks.map((w, wi) =>
+        wi !== action.week
+          ? w
+          : {
+              ...w,
+              items: w.items.map((it, ii) =>
+                ii !== action.item ? it : { ...it, s: action.s, note: action.note ?? it.note },
+              ),
+            },
+      );
+      return { ...state, lookahead: { ...state.lookahead, weeks } };
+    }
     case "signout":
       return { ...state, session: null };
     case "publish":
@@ -111,12 +205,18 @@ function reducer(state, action) {
       };
     case "chat":
       return { ...state, chat: [...(state.chat ?? []), ...action.messages] };
+    case "copilot":
+      return { ...state, copilot: [...(state.copilot ?? []), ...action.messages] };
+    case "copilotReplace":
+      return { ...state, copilot: action.feed };
     case "reset":
       return { ...structuredClone(seed), session: state.session, chat: [] };
     default:
       return state;
   }
 }
+
+const DEFAULT_META = [{ id: "d563", name: "Daher el Souane 563" }];
 
 const Ctx = createContext(null);
 

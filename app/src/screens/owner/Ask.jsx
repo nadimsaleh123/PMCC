@@ -48,6 +48,20 @@ function brain(q, state) {
     const d = diary[0];
     return `The latest diary entry is from ${d.date} (${d.phase}): ${d.text}`;
   }
+  if (/(grace|compensat|penalt|late deliver)/.test(s)) {
+    return `From your contract: ${owner.contract.deliveryClause}`;
+  }
+  if (/(contract|agreement|signed|clause|terms|warranty|guarantee)/.test(s)) {
+    const c = owner.contract;
+    if (/(warrant|guarantee|defect)/.test(s)) return `From your contract: ${c.warrantyClause}`;
+    if (/(pay|installment)/.test(s)) return `From your contract: ${c.paymentClause}`;
+    if (/(change|variation)/.test(s)) return `From your contract: ${c.variationClause}`;
+    if (/(unit|include|parking|storage)/.test(s)) return `From your contract: ${c.unitClause}`;
+    return `Your contract was signed on ${c.signedOn} between ${c.parties}. It covers: ${c.unitClause} Ask me about payment terms, delivery and grace period, variations, or warranty — I answer from the indexed contract.`;
+  }
+  if (/(parking|storage|bay)/.test(s)) {
+    return `From your contract: ${owner.contract.unitClause}`;
+  }
   if (/(terrace|roof|my (floor|unit|apartment)|residence)/.test(s)) {
     return `${owner.unit}: ${owner.area}, ${owner.extras.toLowerCase()}. Your floor plan is in Documents, and your two terraces come off the reception and the master suite.`;
   }
@@ -57,8 +71,8 @@ function brain(q, state) {
 const SUGGESTIONS = [
   "What's happening this week?",
   "When is my next payment?",
+  "What does my contract say about late delivery?",
   "Any risks I should know about?",
-  "How far along is the building?",
 ];
 
 export default function Ask() {

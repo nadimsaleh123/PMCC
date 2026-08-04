@@ -30,17 +30,18 @@ export function Home() {
         }
       />
 
-      {/* The residence */}
-      <Card className="rise rise-1 p-5">
-        <div className="flex items-center gap-4">
-          <img src={owner.plan} alt={`${owner.unit} floor plan`} className="h-20 w-20 border border-seam bg-bone object-cover p-1" />
-          <div className="min-w-0 flex-1">
+      {/* The residence — the building itself, not a drawing. */}
+      <Card className="rise rise-1 overflow-clip">
+        <div className="relative">
+          <img src={owner.photo} alt={owner.unit} className="aspect-[16/9] w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/10 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-5">
             <div className="flex items-center gap-2">
               <p className="type-eyebrow text-stone">{owner.level}</p>
               <Stamp tone="red">Yours</Stamp>
             </div>
             <p className="type-display mt-1 truncate text-2xl text-bone">{owner.unit}</p>
-            <p className="mt-1 font-sans text-xs text-smoke">
+            <p className="mt-1 font-sans text-xs text-bone/80">
               {owner.area} · {owner.extras}
             </p>
           </div>

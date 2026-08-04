@@ -6,7 +6,8 @@ import SignIn from "./screens/SignIn";
 import { Home, Diary, Plan, Money, More } from "./screens/owner/Tabs";
 import { Risks, Selections, Variations, Visits, Documents, Questions } from "./screens/owner/Sub";
 import Ask from "./screens/owner/Ask";
-import { Today, Publish, PlanEditor, MoneyDesk, InboxDesk, RisksDesk, OwnersDesk, ProjectDesk } from "./screens/team/Console";
+import { Today, Publish, PlanEditor, MoneyDesk, InboxDesk, RisksDesk, OwnersDesk, ProjectDesk, NewProject } from "./screens/team/Console";
+import Copilot from "./screens/team/Copilot";
 
 function Guard({ role, children }) {
   const { state } = useStore();
@@ -27,8 +28,8 @@ const OWNER_TABS = [
 const TEAM_TABS = [
   { to: "/team", label: "Today", icon: Icon.home, end: true },
   { to: "/team/publish", label: "Publish", icon: Icon.camera },
+  { to: "/team/copilot", label: "Copilot", icon: Icon.chat },
   { to: "/team/plan", label: "Plan", icon: Icon.plan },
-  { to: "/team/money", label: "Money", icon: Icon.money },
   { to: "/team/inbox", label: "Inbox", icon: Icon.inbox },
 ];
 
@@ -70,6 +71,8 @@ export default function App() {
         <Route path="/team/risks" element={<Guard role="team"><RisksDesk /></Guard>} />
         <Route path="/team/owners" element={<Guard role="team"><OwnersDesk /></Guard>} />
         <Route path="/team/project" element={<Guard role="team"><ProjectDesk /></Guard>} />
+        <Route path="/team/copilot" element={<Guard role="team"><Copilot /></Guard>} />
+        <Route path="/team/new" element={<Guard role="team"><NewProject /></Guard>} />
 
         <Route path="*" element={<Navigate to={state.session ? (role === "team" ? "/team" : "/") : "/signin"} replace />} />
       </Routes>

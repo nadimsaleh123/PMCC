@@ -41,10 +41,25 @@ export const seed = {
     unit: "The Roof Residence",
     level: "Roof Floor",
     plan: "/im/plan-roof.webp",
+    photo: "/im/hero-three-quarter-1280.webp",
     area: "300 m²",
     extras: "Two terraces · four bedrooms",
     price: 800000,
     memberSince: "Mar 2026",
+    /**
+     * What the indexed contract answers with. Live version: the uploaded
+     * contract PDF is parsed and chunked into the chat brain; these fields
+     * are the demo's stand-in for that index.
+     */
+    contract: {
+      signedOn: "Apr 2, 2026",
+      parties: "Rami K. and PMCC S.A.R.L.",
+      unitClause: "The Roof Residence — full roof floor, 300 m², two terraces, four bedrooms, two covered parking bays (B2-02, B2-04) and one storage room.",
+      paymentClause: "Deposit on reservation, installments tied to certified construction milestones, balance on completion. No installment falls due before its milestone is certified.",
+      deliveryClause: "Delivery in Summer 2027, with a 90-day grace period. Beyond grace, a delay compensation of $2,000 per month applies.",
+      variationClause: "Changes are priced in writing and built only after the owner's written approval in this portal.",
+      warrantyClause: "Twelve months defects liability from handover; structural warranty per Lebanese decennial liability law.",
+    },
   },
 
   diary: [

@@ -13,18 +13,46 @@ import { PHASES, PHOTO_LIBRARY } from "../../data/seed";
 
 /* ------------------------------------------------ Today (dashboard) */
 export function Today() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const nav = useNavigate();
   const unanswered = state.questions.filter((q) => !q.a).length;
-  const offered = state.variations.filter((v) => v.state === "offered").length;
-  const sold = state.team.owners.filter((o) => o.state === "active").length;
+  // Variations/payments belong to owners; a project with no owners has none.
+  const hasOwners = state.team.owners.some((o) => o.state === "active");
+  const offered = hasOwners ? state.variations.filter((v) => v.state === "offered").length : 0;
+  const openRisks = state.risks.filter((r) => r.status !== "closed").length;
+  const meta = state.projectsMeta ?? [{ id: "d563", name: "Daher el Souane 563" }];
+  const activeId = state.activeProjectId ?? "d563";
+
   return (
     <Screen>
-      <TopBar eyebrow={state.project.name} title="Site console" />
-      <div className="rise rise-1 grid grid-cols-3 gap-3">
+      <TopBar eyebrow="PMCC site console" title="Today" />
+
+      {/* The project this console is pointed at — switch or start a new one. */}
+      <div className="rise rise-1 flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <select
+            value={activeId}
+            onChange={(e) => dispatch({ type: "switchProject", id: e.target.value })}
+            aria-label="Active project"
+            className="w-full appearance-none border border-seam bg-coal px-4 py-3.5 pr-10 font-sans text-sm font-semibold text-bone outline-none focus:border-stone"
+          >
+            {meta.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <Icon.chevron className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-smoke" />
+        </div>
+        <Btn tone="ghost" onClick={() => nav("/team/new")} aria-label="New project">
+          <Icon.plus className="h-4 w-4" /> New
+        </Btn>
+      </div>
+
+      <div className="rise rise-2 mt-4 grid grid-cols-3 gap-3">
         {[
           [String(state.diary.length), "updates published"],
-          [`${sold}/4`, "residences sold"],
+          [String(openRisks), "open risks"],
           [String(unanswered), "open questions"],
         ].map(([v, l]) => (
           <Card key={l} className="p-4 text-center">
@@ -34,19 +62,84 @@ export function Today() {
         ))}
       </div>
 
-      <Btn full className="rise rise-2 mt-5" onClick={() => nav("/team/publish")}>
-        <Icon.camera className="h-4 w-4" /> New site update
-      </Btn>
+      <div className="rise rise-3 mt-5 flex gap-3">
+        <Btn full onClick={() => nav("/team/publish")}>
+          <Icon.camera className="h-4 w-4" /> New update
+        </Btn>
+        <Btn full tone="ghost" onClick={() => nav("/team/copilot")}>
+          <Icon.chat className="h-4 w-4" /> Copilot
+        </Btn>
+      </div>
 
-      <div className="rise rise-3 mt-6">
+      <div className="rise rise-4 mt-6">
         <Row icon={Icon.plan} title="Look-ahead" meta={`Updated ${state.lookahead.updated} — tick as built`} onClick={() => nav("/team/plan")} />
         <Row icon={Icon.inbox} title="Inbox" meta="Owner questions & chatbot escalations" badge={unanswered} onClick={() => nav("/team/inbox")} />
         <Row icon={Icon.money} title="Payments" meta="Record receipts against milestones" onClick={() => nav("/team/money")} />
         <Row icon={Icon.shield} title="Risks & notices" meta="Share, update, close" onClick={() => nav("/team/risks")} />
-        <Row icon={Icon.compass} title="Variations" meta={offered ? `${offered} awaiting owner decision` : "All settled"} badge={offered} onClick={() => nav("/team/owners")} />
+        <Row icon={Icon.compass} title="Variations" meta={!hasOwners ? "No owners yet" : offered ? `${offered} awaiting owner decision` : "All settled"} badge={offered} onClick={() => nav("/team/owners")} />
         <Row icon={Icon.home} title="Owners & units" meta="Access, read receipts, invitations" onClick={() => nav("/team/owners")} />
-        <Row icon={Icon.doc} title="Project & programme" meta="Milestones, MS Project / P6 import" onClick={() => nav("/team/project")} />
+        <Row icon={Icon.doc} title="Project & programme" meta="Contract, milestones, MS Project / P6 import" onClick={() => nav("/team/project")} />
       </div>
+    </Screen>
+  );
+}
+
+/* ------------------------------------------------ New project */
+export function NewProject() {
+  const { dispatch } = useStore();
+  const nav = useNavigate();
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+  const [delivery, setDelivery] = useState("");
+  return (
+    <Screen>
+      <Back to="/team" label="Console" />
+      <TopBar eyebrow="A new client, a new record" title="New project" />
+      <label className="block">
+        <span className="type-eyebrow text-smoke">Project name</span>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Bcharreh Villa"
+          className="mt-2 w-full border border-seam bg-transparent px-4 py-3.5 font-sans text-sm text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
+        />
+      </label>
+      <label className="mt-4 block">
+        <span className="type-eyebrow text-smoke">Location</span>
+        <input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Town · District"
+          className="mt-2 w-full border border-seam bg-transparent px-4 py-3.5 font-sans text-sm text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
+        />
+      </label>
+      <label className="mt-4 block">
+        <span className="type-eyebrow text-smoke">Target delivery</span>
+        <input
+          value={delivery}
+          onChange={(e) => setDelivery(e.target.value)}
+          placeholder="e.g. Winter 2028"
+          className="mt-2 w-full border border-seam bg-transparent px-4 py-3.5 font-sans text-sm text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
+        />
+      </label>
+      <Btn
+        full
+        className="mt-6"
+        disabled={!name.trim() || !location.trim() || !delivery.trim()}
+        onClick={() => {
+          dispatch({
+            type: "createProject",
+            meta: { id: `p${Date.now()}`, name: name.trim(), location: location.trim(), delivery: delivery.trim() },
+          });
+          nav("/team");
+        }}
+      >
+        Create project
+      </Btn>
+      <p className="mt-4 font-sans text-xs leading-relaxed text-smoke">
+        The project starts empty: import its programme, upload the contract, define units and
+        invite owners from the console. Everything you publish stays inside this project only.
+      </p>
     </Screen>
   );
 }
@@ -426,6 +519,22 @@ export function ProjectDesk() {
         <p className="type-display mt-1 text-2xl text-bone">{state.project.name}</p>
         <p className="mt-1 font-sans text-xs text-smoke">
           {state.project.location} · Delivery {state.project.delivery}
+        </p>
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <p className="type-eyebrow text-smoke">Contract upload</p>
+        <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
+          Upload the signed contract — its clauses are indexed into the chat brain, so the owner's
+          "Ask PMCC" answers contract questions from the document itself, never from memory.
+        </p>
+        <label className="mt-4 block cursor-pointer border border-dashed border-seam p-4 text-center transition-colors active:border-stone">
+          <input type="file" accept=".pdf" className="hidden" onChange={(e) => e.target.value && null} />
+          <p className="font-sans text-xs text-smoke">Tap to choose the contract PDF</p>
+        </label>
+        <p className="mt-3 border-l-2 border-stone pl-3 font-sans text-xs leading-relaxed text-smoke">
+          Demo: Rami's contract is already indexed — try asking the owner chatbot "what does my
+          contract say about late delivery?"
         </p>
       </Card>
 
