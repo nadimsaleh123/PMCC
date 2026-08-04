@@ -103,3 +103,26 @@ await writeFile(
 );
 
 console.log("  meta   index.html + daher-el-souane-563.html");
+
+// The sitemap, re-stamped with the build date: <lastmod> is what tells
+// Google a page changed and is worth recrawling — without it, a stale
+// search snippet can linger for weeks after a copy change.
+const today = new Date().toISOString().slice(0, 10);
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${SITE}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${SITE}/daher-el-souane-563</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+</urlset>
+`;
+await writeFile(path.join(dist, "sitemap.xml"), sitemap, "utf8");
+console.log("  sitemap  lastmod " + today);
