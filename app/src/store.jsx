@@ -3,13 +3,31 @@
  * (publish, tick, approve, choose, book, chat), persisted to localStorage so
  * the app remembers across reloads — it must feel like software, not a mock.
  */
-import { createContext, useContext, useEffect, useReducer } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import { seed } from "./data/seed";
+import { IS_LIVE } from "./lib/supabase";
+import { syncAction } from "./live/sync";
 
 const KEY = "pmcc-app-v1";
 
 function load() {
+  const fresh = {
+    ...structuredClone(seed),
+    session: null,
+    chat: [],
+    copilot: [],
+    activeProjectId: "d563",
+    projectsMeta: [{ id: "d563", name: "Daher el Souane 563" }],
+    vault: {},
+    booted: false,
+  };
   try {
+    if (IS_LIVE) {
+      // Server truth arrives via "boot"; only conversation noise persists.
+      const raw = localStorage.getItem(KEY + "-live");
+      const saved = raw ? JSON.parse(raw) : {};
+      return { ...fresh, chat: saved.chat ?? [], copilot: saved.copilot ?? [] };
+    }
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const saved = JSON.parse(raw);
@@ -19,15 +37,7 @@ function load() {
   } catch {
     /* corrupted or unavailable storage: fall through to a clean seed */
   }
-  return {
-    ...structuredClone(seed),
-    session: null,
-    chat: [],
-    copilot: [],
-    activeProjectId: "d563",
-    projectsMeta: [{ id: "d563", name: "Daher el Souane 563" }],
-    vault: {},
-  };
+  return fresh;
 }
 
 /** The slice of state that belongs to one project (the rest is Rami's). */
@@ -83,7 +93,8 @@ function reducer(state, action) {
       let s = state;
       // The owner demo lives in Daher 563 — if the team left the console on
       // another project, bring the flat slice home before Rami sees it.
-      if (action.session.role === "owner" && (state.activeProjectId ?? "d563") !== "d563") {
+      // (Demo-only mechanics; live mode's slices come from the server.)
+      if (!IS_LIVE && action.session.role === "owner" && (state.activeProjectId ?? "d563") !== "d563") {
         const vault = stash(state);
         s = { ...state, ...vault.d563, vault, activeProjectId: "d563" };
       }
@@ -203,6 +214,9 @@ function reducer(state, action) {
           q.id !== action.id ? q : { ...q, a: action.text, answered: "Today" },
         ),
       };
+    // Live mode: replace whole slices with freshly loaded server truth.
+    case "boot":
+      return { ...state, ...action.slices, booted: true };
     case "chat":
       return { ...state, chat: [...(state.chat ?? []), ...action.messages] };
     case "copilot":
@@ -221,10 +235,30 @@ const DEFAULT_META = [{ id: "d563", name: "Daher el Souane 563" }];
 const Ctx = createContext(null);
 
 export function StoreProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, null, load);
+  const [state, rawDispatch] = useReducer(reducer, null, load);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  // In live mode every interaction also writes through to Supabase; the
+  // reducer is pure, so re-running it here yields the post-action truth
+  // the sync needs, without waiting for React's render.
+  const dispatch = useMemo(() => {
+    if (!IS_LIVE) return rawDispatch;
+    return (action) => {
+      rawDispatch(action);
+      syncAction(action, reducer(stateRef.current, action));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
+    // Live mode: the server is the record; only session/chat noise persists.
     try {
-      localStorage.setItem(KEY, JSON.stringify(state));
+      if (IS_LIVE) {
+        localStorage.setItem(KEY + "-live", JSON.stringify({ chat: state.chat, copilot: state.copilot }));
+      } else {
+        localStorage.setItem(KEY, JSON.stringify(state));
+      }
     } catch {
       /* private mode: the session just won't persist */
     }

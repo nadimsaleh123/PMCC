@@ -12,6 +12,30 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../store";
 import { Screen, TopBar, Btn, Icon, Back, Card, Stamp } from "../../ui";
+import { IS_LIVE } from "../../lib/supabase";
+import { copilotLive } from "../../live/sync";
+
+/** Shape one AI-returned action into the card the UI applies. */
+function fromAI(a) {
+  if (a.kind === "activity")
+    return {
+      kind: "activity",
+      label: a.label,
+      detail: a.detail,
+      payload: { type: "setActivity", week: a.week, item: a.item, s: a.s, note: a.note },
+    };
+  if (a.kind === "risk")
+    return {
+      kind: "risk",
+      label: a.label,
+      detail: a.detail,
+      payload: {
+        type: "shareRisk",
+        risk: { id: crypto.randomUUID(), title: a.title, body: a.body, status: "watching", shared: "Today" },
+      },
+    };
+  return { kind: "note", label: a.label, detail: a.detail, payload: null };
+}
 
 const STOP = new Set(["the", "a", "an", "of", "for", "to", "on", "in", "at", "and", "by", "has", "have", "been", "was", "is", "are", "with", "day", "days", "week", "delayed", "delay", "done", "complete", "completed", "finished", "because"]);
 
@@ -109,24 +133,35 @@ export default function Copilot() {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }, [feed.length, thinking]);
 
-  function send(text) {
+  async function send(text) {
     const q = text.trim();
     if (!q) return;
     setInput("");
     dispatch({ type: "copilot", messages: [{ role: "user", text: q }] });
     setThinking(true);
-    setTimeout(() => {
-      const actions = propose(q, state);
-      dispatch({
-        type: "copilot",
-        messages: [
-          actions.length
-            ? { role: "ai", text: "Here's what I'd do with that — apply what's right:", actions, applied: [] }
-            : { role: "ai", text: "I couldn't map that to the plan. Name the activity closer to how it's written in the look-ahead — or add it there first, then report against it." },
-        ],
-      });
-      setThinking(false);
-    }, 700);
+
+    let actions;
+    if (IS_LIVE) {
+      try {
+        actions = (await copilotLive(q, state.project.id)).map(fromAI);
+      } catch (e) {
+        console.error(e);
+        actions = propose(q, state); // local parser as the fallback brain
+      }
+    } else {
+      await new Promise((r) => setTimeout(r, 700));
+      actions = propose(q, state);
+    }
+
+    dispatch({
+      type: "copilot",
+      messages: [
+        actions.length
+          ? { role: "ai", text: "Here's what I'd do with that — apply what's right:", actions, applied: [] }
+          : { role: "ai", text: "I couldn't map that to the plan. Name the activity closer to how it's written in the look-ahead — or add it there first, then report against it." },
+      ],
+    });
+    setThinking(false);
   }
 
   function apply(mi, ai) {

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Row, Stamp, Ring, StateDot, Icon, Btn } from "../../ui";
+import { IS_LIVE, sb } from "../../lib/supabase";
 
 /* ------------------------------------------------ Home */
 export function Home() {
@@ -277,10 +278,17 @@ export function More() {
         </p>
         <p className="mt-0.5 font-sans text-xs text-smoke">Owner since {state.owner.memberSince}</p>
         <div className="mt-4 flex gap-3">
-          <Btn tone="ghost" onClick={() => { dispatch({ type: "signout" }); nav("/signin"); }}>
+          <Btn
+            tone="ghost"
+            onClick={() => {
+              if (IS_LIVE) sb.auth.signOut();
+              dispatch({ type: "signout" });
+              nav("/signin");
+            }}
+          >
             <Icon.out className="h-4 w-4" /> Sign out
           </Btn>
-          <Btn tone="ghost" onClick={() => dispatch({ type: "reset" })}>Reset demo</Btn>
+          {!IS_LIVE && <Btn tone="ghost" onClick={() => dispatch({ type: "reset" })}>Reset demo</Btn>}
         </div>
       </div>
       <p className="mt-8 pb-4 text-center font-sans text-[0.65rem] text-smoke/70">

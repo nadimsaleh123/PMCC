@@ -9,6 +9,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Btn, Icon, Back } from "../../ui";
+import { IS_LIVE } from "../../lib/supabase";
+import { askLive } from "../../live/sync";
 
 function brain(q, state) {
   const s = q.toLowerCase();
@@ -86,12 +88,28 @@ export default function Ask() {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat.length, thinking]);
 
-  function send(text) {
+  async function send(text) {
     const q = text.trim();
     if (!q) return;
     setInput("");
     dispatch({ type: "chat", messages: [{ role: "user", text: q }] });
     setThinking(true);
+
+    if (IS_LIVE) {
+      try {
+        const { answer } = await askLive(q);
+        dispatch({ type: "chat", messages: [{ role: "pmcc", text: answer }] });
+      } catch (e) {
+        console.error(e);
+        dispatch({
+          type: "chat",
+          messages: [{ role: "pmcc", text: "I couldn't reach the record just now — try again in a moment, or leave your question under More → Questions." }],
+        });
+      }
+      setThinking(false);
+      return;
+    }
+
     setTimeout(() => {
       const a = brain(q, state);
       if (a) {

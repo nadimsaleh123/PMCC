@@ -8,17 +8,36 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store";
 import { Mark, Btn } from "../ui";
+import { IS_LIVE, sb } from "../lib/supabase";
 
 export default function SignIn() {
   const { dispatch } = useStore();
   const nav = useNavigate();
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(""); // live mode: this field holds the email
   const [stage, setStage] = useState("phone"); // phone | code
   const [code, setCode] = useState("");
   const [role, setRole] = useState("owner");
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function next() {
+  async function next() {
+    if (IS_LIVE) {
+      const email = phone.trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        setErr("Enter the email address on your contract.");
+        return;
+      }
+      setErr("");
+      setBusy(true);
+      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      setBusy(false);
+      if (error) {
+        setErr(error.message);
+        return;
+      }
+      setStage("code");
+      return;
+    }
     if (phone.replace(/\D/g, "").length < 6) {
       setErr("Enter the phone number on your contract.");
       return;
@@ -27,7 +46,19 @@ export default function SignIn() {
     setStage("code");
   }
 
-  function verify() {
+  async function verify() {
+    if (IS_LIVE) {
+      setBusy(true);
+      const { error } = await sb.auth.verifyOtp({
+        email: phone.trim().toLowerCase(),
+        token: code,
+        type: "email",
+      });
+      setBusy(false);
+      if (error) setErr("That code didn't match — check the email and try again.");
+      // Success: the auth listener in App boots the record and redirects.
+      return;
+    }
     if (code !== "000000") {
       setErr("That code didn't match. Demo code: 000000");
       return;
@@ -49,7 +80,8 @@ export default function SignIn() {
           <em className="type-display-it text-stone">for PMCC owners.</em>
         </h1>
         <p className="mt-4 max-w-xs font-sans text-sm leading-relaxed text-smoke">
-          Access is by contract. Sign in with the phone number on your sale agreement.
+          Access is by contract. Sign in with the {IS_LIVE ? "email address" : "phone number"} on
+          your sale agreement.
         </p>
       </div>
 
@@ -57,43 +89,54 @@ export default function SignIn() {
         {stage === "phone" ? (
           <>
             <label className="block">
-              <span className="type-eyebrow text-smoke">Phone number</span>
+              <span className="type-eyebrow text-smoke">{IS_LIVE ? "Email address" : "Phone number"}</span>
               <input
-                type="tel"
-                inputMode="tel"
+                type={IS_LIVE ? "email" : "tel"}
+                inputMode={IS_LIVE ? "email" : "tel"}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+961 3 616 222"
+                placeholder={IS_LIVE ? "you@example.com" : "+961 3 616 222"}
                 className="mt-2 w-full border border-seam bg-transparent px-4 py-4 font-sans text-base text-bone outline-none placeholder:text-smoke/50 focus:border-stone"
               />
             </label>
             {err && <p className="mt-3 font-sans text-xs text-pmcc">{err}</p>}
-            <Btn full className="mt-4" onClick={next}>
-              Continue
+            <Btn full className="mt-4" onClick={next} disabled={busy}>
+              {busy ? "Sending code…" : "Continue"}
             </Btn>
-            <div className="mt-6 flex items-center gap-3">
-              <span className="rule flex-1" />
-              <span className="font-sans text-[0.65rem] uppercase tracking-wideish text-smoke">Demo access</span>
-              <span className="rule flex-1" />
-            </div>
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={() => { setRole("owner"); setPhone("+961 3 000 001"); setErr(""); }}
-                className={`flex-1 border px-3 py-3 font-sans text-xs transition-colors ${role === "owner" && phone === "+961 3 000 001" ? "border-stone text-bone" : "border-seam text-smoke"}`}
-              >
-                Owner — Rami K.
-                <span className="mt-0.5 block text-[0.65rem] opacity-70">The Roof Residence</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setRole("team"); setPhone("+961 1 886 608"); setErr(""); }}
-                className={`flex-1 border px-3 py-3 font-sans text-xs transition-colors ${role === "team" ? "border-stone text-bone" : "border-seam text-smoke"}`}
-              >
-                PMCC team
-                <span className="mt-0.5 block text-[0.65rem] opacity-70">Site console</span>
-              </button>
-            </div>
+            {IS_LIVE ? (
+              <p className="mt-6 text-center font-sans text-xs text-smoke">
+                A 6-digit code will be emailed to you.{" "}
+                <a href="?demo" className="underline underline-offset-4">
+                  View the demo instead
+                </a>
+              </p>
+            ) : (
+              <>
+                <div className="mt-6 flex items-center gap-3">
+                  <span className="rule flex-1" />
+                  <span className="font-sans text-[0.65rem] uppercase tracking-wideish text-smoke">Demo access</span>
+                  <span className="rule flex-1" />
+                </div>
+                <div className="mt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setRole("owner"); setPhone("+961 3 000 001"); setErr(""); }}
+                    className={`flex-1 border px-3 py-3 font-sans text-xs transition-colors ${role === "owner" && phone === "+961 3 000 001" ? "border-stone text-bone" : "border-seam text-smoke"}`}
+                  >
+                    Owner — Rami K.
+                    <span className="mt-0.5 block text-[0.65rem] opacity-70">The Roof Residence</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setRole("team"); setPhone("+961 1 886 608"); setErr(""); }}
+                    className={`flex-1 border px-3 py-3 font-sans text-xs transition-colors ${role === "team" ? "border-stone text-bone" : "border-seam text-smoke"}`}
+                  >
+                    PMCC team
+                    <span className="mt-0.5 block text-[0.65rem] opacity-70">Site console</span>
+                  </button>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <>
@@ -109,10 +152,15 @@ export default function SignIn() {
                 className="mt-2 w-full border border-seam bg-transparent px-4 py-4 text-center font-sans text-2xl tracking-[0.5em] text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
               />
             </label>
-            <p className="mt-3 font-sans text-xs text-smoke">Demo code: 000000</p>
+            {!IS_LIVE && <p className="mt-3 font-sans text-xs text-smoke">Demo code: 000000</p>}
+            {IS_LIVE && (
+              <p className="mt-3 font-sans text-xs text-smoke">
+                Check your inbox (and spam, the first time) for a message from Supabase Auth.
+              </p>
+            )}
             {err && <p className="mt-2 font-sans text-xs text-pmcc">{err}</p>}
-            <Btn full className="mt-4" onClick={verify}>
-              Sign in
+            <Btn full className="mt-4" onClick={verify} disabled={busy}>
+              {busy ? "Signing in…" : "Sign in"}
             </Btn>
             <button
               type="button"

@@ -1,7 +1,10 @@
 import { Navigate, Route, Routes, useLocation, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "./store";
-import { TabBar, Icon } from "./ui";
+import { TabBar, Icon, Mark, Btn } from "./ui";
+import { IS_LIVE, sb } from "./lib/supabase";
+import { loadOwner, loadTeam } from "./live/load";
+import { touchPresence } from "./live/sync";
 import SignIn from "./screens/SignIn";
 import { Home, Diary, Plan, Money, More } from "./screens/owner/Tabs";
 import { Risks, Selections, Variations, Visits, Documents, Questions } from "./screens/owner/Sub";
@@ -33,16 +36,81 @@ const TEAM_TABS = [
   { to: "/team/inbox", label: "Inbox", icon: Icon.inbox },
 ];
 
+/** Full-screen states used only while live mode establishes itself. */
+function Splash({ children }) {
+  return (
+    <div className="flex min-h-[100svh] flex-col items-center justify-center gap-6 px-8 text-center">
+      <Mark className="h-12 w-12 text-xl" />
+      {children}
+    </div>
+  );
+}
+
 export default function App() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const { pathname } = useLocation();
   const role = state.session?.role;
   const isTeam = pathname.startsWith("/team");
   const onAsk = pathname === "/ask";
+  // live: checking → ready | anon | noaccess
+  const [live, setLive] = useState(IS_LIVE ? "checking" : "off");
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!IS_LIVE) return undefined;
+    const boot = async (session) => {
+      if (!session) {
+        dispatch({ type: "signout" });
+        setLive("anon");
+        return;
+      }
+      try {
+        const { data: profile } = await sb.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
+        if (!profile) {
+          setLive("noaccess");
+          return;
+        }
+        const slices = profile.role === "team" ? await loadTeam() : await loadOwner(profile);
+        dispatch({ type: "boot", slices });
+        dispatch({ type: "signin", session: { role: profile.role, name: profile.full_name } });
+        touchPresence();
+        setLive("ready");
+      } catch (e) {
+        console.error("[live-boot]", e);
+        setLive("noaccess");
+      }
+    };
+    const { data } = sb.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") boot(session);
+      if (event === "SIGNED_OUT") {
+        dispatch({ type: "signout" });
+        setLive("anon");
+      }
+    });
+    return () => data.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (live === "checking")
+    return (
+      <Splash>
+        <p className="type-eyebrow text-smoke">Opening your record…</p>
+      </Splash>
+    );
+  if (live === "noaccess")
+    return (
+      <Splash>
+        <p className="type-display text-2xl text-bone">This portal is by contract.</p>
+        <p className="max-w-xs font-sans text-sm leading-relaxed text-smoke">
+          Your sign-in worked, but no residence is linked to this email yet. If you hold a contract
+          with PMCC, contact us and we'll connect your account.
+        </p>
+        <Btn tone="ghost" onClick={() => sb.auth.signOut()}>Use a different email</Btn>
+      </Splash>
+    );
 
   return (
     <>

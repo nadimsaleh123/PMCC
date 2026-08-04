@@ -225,7 +225,7 @@ export function Questions() {
           onClick={() => {
             dispatch({
               type: "ask",
-              question: { id: `q${Date.now()}`, from: state.owner.name, asked: "Today", q: text.trim(), a: null },
+              question: { id: crypto.randomUUID(), from: state.owner.name, asked: "Today", q: text.trim(), a: null },
             });
             setText("");
           }}

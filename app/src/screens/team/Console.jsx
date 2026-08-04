@@ -10,6 +10,9 @@ import { useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Row, Stamp, Btn, Icon, StateDot, Back } from "../../ui";
 import { PHASES, PHOTO_LIBRARY } from "../../data/seed";
+import { IS_LIVE } from "../../lib/supabase";
+import { createProjectLive } from "../../live/sync";
+import { loadTeam } from "../../live/load";
 
 /* ------------------------------------------------ Today (dashboard) */
 export function Today() {
@@ -32,7 +35,14 @@ export function Today() {
         <div className="relative min-w-0 flex-1">
           <select
             value={activeId}
-            onChange={(e) => dispatch({ type: "switchProject", id: e.target.value })}
+            onChange={async (e) => {
+              const id = e.target.value;
+              if (IS_LIVE) {
+                dispatch({ type: "boot", slices: await loadTeam(id) });
+              } else {
+                dispatch({ type: "switchProject", id });
+              }
+            }}
             aria-label="Active project"
             className="w-full appearance-none border border-seam bg-coal px-4 py-3.5 pr-10 font-sans text-sm font-semibold text-bone outline-none focus:border-stone"
           >
@@ -126,11 +136,19 @@ export function NewProject() {
         full
         className="mt-6"
         disabled={!name.trim() || !location.trim() || !delivery.trim()}
-        onClick={() => {
-          dispatch({
-            type: "createProject",
-            meta: { id: `p${Date.now()}`, name: name.trim(), location: location.trim(), delivery: delivery.trim() },
-          });
+        onClick={async () => {
+          const meta = { name: name.trim(), location: location.trim(), delivery: delivery.trim() };
+          if (IS_LIVE) {
+            try {
+              const created = await createProjectLive(meta);
+              dispatch({ type: "boot", slices: await loadTeam(created.id) });
+            } catch (e) {
+              alert(`Could not create the project: ${e.message ?? e}`);
+              return;
+            }
+          } else {
+            dispatch({ type: "createProject", meta: { id: `p${Date.now()}`, ...meta } });
+          }
           nav("/team");
         }}
       >
@@ -154,7 +172,7 @@ export function Publish() {
   const [preview, setPreview] = useState(false);
 
   const entry = {
-    id: `d${Date.now()}`,
+    id: crypto.randomUUID(),
     date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
     phase,
     photo,
@@ -438,7 +456,7 @@ export function RisksDesk() {
           onClick={() => {
             dispatch({
               type: "shareRisk",
-              risk: { id: `r${Date.now()}`, title: title.trim(), body: body.trim(), status: "watching", shared: "Today" },
+              risk: { id: crypto.randomUUID(), title: title.trim(), body: body.trim(), status: "watching", shared: "Today" },
             });
             setTitle("");
             setBody("");
