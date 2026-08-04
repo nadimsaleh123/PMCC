@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
-import { Screen, TopBar, Card, Row, Stamp, Ring, StateDot, StateLegend, Gantt, Icon, Btn } from "../../ui";
+import { Screen, TopBar, Card, Row, Stamp, Ring, StateDot, StateLegend, Icon, Btn } from "../../ui";
 
 /** The one-line answer to "are we late?" — set by the team, seen by all. */
 function OutlookLine({ project, className = "" }) {
@@ -202,14 +202,7 @@ export function Plan() {
       </div>
 
       <Card className="p-5">
-        <div className="flex items-baseline justify-between">
-          <p className="type-eyebrow text-smoke">The road to your keys</p>
-          <p className="font-sans text-xs text-stone">{project.delivery}</p>
-        </div>
-        <div className="mt-4">
-          <Gantt milestones={project.milestones} />
-        </div>
-        <OutlookLine project={project} className="mt-4 border-t border-seam pt-3" />
+        <OutlookLine project={project} />
       </Card>
 
       <p className="mt-4 px-1 pb-4 font-sans text-xs leading-relaxed text-smoke">

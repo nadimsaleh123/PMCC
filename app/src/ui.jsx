@@ -239,55 +239,6 @@ export function StateLegend() {
   );
 }
 
-/**
- * The programme, drawn: milestone diamonds on a single time band, the built
- * span in stone, the road ahead in seam, today as a hairline. Simple on
- * purpose — an owner reads this in three seconds.
- */
-export function Gantt({ milestones }) {
-  const dated = milestones
-    .map((m) => ({ ...m, t: new Date(m.date).getTime() }))
-    .filter((m) => !Number.isNaN(m.t));
-  if (dated.length < 2) return null;
-  const min = dated[0].t;
-  const max = dated[dated.length - 1].t;
-  const span = max - min || 1;
-  const x = (t) => 4 + ((t - min) / span) * 92; // % with margins
-  const now = Date.now();
-  const lastDone = [...dated].reverse().find((m) => m.done);
-  return (
-    <div>
-      <svg viewBox="0 0 100 16" className="w-full" preserveAspectRatio="none" aria-hidden>
-        <line x1="4" y1="8" x2="96" y2="8" stroke="#2A2722" strokeWidth="1.6" />
-        {lastDone && (
-          <line x1="4" y1="8" x2={x(lastDone.t)} y2="8" stroke={COLORS.done} strokeWidth="1.6" />
-        )}
-        {now >= min && now <= max && (
-          <line x1={x(now)} y1="2" x2={x(now)} y2="14" stroke="#EFE9DD" strokeWidth="0.5" />
-        )}
-        {dated.map((m) => (
-          <rect
-            key={m.name}
-            x={x(m.t) - 1.1}
-            y={8 - 1.1 * 2.2}
-            width="2.2"
-            height="4.84"
-            transform={`rotate(45 ${x(m.t)} 8)`}
-            fill={m.done ? COLORS.done : m.next ? COLORS.ready : "#171512"}
-            stroke={m.done ? COLORS.done : m.next ? COLORS.ready : COLORS.todo}
-            strokeWidth="0.4"
-          />
-        ))}
-      </svg>
-      <div className="mt-1 flex justify-between font-sans text-[0.6rem] uppercase tracking-wideish text-smoke">
-        <span>{dated[0].date}</span>
-        <span className="text-bone">today</span>
-        <span>{dated[dated.length - 1].date}</span>
-      </div>
-    </div>
-  );
-}
-
 /* ---------- navigation ---------- */
 export function TabBar({ tabs }) {
   return (
