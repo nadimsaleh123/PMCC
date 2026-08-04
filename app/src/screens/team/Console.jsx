@@ -416,7 +416,21 @@ export function PlanEditor() {
               <li key={`${it.t}-${ii}`}>
                 <button
                   type="button"
-                  onClick={() => dispatch({ type: "tick", week: wi, item: ii })}
+                  onClick={() => {
+                    dispatch({ type: "tick", week: wi, item: ii });
+                    // The WHEN matters as much as the state — into the log.
+                    const cycle = { done: "On track", ready: "Delayed", blocked: "Not started", todo: "Completed" };
+                    dispatch({
+                      type: "log",
+                      entry: {
+                        id: crypto.randomUUID(),
+                        at: "Just now",
+                        author: state.session?.name ?? "",
+                        kind: "action",
+                        body: `Look-ahead: "${it.t}" → ${cycle[it.s] ?? "Completed"}`,
+                      },
+                    });
+                  }}
                   className="flex w-full items-start gap-3 border-t border-seam py-2.5 text-left first:border-t-0"
                 >
                   <StateDot s={it.s} />

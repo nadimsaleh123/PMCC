@@ -141,7 +141,7 @@ export async function askLive(question) {
 export async function copilotLive(report, projectId) {
   const { data, error } = await sb.functions.invoke("copilot", { body: { report, project_id: projectId } });
   if (error) throw error;
-  return data.actions ?? [];
+  return data; // {actions} for reports, {answer} for questions
 }
 
 /** Presence: stamp the caller's last-seen, silently. */

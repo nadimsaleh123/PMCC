@@ -164,7 +164,14 @@ export default function Copilot() {
     let actions;
     if (IS_LIVE) {
       try {
-        actions = (await copilotLive(q, state.project.id)).map(fromAI);
+        const data = await copilotLive(q, state.project.id);
+        if (data.answer) {
+          // A question, not a report — answered from the record.
+          dispatch({ type: "copilot", messages: [{ role: "ai", text: data.answer }] });
+          setThinking(false);
+          return;
+        }
+        actions = (data.actions ?? []).map(fromAI);
       } catch (e) {
         console.error(e);
         actions = propose(q, state); // local parser as the fallback brain

@@ -32,15 +32,18 @@ Deno.serve(async (req) => {
     const { report, project_id } = await req.json();
     if (!report?.trim() || !project_id) return new Response("bad request", { status: 400, headers: cors });
 
-    const [look, risks, project] = await Promise.all([
+    const [look, risks, project, logQ] = await Promise.all([
       supabase.from("lookahead").select("weeks").eq("project_id", project_id).maybeSingle(),
-      supabase.from("risks").select("title, status").eq("project_id", project_id),
-      supabase.from("projects").select("milestones, delivery").eq("id", project_id).single(),
+      supabase.from("risks").select("title, status, shared_on").eq("project_id", project_id),
+      supabase.from("projects").select("milestones, delivery, outlook").eq("id", project_id).single(),
+      supabase.from("project_log").select("at, author, kind, body").eq("project_id", project_id)
+        .order("at", { ascending: false }).limit(60),
     ]);
 
     const system = [
-      "You are the Site Copilot inside PMCC's construction console. A site engineer reports site events in plain, sometimes messy words (typos included). Translate each report into proposed actions.",
-      'Return ONLY a JSON object: {"actions": [...]}. Action shapes:',
+      "You are the Site Copilot inside PMCC's construction console. The site engineer either REPORTS site events in plain, sometimes messy words (typos included), or ASKS about the project.",
+      'If the message is a QUESTION (when/what/who/how/status/history), return ONLY {"answer":"<2-4 sentences>"} — answered strictly from the provided data. The LOG entries carry real timestamps: use them for any "when did X happen" question, quoting the date. If the data does not contain the answer, say so plainly; never guess.',
+      'If the message is a REPORT, return ONLY a JSON object: {"actions": [...]}. Action shapes:',
       '{"kind":"risk","label":"Share a risk: <short title>","detail":"<one line>","title":"<short title>","body":"<what happened, its impact, and mitigation if stated — faithful to the report>"}',
       '{"kind":"outlook","label":"Update the delivery outlook","detail":"<one line>","state":"ontrack|watch|atrisk","note":"<ONE sentence the OWNER reads about delivery impact, keeping any number of days the engineer stated>"}',
       '{"kind":"activity","label":"Mark \\"<exact activity name>\\" as delayed|completed","detail":"<one line>","week":<0|1|2>,"item":<index>,"s":"done|ready|blocked","note":"<days + reason, e.g. Delayed 5 days — supplier failure>"}',
@@ -69,20 +72,20 @@ Deno.serve(async (req) => {
           { role: "system", content: system },
           {
             role: "user",
-            content: `LOOKAHEAD: ${JSON.stringify(look.data?.weeks ?? [])}\nOPEN RISKS: ${JSON.stringify(risks.data ?? [])}\nMILESTONES: ${JSON.stringify(project.data?.milestones ?? [])}\n\nREPORT: ${report}`,
+            content: `LOOKAHEAD: ${JSON.stringify(look.data?.weeks ?? [])}\nRISKS: ${JSON.stringify(risks.data ?? [])}\nMILESTONES: ${JSON.stringify(project.data?.milestones ?? [])}\nDELIVERY: ${project.data?.delivery}\nOUTLOOK: ${JSON.stringify(project.data?.outlook ?? null)}\nLOG (newest first, timestamps are real): ${JSON.stringify(logQ.data ?? [])}\n\nMESSAGE: ${report}`,
           },
         ],
       }),
     });
     const out = await res.json();
-    let actions = [];
+    let parsed: { actions?: unknown[]; answer?: string } = {};
     try {
-      actions = JSON.parse(out.choices?.[0]?.message?.content ?? "{}").actions ?? [];
+      parsed = JSON.parse(out.choices?.[0]?.message?.content ?? "{}");
     } catch {
-      actions = [];
+      parsed = {};
     }
 
-    return new Response(JSON.stringify({ actions }), {
+    return new Response(JSON.stringify({ actions: parsed.actions ?? [], answer: parsed.answer }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
