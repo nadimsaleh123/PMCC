@@ -139,8 +139,8 @@ export const achievements = [
   { title: "Microsoft", text: "We built their corporate offices in Beirut Central District." },
   { title: "The MEDCO network", text: "Six service stations along the coast, built for the same client over thirteen years." },
   { title: "Banks and brands", text: "Arab Investment Bank, McDonald's and commercial centres. Clients who check everything." },
-  { title: "Two generations of villas", text: "Private houses in Faqra, Kfardebian, Fatka, Yarze and Baabdath. Some built new, some restored." },
-  { title: "Restoration", text: "The WWII Museum at Khiam, and heritage mountain houses given a second life." },
+  { title: "Villas", text: "Private houses built for families in Faqra, Kfardebian, Fatka, Yarze and Baabdath." },
+  { title: "Restoration", text: "The WWII Museum at Khiam, and heritage mountain houses brought back to life." },
   { title: "Building today", text: "On site at Marina Gate, Naccache and Bcharreh, and building our own development at Daher el Souane 563." },
 ];
 
