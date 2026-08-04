@@ -151,7 +151,7 @@ function Clients() {
     // the label's own height pushed them a third of the band too low.
     <section className="relative overflow-clip bg-ink py-14 sm:py-16" aria-label="Selected clients">
       <p className="type-eyebrow absolute left-5 top-6 text-smoke sm:left-8 sm:top-7">
-        They trusted us with their name
+        Clients we&rsquo;ve built for
       </p>
       <div className="marquee flex w-max items-center pr-0">
         {row.map((c, i) => (
