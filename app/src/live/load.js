@@ -26,6 +26,7 @@ function mapProject(row) {
         phases: row.phases ?? [],
         milestones: row.milestones ?? [],
         outlook: row.outlook ?? null,
+        programme: row.programme ?? null,
       }
     : null;
 }

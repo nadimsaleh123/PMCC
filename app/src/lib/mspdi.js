@@ -64,5 +64,51 @@ export function parseMSPDI(xmlText) {
     };
   });
 
-  return { taskCount: tasks.length, milestones, weeks };
+  // The snapshot the next import will be compared against — names and dates,
+  // nothing derived, so the diff is against what the file actually said.
+  const snapshot = tasks.map((t) => ({
+    n: t.name,
+    s: (t.start ?? "").slice(0, 10),
+    f: (t.finish ?? "").slice(0, 10),
+    m: t.milestone,
+    p: t.pct,
+  }));
+
+  return { taskCount: tasks.length, milestones, weeks, snapshot };
+}
+
+const day = 86400000;
+const fmtShort = (iso) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+/**
+ * The truth between two programmes: which activities moved (and by how many
+ * days), which appeared, which vanished. Matched by name; no interpretation.
+ */
+export function diffProgramme(oldSnapshot, newSnapshot) {
+  if (!oldSnapshot?.length) return null; // first import — nothing to compare
+  const old = new Map(oldSnapshot.map((t) => [t.n.trim().toLowerCase(), t]));
+  const seen = new Set();
+  const moved = [];
+  for (const t of newSnapshot) {
+    const key = t.n.trim().toLowerCase();
+    const o = old.get(key);
+    seen.add(key);
+    if (!o) continue;
+    const ds = t.s && o.s ? Math.round((new Date(t.s) - new Date(o.s)) / day) : 0;
+    const df = t.f && o.f ? Math.round((new Date(t.f) - new Date(o.f)) / day) : 0;
+    const delta = ds !== 0 ? ds : df;
+    if (delta !== 0) {
+      moved.push({
+        text: `${t.n}: ${delta > 0 ? "+" : ""}${delta}d (${fmtShort(o.s || o.f)} → ${fmtShort(t.s || t.f)})`,
+        abs: Math.abs(delta),
+      });
+    }
+  }
+  moved.sort((a, b) => b.abs - a.abs);
+  const added = newSnapshot.filter((t) => !old.has(t.n.trim().toLowerCase())).map((t) => t.n);
+  const removed = oldSnapshot.filter((t) => !seen.has(t.n.trim().toLowerCase())).map((t) => t.n);
+  return { moved, added, removed };
 }

@@ -14,7 +14,7 @@ import { IS_LIVE, sb, createAccount, suggestPassword } from "../../lib/supabase"
 import { createProjectLive } from "../../live/sync";
 import { loadTeam } from "../../live/load";
 import { uploadPhoto, uploadDoc, openDoc } from "../../lib/storage";
-import { parseMSPDI } from "../../lib/mspdi";
+import { parseMSPDI, diffProgramme } from "../../lib/mspdi";
 import { extractPdfText } from "../../lib/pdf";
 
 /* ------------------------------------------------ Today (dashboard) */
@@ -946,9 +946,8 @@ export function ProjectDesk() {
             return old && old.date !== m.date ? `${m.name}: ${old.date} → ${m.date}` : null;
           })
           .filter(Boolean);
-        p.added = p.milestones.filter(
-          (m) => !state.project.milestones.some((o) => o.name.trim().toLowerCase() === m.name.trim().toLowerCase()),
-        ).length;
+        // The full programme-to-programme truth, against the stored snapshot.
+        p.diff = diffProgramme(state.project.programme?.tasks, p.snapshot);
         setParsed(p);
       } catch (err) {
         setPErr(String(err.message ?? err));
@@ -961,7 +960,13 @@ export function ProjectDesk() {
     setApplying(true);
     try {
       if (IS_LIVE) {
-        const e1 = await sb.from("projects").update({ milestones: parsed.milestones }).eq("id", projectId);
+        const e1 = await sb
+          .from("projects")
+          .update({
+            milestones: parsed.milestones,
+            programme: { importedAt: new Date().toISOString(), tasks: parsed.snapshot },
+          })
+          .eq("id", projectId);
         if (e1.error) throw e1.error;
         const e2 = await sb.from("lookahead").upsert({
           project_id: projectId,
@@ -979,7 +984,13 @@ export function ProjectDesk() {
           author: state.session?.name ?? "",
           kind: "note",
           body: `Programme re-imported: ${parsed.taskCount} activities, ${parsed.milestones.length} milestones.${
-            parsed.changes?.length ? ` Moved — ${parsed.changes.join("; ")}` : " No milestone dates moved."
+            parsed.changes?.length ? ` Milestones moved — ${parsed.changes.join("; ")}.` : " No milestone dates moved."
+          }${
+            parsed.diff
+              ? ` Activities: ${parsed.diff.moved.length} shifted${
+                  parsed.diff.moved.length ? ` (${parsed.diff.moved.map((m) => m.text).join("; ")})` : ""
+                }, ${parsed.diff.added.length} added, ${parsed.diff.removed.length} dropped.`
+              : " First import — comparison baseline set."
           }`,
         },
       });
@@ -1066,6 +1077,51 @@ export function ProjectDesk() {
             )}
             {parsed.changes?.length === 0 && (
               <p className="mt-1 font-sans text-xs text-[#55996A]">No milestone dates move.</p>
+            )}
+            {parsed.diff ? (
+              <div className="mt-3 space-y-2">
+                {parsed.diff.moved.length > 0 && (
+                  <div>
+                    <p className="font-sans text-[0.65rem] font-semibold uppercase tracking-wideish text-[#D9A441]">
+                      Activities shifted ({parsed.diff.moved.length})
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                      {parsed.diff.moved.slice(0, 8).map((m) => (
+                        <li key={m.text} className="font-sans text-xs leading-relaxed text-bone/85">
+                          {m.text}
+                        </li>
+                      ))}
+                    </ul>
+                    {parsed.diff.moved.length > 8 && (
+                      <p className="mt-1 font-sans text-[0.65rem] text-smoke">
+                        …and {parsed.diff.moved.length - 8} more (all recorded in the log on apply)
+                      </p>
+                    )}
+                  </div>
+                )}
+                {parsed.diff.added.length > 0 && (
+                  <p className="font-sans text-xs text-bone/85">
+                    <span className="font-semibold uppercase tracking-wideish text-[0.65rem] text-smoke">New activities:</span>{" "}
+                    {parsed.diff.added.slice(0, 5).join(" · ")}
+                    {parsed.diff.added.length > 5 ? ` · +${parsed.diff.added.length - 5} more` : ""}
+                  </p>
+                )}
+                {parsed.diff.removed.length > 0 && (
+                  <p className="font-sans text-xs text-bone/85">
+                    <span className="font-semibold uppercase tracking-wideish text-[0.65rem] text-smoke">Dropped:</span>{" "}
+                    {parsed.diff.removed.slice(0, 5).join(" · ")}
+                    {parsed.diff.removed.length > 5 ? ` · +${parsed.diff.removed.length - 5} more` : ""}
+                  </p>
+                )}
+                {parsed.diff.moved.length === 0 && parsed.diff.added.length === 0 && parsed.diff.removed.length === 0 && (
+                  <p className="font-sans text-xs text-[#55996A]">No activity changes against the last import.</p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-2 font-sans text-[0.65rem] text-smoke">
+                First import for this project — nothing earlier to compare against; the comparison
+                starts from here.
+              </p>
             )}
             <Btn className="mt-3" disabled={applying} onClick={applyProgramme}>
               {applying ? "Applying…" : "Apply to milestones & look-ahead"}
