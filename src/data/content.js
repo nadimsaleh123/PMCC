@@ -53,49 +53,6 @@ export const services = [
 ];
 
 /**
- * Selected work, grouped the way a prospect actually reads a builder:
- * recognisable names, breadth, and what is on site right now. All entries
- * from the qualification statement; the full record goes out on request.
- */
-export const workGroups = [
-  {
-    title: "Corporate & banking",
-    note: "Fit-outs and renovations for clients who audit everything.",
-    items: [
-      { name: "Microsoft Regional Offices", meta: "Beirut Central District · 2002" },
-      { name: "Microsoft Offices, Berytus", meta: "Beirut Central District · 2012" },
-      { name: "Arab Investment Bank", meta: "Beirut Central District · 2015" },
-    ],
-  },
-  {
-    title: "The MEDCO network",
-    note: "One client, thirteen years, six service stations along the coast.",
-    items: [
-      { name: "Six stations, BCD to Damour", meta: "2003 – 2016 · construction management" },
-    ],
-  },
-  {
-    title: "Villas & restoration",
-    note: "Private houses built new, and old ones brought back to life.",
-    items: [
-      { name: "Villa Zreik", meta: "Faqra · 2008" },
-      { name: "Villa Fakhoury", meta: "Kfardebian · 2016" },
-      { name: "WWII Museum", meta: "Khiam · restoration · 2005" },
-      { name: "Villa Tyan", meta: "Baabdath · restoration · 2011" },
-    ],
-  },
-  {
-    title: "On site now",
-    note: "What we are building right now, from Jounieh to the mountains.",
-    items: [
-      { name: "Marina Gate Tower", meta: "Jounieh · office tower" },
-      { name: "Naccache 401–413", meta: "Naccache · residential · 2027" },
-      { name: "Bcharreh Heritage Houses", meta: "Bcharreh · restoration · 2026" },
-    ],
-  },
-];
-
-/**
  * Marquee entries. Each renders its logo from /im/logos/<slug>.png when the
  * file exists (bone-monochrome, transparent), and falls back to the serif
  * wordmark when it does not — so a missing file degrades, never breaks.
@@ -110,9 +67,8 @@ export const clients = [
 ];
 
 /**
- * The booklet — spreads of an open monograph. Left page features one project;
- * the right page carries a grid of four, captioned, exactly as a printed
- * portfolio lays them out.
+ * The book of selected work. One spread per chapter, matching the contents
+ * list beside the book: tap a chapter and the book turns to it.
  *
  * PLACEHOLDER IMAGES. Every photo is a Daher el Souane render or site
  * photograph standing in until each project's own photography arrives; swap
@@ -121,6 +77,20 @@ export const clients = [
  */
 export const booklet = [
   {
+    title: "Corporate & banking",
+    feature: {
+      name: "Microsoft Regional Offices",
+      meta: "Beirut Central District · 2002",
+      img: { src: "/im/site-finished-1280.webp", src2x: "/im/site-finished-1280.webp", alt: "Completed building from above" },
+    },
+    grid: [
+      { name: "Microsoft Offices, Berytus", meta: "Beirut Central District · 2012", img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" } },
+      { name: "Arab Investment Bank", meta: "Beirut Central District · 2015", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
+      { name: "The MEDCO network", meta: "Six stations, BCD to Damour · 2003 – 2016", img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" } },
+    ],
+  },
+  {
+    title: "Villas & restoration",
     feature: {
       name: "Villa Zreik",
       meta: "Faqra · 2008",
@@ -128,12 +98,24 @@ export const booklet = [
     },
     grid: [
       { name: "Villa Fakhoury", meta: "Kfardebian · 2016", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Garden elevation in evening light" } },
-      { name: "Villa Tyan", meta: "Baabdath · 2011", img: { src: "/im/site-finished-1280.webp", src2x: "/im/site-finished-1280.webp", alt: "Completed house from above" } },
-      { name: "WWII Museum", meta: "Khiam · 2005", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
-      { name: "Marina Gate", meta: "On site now", img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" } },
+      { name: "WWII Museum", meta: "Khiam · restoration · 2005", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
+      { name: "Villa Tyan", meta: "Baabdath · restoration · 2011", img: { src: "/im/site-finished-1280.webp", src2x: "/im/site-finished-1280.webp", alt: "Completed house from above" } },
     ],
   },
   {
+    title: "On site now",
+    feature: {
+      name: "Marina Gate Tower",
+      meta: "Jounieh · office tower",
+      img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" },
+    },
+    grid: [
+      { name: "Naccache 401–413", meta: "Naccache · residential · 2027", img: { src: "/im/elevation-front-1280.webp", src2x: "/im/elevation-front-2560.webp", alt: "Front elevation at dusk" } },
+      { name: "Bcharreh Heritage Houses", meta: "Bcharreh · restoration · 2026", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Garden elevation in evening light" } },
+    ],
+  },
+  {
+    title: "Daher el Souane 563",
     feature: {
       name: "Daher el Souane 563",
       meta: "Our own development · now selling",

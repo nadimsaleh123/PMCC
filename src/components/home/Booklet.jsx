@@ -225,6 +225,17 @@ export default function Booklet() {
 
   const busy = useRef(false);
 
+  // Which format is on screen, so the contents list highlights the right
+  // chapter (desktop counts spreads, mobile counts pages).
+  const [lg, setLg] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setLg(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   // Warm every plate with the same candidate selection the render uses,
   // decoded, so a leaf never turns onto an undecoded image.
   useEffect(() => {
@@ -268,6 +279,13 @@ export default function Booklet() {
     if (busy.current) return;
     if (isLg()) turnSpread(page + delta);
     else turnMobile(mpage + delta);
+  };
+
+  // The contents list: tap a chapter, the book turns straight to it.
+  const jumpTo = (i) => {
+    if (busy.current) return;
+    if (isLg()) turnSpread(i);
+    else turnMobile(i * 2);
   };
 
   // Swiping the page is how a phone turns it. Handlers never preventDefault
@@ -401,6 +419,9 @@ export default function Booklet() {
   const mShown = mturning ? (mturning.dir === 1 ? mturning.to : mturning.from) : mpage;
   const mFace = mturning ? (mturning.dir === 1 ? mturning.from : mturning.to) : null;
 
+  // The open chapter, for the contents list.
+  const chapter = lg ? shown : Math.floor(mShown / 2);
+
   const faceStyle = (isBack) => ({
     backfaceVisibility: "hidden",
     WebkitBackfaceVisibility: "hidden",
@@ -408,20 +429,38 @@ export default function Booklet() {
   });
 
   return (
-    <section className="overflow-x-clip bg-ink px-5 py-28 sm:px-8" aria-label="Project booklet">
+    <section id="record" className="overflow-x-clip bg-ink px-5 py-28 sm:px-8" aria-label="Project booklet">
       <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[minmax(13rem,1fr)_minmax(0,4fr)] lg:gap-14">
-        {/* The heading lives beside the book, as it does in the photograph. */}
+        {/* The heading and the contents live beside the book. */}
         <div>
           <Lines className="type-display text-[clamp(2rem,3.4vw,3.2rem)] leading-[1.08] text-bone">
             Selected <em className="type-display-it text-stone">Projects</em>
           </Lines>
           <Fade className="mt-6">
             <p className="max-w-[16rem] font-sans text-sm leading-relaxed text-smoke">
-              A closer look at the spaces we&rsquo;ve shaped over the years. Timeless design.
-              Lasting impact.
+              Our work since 1996, as a book. Pick a chapter, or turn the pages.
             </p>
           </Fade>
-          <Fade className="mt-10 hidden items-center gap-4 lg:flex">
+          <Fade className="mt-8">
+            <ul aria-label="Chapters" className="border-b border-seam">
+              {booklet.map((s, i) => (
+                <li key={s.title}>
+                  <button
+                    type="button"
+                    onClick={() => jumpTo(i)}
+                    aria-current={chapter === i ? "true" : undefined}
+                    className={`flex w-full items-baseline justify-between gap-4 border-t border-seam py-2.5 text-left font-sans text-xs transition-colors ${
+                      chapter === i ? "text-bone" : "text-smoke hover:text-bone/80"
+                    }`}
+                  >
+                    <span>{s.title}</span>
+                    <span className={`tabular-nums ${chapter === i ? "text-pmcc" : "text-smoke/60"}`}>{pad(i)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Fade>
+          <Fade className="mt-8 hidden items-center gap-4 lg:flex">
             <p className="font-sans text-xs tabular-nums text-smoke" aria-live="polite">
               <span className="text-bone">{pad(shown)}</span> / {pad(booklet.length - 1)}
             </p>

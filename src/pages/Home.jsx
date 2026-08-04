@@ -6,7 +6,6 @@ import { Lines, Fade } from "../components/reveal";
 import WarpImage from "../components/WarpImage";
 import Timeline from "../components/home/Timeline";
 import Booklet from "../components/home/Booklet";
-import SelectedWork from "../components/home/SelectedWork";
 import { heroClaim, stats, services, clients, project } from "../data/content";
 
 function Hero() {
@@ -192,6 +191,37 @@ function Clients() {
   );
 }
 
+/** The red box under the book: the one thing on this page that sells. */
+function DevelopmentPromo() {
+  return (
+    <section className="bg-ink px-5 pb-24 sm:px-8">
+      <div className="mx-auto max-w-7xl">
+        <Fade>
+          <Link
+            to="/daher-el-souane-563"
+            data-cursor="view"
+            className="group flex flex-col justify-between gap-6 bg-pmcc p-8 transition-transform duration-500 ease-out-expo hover:scale-[1.01] sm:flex-row sm:items-center sm:p-10"
+          >
+            <div>
+              <p className="type-eyebrow text-bone/80">Our own development · now selling</p>
+              <p className="type-display mt-3 text-3xl text-bone sm:text-4xl">
+                {project.name} · {project.claim[0].toLowerCase()}{" "}
+                <em className="type-display-it">{project.claim[1]}</em>
+              </p>
+            </div>
+            <span
+              aria-hidden
+              className="type-display shrink-0 text-4xl text-bone transition-transform duration-500 ease-out-expo group-hover:translate-x-3"
+            >
+              →
+            </span>
+          </Link>
+        </Fade>
+      </div>
+    </section>
+  );
+}
+
 function FlagshipPromo() {
   return (
     <section className="relative">
@@ -237,8 +267,8 @@ export default function Home() {
       <Clients />
       <Services />
       <Timeline />
-      <SelectedWork />
       <Booklet />
+      <DevelopmentPromo />
       <FlagshipPromo />
     </>
   );
