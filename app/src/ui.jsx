@@ -69,13 +69,9 @@ export const Icon = {
   ),
 };
 
-/* ---------- the monogram, borrowed spirit from the site ---------- */
+/* ---------- the real monogram — same file the website wears ---------- */
 export function Mark({ className = "h-8 w-8" }) {
-  return (
-    <span className={`inline-flex items-center justify-center bg-pmcc font-sans text-[0.55em] font-bold tracking-tight text-bone ${className}`}>
-      PMCC
-    </span>
-  );
+  return <img src="/im/logo-mark.png" alt="PMCC" className={`${className} object-contain`} />;
 }
 
 /* ---------- layout ---------- */

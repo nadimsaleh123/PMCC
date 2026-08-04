@@ -32,7 +32,13 @@ export default function SignIn() {
       const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
       setBusy(false);
       if (error) {
-        setErr(error.message);
+        console.error("[signin]", error);
+        const msg = typeof error.message === "string" && error.message.length > 2 ? error.message : "";
+        setErr(
+          msg.includes("rate")
+            ? "Too many codes requested — wait a few minutes and try again."
+            : `The code could not be sent${msg ? ` (${msg})` : ""} — the email service needs attention. Contact PMCC.`,
+        );
         return;
       }
       setStage("code");
