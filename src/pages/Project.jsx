@@ -420,7 +420,8 @@ function AerialModel() {
 
 function Location() {
   const { location } = project;
-  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=Daher+El+Souane,+Mount+Lebanon";
+  // The site's exact plus code, so the pin lands on the plot, not the village.
+  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=VMX8%2B9V7%2C+Dahr+El+Souane%2C+Lebanon";
   return (
     <section className="border-t border-seam bg-ink px-5 py-24 sm:px-8">
       <div className="mx-auto max-w-6xl">
