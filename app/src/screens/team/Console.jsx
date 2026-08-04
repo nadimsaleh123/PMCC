@@ -936,7 +936,20 @@ export function ProjectDesk() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        setParsed(parseMSPDI(String(reader.result)));
+        const p = parseMSPDI(String(reader.result));
+        // What moved? The question a re-import exists to answer.
+        p.changes = p.milestones
+          .map((m) => {
+            const old = state.project.milestones.find(
+              (o) => o.name.trim().toLowerCase() === m.name.trim().toLowerCase(),
+            );
+            return old && old.date !== m.date ? `${m.name}: ${old.date} → ${m.date}` : null;
+          })
+          .filter(Boolean);
+        p.added = p.milestones.filter(
+          (m) => !state.project.milestones.some((o) => o.name.trim().toLowerCase() === m.name.trim().toLowerCase()),
+        ).length;
+        setParsed(p);
       } catch (err) {
         setPErr(String(err.message ?? err));
       }
@@ -958,6 +971,18 @@ export function ProjectDesk() {
         if (e2.error) throw e2.error;
         dispatch({ type: "boot", slices: await loadTeam(projectId) });
       }
+      dispatch({
+        type: "log",
+        entry: {
+          id: crypto.randomUUID(),
+          at: "Just now",
+          author: state.session?.name ?? "",
+          kind: "note",
+          body: `Programme re-imported: ${parsed.taskCount} activities, ${parsed.milestones.length} milestones.${
+            parsed.changes?.length ? ` Moved — ${parsed.changes.join("; ")}` : " No milestone dates moved."
+          }`,
+        },
+      });
       setParsed(null);
       alert("Programme applied — milestones and the look-ahead now follow the file.");
     } catch (e) {
@@ -1021,6 +1046,27 @@ export function ProjectDesk() {
               Parsed: {parsed.taskCount} activities · {parsed.milestones.length} milestones ·
               look-ahead {parsed.weeks.map((w) => w.items.length).join(" / ")} items over three weeks.
             </p>
+            {parsed.changes?.length > 0 && (
+              <div className="mt-2">
+                <p className="font-sans text-[0.65rem] font-semibold uppercase tracking-wideish text-[#D9A441]">
+                  Milestones moving
+                </p>
+                <ul className="mt-1 space-y-1">
+                  {parsed.changes.map((c) => (
+                    <li key={c} className="font-sans text-xs leading-relaxed text-bone/85">
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 font-sans text-[0.65rem] leading-relaxed text-smoke">
+                  If delivery is affected, update the Delivery outlook below after applying —
+                  owners hear it from you, never from a silent date change.
+                </p>
+              </div>
+            )}
+            {parsed.changes?.length === 0 && (
+              <p className="mt-1 font-sans text-xs text-[#55996A]">No milestone dates move.</p>
+            )}
             <Btn className="mt-3" disabled={applying} onClick={applyProgramme}>
               {applying ? "Applying…" : "Apply to milestones & look-ahead"}
             </Btn>
