@@ -295,7 +295,7 @@ export const project = {
     driveTimes: [
       { place: "Beirut", minutes: 20 },
       { place: "ABC Dbayeh", minutes: 15 },
-      { place: "Rafic Hariri Int'l Airport", minutes: 35 },
+      { place: "Airport", minutes: 35 },
     ],
     note: "Typical driving times in light traffic.",
   },

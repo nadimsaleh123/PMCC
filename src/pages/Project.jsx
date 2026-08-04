@@ -278,6 +278,27 @@ function LocationSpread() {
         <Fade className="mt-6">
           <p className="max-w-2xl font-sans text-sm leading-relaxed text-smoke">{book563.locationBlurb}</p>
         </Fade>
+        <Fade className="mt-10">
+          <div className="flex items-baseline justify-between gap-x-3 sm:justify-start sm:gap-x-10">
+            {project.location.driveTimes.map((d) => (
+              <p key={d.place} className="flex items-baseline gap-1.5 whitespace-nowrap sm:gap-2">
+                <span className="type-display text-xl text-bone sm:text-3xl">{d.minutes}</span>
+                <span className="font-sans text-[0.65rem] text-smoke sm:text-xs">min</span>
+                <span className="font-sans text-[0.65rem] uppercase tracking-wideish text-smoke sm:text-xs">{d.place}</span>
+              </p>
+            ))}
+          </div>
+          <p className="mt-2 font-sans text-[0.65rem] text-smoke/70">{project.location.note}</p>
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=VMX8%2B9V7%2C+Dahr+El+Souane%2C+Lebanon"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-7 inline-flex items-center gap-3 bg-pmcc px-7 py-3.5 font-sans text-sm font-semibold text-bone"
+          >
+            Open in Google Maps
+            <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+          </a>
+        </Fade>
         {/* The country and the area, side by side: Lebanon's sight-lines
             point straight into the satellite map beside it. */}
         <div className="mx-auto mt-16 grid max-w-4xl grid-cols-[minmax(0,0.6fr)_minmax(0,1.4fr)] items-center gap-2 sm:gap-4">
@@ -412,49 +433,6 @@ function AerialModel() {
               </Fade>
             ))}
           </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Location() {
-  const { location } = project;
-  // The site's exact plus code, so the pin lands on the plot, not the village.
-  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=VMX8%2B9V7%2C+Dahr+El+Souane%2C+Lebanon";
-  return (
-    <section className="border-t border-seam bg-ink px-5 py-24 sm:px-8">
-      <div className="mx-auto max-w-6xl">
-        <p className="type-eyebrow text-smoke">Getting there</p>
-        <Lines className="type-display mt-6 max-w-3xl text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
-          {location.line}
-        </Lines>
-        <div className="mt-12 grid border border-seam sm:grid-cols-3">
-          {location.driveTimes.map((d) => (
-            <Fade
-              key={d.place}
-              className="border-b border-seam px-8 py-10 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
-            >
-              <p className="type-display text-5xl text-bone">
-                {d.minutes}
-                <span className="ml-2 font-sans text-sm font-normal text-smoke">min</span>
-              </p>
-              <p className="mt-3 font-sans text-xs uppercase tracking-wideish text-smoke">
-                {d.place}
-              </p>
-            </Fade>
-          ))}
-        </div>
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-          <p className="font-sans text-xs text-smoke/70">{location.note}</p>
-          <a
-            href={mapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="font-sans text-xs text-bone underline underline-offset-4 transition-colors hover:text-pmcc"
-          >
-            Open in Google Maps →
-          </a>
         </div>
       </div>
     </section>
@@ -652,7 +630,6 @@ export default function Project() {
       <AerialModel />
       <ResidenceCloseUp />
       <TheStandard />
-      <Location />
       <Availability />
       <Faq />
       <StickyCta />
