@@ -3,7 +3,7 @@
  * they'll open weekly for two years; Plan is Procore's lookahead in plain
  * words; Money is the no-misunderstanding ledger; More is everything else.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Row, Stamp, Ring, StateDot, StateLegend, Icon, Btn } from "../../ui";
@@ -25,6 +25,7 @@ function OutlookLine({ project, className = "" }) {
 }
 import { IS_LIVE, sb } from "../../lib/supabase";
 import { openDoc } from "../../lib/storage";
+import { markDiaryRead } from "../../live/sync";
 
 /* ------------------------------------------------ Home */
 export function Home() {
@@ -134,6 +135,10 @@ export function Home() {
 export function Diary() {
   const { state } = useStore();
   const [open, setOpen] = useState(null);
+  // Opening this tab IS the read — receipt every entry on screen, once.
+  useEffect(() => {
+    if (IS_LIVE) markDiaryRead(state.diary.slice(0, 20).map((d) => d.id));
+  }, [state.diary]);
   return (
     <Screen>
       <TopBar eyebrow="The record of your build" title="Site diary" />

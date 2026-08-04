@@ -197,6 +197,29 @@ export async function loadTeam(projectId) {
     .eq("project_id", active.id)
     .order("at", { ascending: false })
     .limit(80);
+  // Read receipts: for each owner, the latest diary entry they actually opened.
+  const ownerIds = (units ?? []).map((u) => u.owner_id).filter(Boolean);
+  const readsByOwner = {};
+  if (ownerIds.length) {
+    const { data: readRows } = await sb
+      .from("reads")
+      .select("profile_id, item_id, read_at")
+      .eq("item_kind", "diary")
+      .in("profile_id", ownerIds)
+      .order("read_at", { ascending: false });
+    const diaryById = new Map(content.diary.map((d) => [d.id, d]));
+    for (const r of readRows ?? []) {
+      const entry = diaryById.get(r.item_id);
+      if (!entry || readsByOwner[r.profile_id]) continue;
+      const seen = new Date(r.read_at).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      readsByOwner[r.profile_id] = `Saw the ${entry.date} update on ${seen}`;
+    }
+  }
   return {
     activeProjectId: active.id,
     projectsMeta: projects.map((p) => ({ id: p.id, name: p.name })),
@@ -236,6 +259,7 @@ export async function loadTeam(projectId) {
         name: u.users?.full_name ?? "— unsold —",
         state: u.owner_id ? "active" : "available",
         lastSeen: u.users?.last_seen ? new Date(u.users.last_seen).toLocaleString() : null,
+        opened: (u.owner_id && readsByOwner[u.owner_id]) || null,
       })),
     },
   };

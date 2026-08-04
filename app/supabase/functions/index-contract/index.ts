@@ -1,5 +1,7 @@
 // index-contract — team pastes the contract text; Groq extracts the clauses
-// owners ask about; the result is stored per unit and quoted by "ask".
+// owners ask about PLUS the payment schedule, exactly as the contract states
+// it. Clauses feed the chatbot; the schedule replaces the unit's payments
+// rows (view-only, illustrative — no payment links, no invented figures).
 // Deploy as: index-contract. Requires secret GROQ_API_KEY.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -30,10 +32,13 @@ Deno.serve(async (req) => {
       return new Response("bad request", { status: 400, headers: cors });
 
     const system = [
-      "You extract clauses from a real-estate sale contract for a client-facing assistant.",
-      'Return ONLY JSON: {"signedOn":"...","parties":"...","unitClause":"...","paymentClause":"...","deliveryClause":"...","variationClause":"...","warrantyClause":"..."}',
-      "Each value: 1-3 sentences, faithful to the contract text, plain language, keep exact figures and dates.",
+      "You extract clauses and the payment schedule from a real-estate sale contract for a client-facing assistant.",
+      'Return ONLY JSON: {"signedOn":"...","parties":"...","unitClause":"...","paymentClause":"...","deliveryClause":"...","variationClause":"...","warrantyClause":"...","price":<number or null>,"payments":[{"name":"...","milestone":"...","amount":<number>}]}',
+      "Each clause value: 1-3 sentences, faithful to the contract text, plain language, keep exact figures and dates.",
       'If a clause is genuinely absent from the text, use "Not specified in the contract." — never invent terms.',
+      '"price": the total contract price as a plain number, no currency symbols or separators; null if the contract does not state one.',
+      '"payments": every installment of the payment schedule, in the contract\'s order. "name" is the installment\'s label (e.g. "On signature", "2nd installment"); "milestone" is the event or date it is tied to, verbatim; "amount" is a plain number. If an amount is stated as a percentage of the price, convert it only when the price is stated too — otherwise skip that installment.',
+      'If the contract has no payment schedule, return "payments": []. NEVER invent an installment, an amount, or a date — these figures appear on the client\'s Money screen.',
     ].join("\n");
 
     const res = await fetch(GROQ_URL, {
@@ -45,7 +50,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         temperature: 0,
-        max_tokens: 900,
+        max_tokens: 2000,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: system },
@@ -54,12 +59,36 @@ Deno.serve(async (req) => {
       }),
     });
     const out = await res.json();
-    const clauses = JSON.parse(out.choices?.[0]?.message?.content ?? "{}");
+    const parsed = JSON.parse(out.choices?.[0]?.message?.content ?? "{}");
+    const { payments, price, ...clauses } = parsed;
+
+    // The schedule replaces what was there — the contract is the truth.
+    const rows = (Array.isArray(payments) ? payments : []).filter(
+      (p: { name?: string; amount?: number }) => p && p.name && Number(p.amount) > 0,
+    );
+    if (rows.length) {
+      const { error: dErr } = await supabase.from("payments").delete().eq("unit_id", unit_id);
+      if (dErr) throw dErr;
+      const { error: iErr } = await supabase.from("payments").insert(
+        rows.map((p: { name: string; milestone?: string; amount: number }, i: number) => ({
+          unit_id,
+          name: String(p.name),
+          milestone: String(p.milestone ?? ""),
+          amount: Number(p.amount),
+          state: "upcoming",
+          ord: i + 1,
+        })),
+      );
+      if (iErr) throw iErr;
+    }
+    if (Number(price) > 0) {
+      await supabase.from("units").update({ price: Number(price) }).eq("id", unit_id);
+    }
 
     const { error } = await supabase.from("contract_index").upsert({ unit_id, clauses });
     if (error) throw error;
 
-    return new Response(JSON.stringify({ clauses }), {
+    return new Response(JSON.stringify({ clauses, paymentsCount: rows.length }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {

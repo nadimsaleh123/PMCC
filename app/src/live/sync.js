@@ -37,6 +37,7 @@ export function syncAction(action, nextState) {
       case "tick":
       case "setActivity":
       case "addActivity":
+      case "removeActivity":
         return sb.from("lookahead").upsert({
           project_id: projectId,
           weeks: nextState.lookahead.weeks,
@@ -111,7 +112,7 @@ export async function createProjectLive(meta) {
       { label: "Week after", range: "—", items: [] },
     ],
   });
-  const unitName = "The Residence";
+  const unitName = meta.name;
   const { data: unit, error: uErr } = await sb
     .from("units")
     .insert({ project_id: data.id, name: unitName, level: "", area: "", extras: meta.location })
@@ -142,6 +143,24 @@ export async function copilotLive(report, projectId) {
   const { data, error } = await sb.functions.invoke("copilot", { body: { report, project_id: projectId } });
   if (error) throw error;
   return data; // {actions} for reports, {answer} for questions
+}
+
+/**
+ * Read receipts: the owner opened the diary — record which entries, quietly.
+ * Duplicate opens are ignored, so the stored time is the FIRST view: "you saw
+ * this update on that date" is the fact worth keeping.
+ */
+export function markDiaryRead(entryIds) {
+  if (!IS_LIVE || !entryIds?.length) return;
+  sb.auth.getUser().then(({ data }) => {
+    if (!data?.user) return;
+    const rows = entryIds.map((id) => ({ profile_id: data.user.id, item_kind: "diary", item_id: id }));
+    sb.from("reads")
+      .upsert(rows, { onConflict: "profile_id,item_kind,item_id", ignoreDuplicates: true })
+      .then(({ error }) => {
+        if (error) console.error("[live-sync] reads:", error);
+      });
+  });
 }
 
 /** Presence: stamp the caller's last-seen, silently. */

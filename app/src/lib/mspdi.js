@@ -18,7 +18,7 @@ export function parseMSPDI(xmlText) {
   const doc = new DOMParser().parseFromString(xmlText, "text/xml");
   if (doc.querySelector("parsererror")) throw new Error("Not a valid MS Project XML (MSPDI) file.");
 
-  const tasks = [...doc.getElementsByTagName("Task")]
+  const nodes = [...doc.getElementsByTagName("Task")]
     .map((t) => {
       const g = (n) => t.getElementsByTagName(n)[0]?.textContent;
       return {
@@ -28,10 +28,29 @@ export function parseMSPDI(xmlText) {
         finish: g("Finish"),
         pct: Number(g("PercentComplete") ?? 0),
         summary: g("Summary") === "1",
+        outline: Number(g("OutlineLevel") ?? 0),
         active: g("Active") !== "0",
       };
     })
-    .filter((t) => t.name && t.active && !t.summary);
+    .filter((t) => t.name && t.active);
+  const tasks = nodes.filter((t) => !t.summary);
+
+  // The progress mechanism: MS Project already carries % complete per task.
+  // Overall = duration-weighted average across activities; phases = the
+  // file's own top-level summary bars (Structure, Envelope, …), verbatim.
+  // The ring therefore moves exactly when the programme says it moved —
+  // refreshed on every import, never hand-tuned.
+  let W = 0;
+  let S = 0;
+  for (const t of tasks) {
+    const d = Math.max(1, (new Date(t.finish) - new Date(t.start)) / 86400000 || 1);
+    W += d;
+    S += d * (t.pct || 0);
+  }
+  const overall = W ? Math.round(S / W) : 0;
+  const phases = nodes
+    .filter((t) => t.summary && t.outline === 1)
+    .map((s) => ({ name: s.name, pct: Math.round(s.pct || 0) }));
 
   const milestones = tasks
     .filter((t) => t.milestone)
@@ -74,7 +93,7 @@ export function parseMSPDI(xmlText) {
     p: t.pct,
   }));
 
-  return { taskCount: tasks.length, milestones, weeks, snapshot };
+  return { taskCount: tasks.length, milestones, weeks, snapshot, overall, phases };
 }
 
 const day = 86400000;

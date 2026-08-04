@@ -156,6 +156,12 @@ function reducer(state, action) {
       );
       return { ...state, lookahead: { ...state.lookahead, weeks } };
     }
+    case "removeActivity": {
+      const weeks = state.lookahead.weeks.map((w, wi) =>
+        wi !== action.week ? w : { ...w, items: w.items.filter((_, ii) => ii !== action.item) },
+      );
+      return { ...state, lookahead: { ...state.lookahead, weeks } };
+    }
     case "choose":
       return {
         ...state,

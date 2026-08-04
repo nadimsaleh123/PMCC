@@ -90,7 +90,7 @@ export function Today() {
         <Row icon={Icon.money} title="Payments" meta="Record receipts against milestones" onClick={() => nav("/team/money")} />
         <Row icon={Icon.shield} title="Risks & notices" meta="Share, update, close" onClick={() => nav("/team/risks")} />
         <Row icon={Icon.compass} title="Variations" meta={!hasOwners ? "No owners yet" : offered ? `${offered} awaiting owner decision` : "All settled"} badge={offered} onClick={() => nav("/team/owners")} />
-        <Row icon={Icon.home} title="Owners & units" meta="Access, read receipts, invitations" onClick={() => nav("/team/owners")} />
+        <Row icon={Icon.home} title="Owners & access" meta="Accounts, read receipts" onClick={() => nav("/team/owners")} />
         <Row icon={Icon.doc} title="Project & programme" meta="Contract, milestones, MS Project / P6 import" onClick={() => nav("/team/project")} />
         <Row icon={Icon.diary} title="Site log" meta="Every report and action, permanently" onClick={() => nav("/team/log")} />
       </div>
@@ -413,7 +413,7 @@ export function PlanEditor() {
           </div>
           <ul className="mt-4 space-y-1">
             {w.items.map((it, ii) => (
-              <li key={`${it.t}-${ii}`}>
+              <li key={`${it.t}-${ii}`} className="flex items-start gap-1 border-t border-seam first:border-t-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -431,12 +431,33 @@ export function PlanEditor() {
                       },
                     });
                   }}
-                  className="flex w-full items-start gap-3 border-t border-seam py-2.5 text-left first:border-t-0"
+                  className="flex min-w-0 flex-1 items-start gap-3 py-2.5 text-left"
                 >
                   <StateDot s={it.s} />
                   <span className={`font-sans text-sm ${it.s === "done" ? "text-smoke line-through" : "text-bone/90"}`}>
                     {it.t}
                   </span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Remove ${it.t}`}
+                  onClick={() => {
+                    if (!confirm(`Remove "${it.t}" from the look-ahead?`)) return;
+                    dispatch({ type: "removeActivity", week: wi, item: ii });
+                    dispatch({
+                      type: "log",
+                      entry: {
+                        id: crypto.randomUUID(),
+                        at: "Just now",
+                        author: state.session?.name ?? "",
+                        kind: "action",
+                        body: `Look-ahead: "${it.t}" removed`,
+                      },
+                    });
+                  }}
+                  className="px-2 py-2.5 font-sans text-sm leading-none text-smoke/60 transition-colors active:text-pmcc"
+                >
+                  ✕
                 </button>
               </li>
             ))}
@@ -670,11 +691,12 @@ function InviteForm() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("owner");
-  const [unit, setUnit] = useState("");
   const [pw, setPw] = useState(suggestPassword());
   const [busy, setBusy] = useState(false);
   const [made, setMade] = useState(null); // {email, pw, name}
-  const units = state.team.owners.filter((o) => o.state !== "active");
+  // One building, one owner: the ownership record is implicit.
+  const theUnit = state.team.owners.find((o) => o.unitId) ?? null;
+  const ownerTaken = theUnit?.state === "active";
 
   if (made)
     return (
@@ -739,19 +761,10 @@ Tip: in Chrome tap ⋮ → Add to Home screen (iPhone: Share → Add to Home Scr
           </button>
         ))}
       </div>
-      {role === "owner" && (
-        <select
-          value={unit}
-          onChange={(e) => setUnit(e.target.value)}
-          className="mt-2 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
-        >
-          <option value="">Choose their residence…</option>
-          {units.map((u) => (
-            <option key={u.unit} value={u.unit}>
-              {u.unit}
-            </option>
-          ))}
-        </select>
+      {role === "owner" && ownerTaken && (
+        <p className="mt-2 font-sans text-xs text-pmcc">
+          This project already has its owner ({theUnit.name}).
+        </p>
       )}
       <label className="mt-2 block">
         <span className="font-sans text-[0.65rem] uppercase tracking-wideish text-smoke">Password</span>
@@ -769,7 +782,13 @@ Tip: in Chrome tap ⋮ → Add to Home screen (iPhone: Share → Add to Home Scr
       <div className="mt-4 flex gap-3">
         <Btn
           full
-          disabled={busy || !email.includes("@") || !name.trim() || pw.length < 8 || (role === "owner" && !unit)}
+          disabled={
+            busy ||
+            !email.includes("@") ||
+            !name.trim() ||
+            pw.length < 8 ||
+            (role === "owner" && (!theUnit || ownerTaken))
+          }
           onClick={async () => {
             if (!IS_LIVE) {
               alert("Demo mode — account creation works in the live app.");
@@ -777,13 +796,12 @@ Tip: in Chrome tap ⋮ → Add to Home screen (iPhone: Share → Add to Home Scr
             }
             setBusy(true);
             try {
-              const chosen = units.find((u) => u.unit === unit);
               const { error } = await sb.from("pre_approved").insert({
                 email: email.trim().toLowerCase(),
                 role,
                 full_name: name.trim(),
-                unit_name: role === "owner" ? unit : null,
-                unit_id: role === "owner" ? (chosen?.unitId ?? null) : null,
+                unit_name: role === "owner" ? theUnit.unit : null,
+                unit_id: role === "owner" ? theUnit.unitId : null,
               });
               if (error) throw error;
               await createAccount(email.trim().toLowerCase(), pw);
@@ -791,7 +809,6 @@ Tip: in Chrome tap ⋮ → Add to Home screen (iPhone: Share → Add to Home Scr
               setOpen(false);
               setEmail("");
               setName("");
-              setUnit("");
               setPw(suggestPassword());
             } catch (e) {
               alert(`Could not create the account: ${e.message ?? e}`);
@@ -814,7 +831,7 @@ export function OwnersDesk() {
   return (
     <Screen>
       <Back to="/team" label="Console" />
-      <TopBar eyebrow="Access, activity, read receipts" title="Owners & units" />
+      <TopBar eyebrow="Access, activity, read receipts" title="Owners & access" />
       <InviteForm />
       {state.team.owners.map((o) => (
         <Card key={o.unit} className="mb-3 p-5">
@@ -850,10 +867,11 @@ export function OwnersDesk() {
 /* ------------------------------------------------ Project & programme */
 export function ProjectDesk() {
   const { state, dispatch } = useStore();
-  const soldUnits = state.team.owners.filter((o) => o.unitId);
-  // The common case: one owner for the whole project — no selectors, the
-  // app just knows. Selectors appear only when a project truly has several.
-  const single = soldUnits.length === 1 ? soldUnits[0] : null;
+  // One building, one owner: every project has exactly one ownership record
+  // underneath, and the console never asks which.
+  const units = state.team.owners.filter((o) => o.unitId);
+  const single = units[0] ?? null;
+  const soldUnits = units;
   const projectId = state.project.id;
 
   // contract indexing
@@ -883,12 +901,20 @@ export function ProjectDesk() {
         body: { unit_id: unitId, text },
       });
       if (error) throw error;
-      setCDone(data.clauses);
+      setCDone(data);
       setCText("");
       dispatch({
         type: "log",
-        entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "note", body: "Contract indexed into the chat brain." },
+        entry: {
+          id: crypto.randomUUID(),
+          at: "Just now",
+          author: state.session?.name ?? "",
+          kind: "note",
+          body: `Contract indexed into the chat brain${data.paymentsCount ? ` — ${data.paymentsCount} installments captured to the payment schedule` : ""}.`,
+        },
       });
+      // Pull the freshly extracted payment schedule into the console.
+      if (data.paymentsCount) dispatch({ type: "boot", slices: await loadTeam(projectId) });
     } catch (e) {
       alert(`Indexing failed: ${e.message ?? e}`);
     }
@@ -964,6 +990,8 @@ export function ProjectDesk() {
           .from("projects")
           .update({
             milestones: parsed.milestones,
+            overall: parsed.overall,
+            phases: parsed.phases.length ? parsed.phases : state.project.phases,
             programme: { importedAt: new Date().toISOString(), tasks: parsed.snapshot },
           })
           .eq("id", projectId);
@@ -983,7 +1011,7 @@ export function ProjectDesk() {
           at: "Just now",
           author: state.session?.name ?? "",
           kind: "note",
-          body: `Programme re-imported: ${parsed.taskCount} activities, ${parsed.milestones.length} milestones.${
+          body: `Programme re-imported: ${parsed.taskCount} activities, ${parsed.milestones.length} milestones, overall ${state.project.overall}% → ${parsed.overall}%.${
             parsed.changes?.length ? ` Milestones moved — ${parsed.changes.join("; ")}.` : " No milestone dates moved."
           }${
             parsed.diff
@@ -1056,6 +1084,13 @@ export function ProjectDesk() {
             <p className="font-sans text-xs leading-relaxed text-bone/85">
               Parsed: {parsed.taskCount} activities · {parsed.milestones.length} milestones ·
               look-ahead {parsed.weeks.map((w) => w.items.length).join(" / ")} items over three weeks.
+            </p>
+            <p className="mt-1 font-sans text-xs text-bone/85">
+              Overall progress:{" "}
+              <span className={parsed.overall !== state.project.overall ? "text-[#D9A441]" : "text-[#55996A]"}>
+                {state.project.overall}% → {parsed.overall}%
+              </span>
+              {parsed.phases.length > 0 && ` · ${parsed.phases.length} phases from the file`}
             </p>
             {parsed.changes?.length > 0 && (
               <div className="mt-2">
@@ -1136,23 +1171,10 @@ export function ProjectDesk() {
           Paste the contract text for a residence; the AI extracts the clauses that owners ask
           about, and their "Ask PMCC" quotes the document — never memory.
         </p>
-        {single ? (
+        {single && (
           <p className="mt-3 font-sans text-xs text-stone">
-            For {single.name} — {single.unit}
+            {single.state === "active" ? `For ${single.name}` : "For this project's owner"}
           </p>
-        ) : (
-          <select
-            value={cUnit}
-            onChange={(e) => setCUnit(e.target.value)}
-            className="mt-3 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
-          >
-            <option value="">Choose the residence…</option>
-            {soldUnits.map((u) => (
-              <option key={u.unitId} value={u.unitId}>
-                {u.unit} — {u.name}
-              </option>
-            ))}
-          </select>
         )}
         <label className="mt-2 block cursor-pointer border border-dashed border-seam p-5 text-center transition-colors active:border-stone">
           <input type="file" accept=".pdf" className="hidden" onChange={onContractPdf} />
@@ -1176,8 +1198,11 @@ export function ProjectDesk() {
         </details>
         {cDone && (
           <p className="mt-3 border-l-2 border-stone pl-3 font-sans text-xs leading-relaxed text-bone/85">
-            Indexed. Delivery clause reads: “{cDone.deliveryClause}” — the owner's chatbot now
-            quotes this document.
+            Indexed. Delivery clause reads: “{cDone.clauses?.deliveryClause}” — the owner's chatbot
+            now quotes this document.
+            {cDone.paymentsCount
+              ? ` ${cDone.paymentsCount} installments were captured from the contract into the Money tab (view-only, exactly as written).`
+              : " No payment schedule was found in the text — the Money tab is untouched."}
           </p>
         )}
       </Card>
