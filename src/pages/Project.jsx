@@ -270,43 +270,32 @@ function LocationSpread() {
 
   return (
     <section ref={root} className="border-t border-seam bg-ink px-5 py-28 sm:px-8">
-      <div className="mx-auto max-w-7xl">
-        <p className="type-eyebrow text-smoke">From the project book</p>
+      <div className="mx-auto max-w-6xl">
+        <p className="type-eyebrow text-smoke">The location</p>
         <Lines className="type-display mt-6 max-w-3xl text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
-          The gated <em className="type-display-it text-stone">community.</em>
+          In the green hills <em className="type-display-it text-stone">above Beirut.</em>
         </Lines>
-        <div className="mt-12 grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-12">
-          <div>
-            <Fade>
-              <p className="max-w-xl font-sans text-sm leading-relaxed text-smoke">{book563.community.body}</p>
-            </Fade>
-            <Fade className="mt-10">
-              <h3 className="type-display text-2xl text-bone">The location</h3>
-            </Fade>
-            {book563.location.map((p) => (
-              <Fade key={p.slice(0, 24)} className="mt-4">
-                <p className="max-w-xl font-sans text-sm leading-relaxed text-smoke">{p}</p>
-              </Fade>
-            ))}
-          </div>
-          {/* Country → area → site, exactly as the book zooms in. */}
-          <div className="grid items-center gap-10 sm:grid-cols-[minmax(0,0.72fr)_minmax(0,1.1fr)_minmax(0,1.1fr)] sm:gap-6">
-            <img
-              data-lebanon
-              src="/im/dsw-lebanon.webp"
-              alt="Lebanon, with the project location marked in the hills above Beirut at Dahr el Sawan"
-              loading="lazy"
-              className="mx-auto w-44 sm:w-full sm:max-w-[230px]"
-            />
-            {book563.maps.map((m) => (
-              <figure key={m.src} data-map>
-                <div className="border border-seam bg-coal p-2">
-                  <img src={m.src} alt={m.alt} loading="lazy" className="w-full" />
-                </div>
-                <figcaption className="mt-2.5 font-sans text-xs leading-relaxed text-smoke">{m.caption}</figcaption>
-              </figure>
-            ))}
-          </div>
+        <Fade className="mt-6">
+          <p className="max-w-2xl font-sans text-sm leading-relaxed text-smoke">{book563.locationBlurb}</p>
+        </Fade>
+        {/* The country and the area, side by side: Lebanon's sight-lines
+            point straight into the satellite map beside it. */}
+        <div className="mx-auto mt-16 grid max-w-4xl items-center gap-10 sm:grid-cols-[minmax(0,0.62fr)_minmax(0,1.38fr)] sm:gap-3">
+          <img
+            data-lebanon
+            src="/im/dsw-lebanon.webp"
+            alt="Lebanon, with the project location marked in the hills above Beirut at Dahr el Sawan"
+            loading="lazy"
+            className="mx-auto w-48 sm:w-full sm:max-w-[260px]"
+          />
+          <figure data-map>
+            <div className="border border-seam bg-coal p-2">
+              <img src={book563.map.src} alt={book563.map.alt} loading="lazy" className="w-full" />
+            </div>
+            <figcaption className="mt-2.5 font-sans text-xs leading-relaxed text-smoke">
+              {book563.map.caption}
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>

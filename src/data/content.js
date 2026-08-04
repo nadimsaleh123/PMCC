@@ -315,17 +315,9 @@ export const book563 = {
     w: 1420,
     h: 1243,
   },
-  community: {
-    body: "The Dahr el Sawan Residence 563 is a gated community situated in the green hills of Dahr el Sawan. It is protected by a state of the art security system, complemented by a 24/7 guard post. It flourishes at an altitude of 900 m above sea level, with a magnificent view overlooking a wide range of mountains. Even with its close proximity to the capital, residents enjoy the fresh air of a peaceful and relaxing environment.",
-  },
-  location: [
-    "Ideally located at a 15-minute drive from Beirut. With the moderate temperature during winter, more and more people are acquiring homes in the area as a permanent residence, away from the pollution of the congested city centers.",
-    "The privacy and greenery of this location, combined with high-end building standards, make it a prime long-lasting real estate project. Access from Beirut is convenient: the new Metn Highway, the mountain roads, and the road via Zaarour.",
-  ],
-  maps: [
-    { src: "/im/dsw-map-region.webp", alt: "Satellite map of the area: the project location above the Metn Highway exit, between Baabdat and Dahr el Sawan", caption: "Exit Metn Highway · Chalimar roundabout · Dahr el Sawan" },
-    { src: "/im/dsw-map-site.webp", alt: "Satellite view of the site along the private road", caption: "The site from above" },
-  ],
+  locationBlurb:
+    "Dahr el Sawan sits in the green hills above Beirut, a fifteen-minute drive from the city. The community is gated, with a 24/7 guard post, at 900 m above sea level. Fresh air, mountain views, and the Metn Highway minutes away.",
+  map: { src: "/im/dsw-map-region.webp", alt: "Satellite map of the area: the project location above the Metn Highway exit, between Baabdat and Dahr el Sawan", caption: "Exit Metn Highway · Chalimar roundabout · Dahr el Sawan" },
   closeUp: [
     { src: "/im/dsw-entry-1760.webp", small: "/im/dsw-entry-1000.webp", alt: "The entrance: the stone gate, driveway and planted forecourt" },
     { src: "/im/dsw-aerial-1930.webp", small: "/im/dsw-aerial-1000.webp", alt: "The building from above: the terracotta roof against the wooded hillside" },
