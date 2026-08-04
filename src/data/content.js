@@ -87,7 +87,7 @@ export const booklet = [
       { name: "Microsoft Offices, Berytus", meta: "Beirut Central District · 2012", img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" } },
       { name: "Arab Investment Bank", meta: "Beirut Central District · 2015", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
       { name: "The MEDCO network", meta: "Six stations across Lebanon · 2003 – 2016", img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" } },
-      { name: "Marina Gate Tower", meta: "Jounieh · office tower · completed", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Building elevation in evening light" } },
+      { name: "Marina Gate Tower", meta: "Jounieh · office tower", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Building elevation in evening light" } },
     ],
   },
   {
@@ -135,7 +135,8 @@ export const achievements = [
   { title: "Banks and brands", text: "Arab Investment Bank, McDonald's and commercial centres. Clients who check everything." },
   { title: "Villas", text: "Private houses built for families in Faqra, Kfardebian, Fatka, Yarze and Baabdath." },
   { title: "Restoration", text: "The WWII Museum at Khiam, and heritage mountain houses brought back to life." },
-  { title: "Building today", text: "On site at Naccache and Bcharreh. Marina Gate Tower in Jounieh has just been completed." },
+  { title: "Towers and buildings", text: "Tiresmart, Zalka 208 and Marina Gate Tower in Jounieh." },
+  { title: "Building today", text: "On site at Naccache and Bcharreh." },
 ];
 
 /** ——— Daher el Souane 563 ——— */
