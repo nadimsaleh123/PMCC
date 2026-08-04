@@ -280,13 +280,13 @@ function LocationSpread() {
         </Fade>
         {/* The country and the area, side by side: Lebanon's sight-lines
             point straight into the satellite map beside it. */}
-        <div className="mx-auto mt-16 grid max-w-4xl items-center gap-10 sm:grid-cols-[minmax(0,0.62fr)_minmax(0,1.38fr)] sm:gap-3">
+        <div className="mx-auto mt-16 grid max-w-4xl grid-cols-[minmax(0,0.6fr)_minmax(0,1.4fr)] items-center gap-2 sm:gap-4">
           <img
             data-lebanon
             src="/im/dsw-lebanon.webp"
             alt="Lebanon, with the project location marked in the hills above Beirut at Dahr el Sawan"
             loading="lazy"
-            className="mx-auto w-48 sm:w-full sm:max-w-[260px]"
+            className="w-full max-w-[260px] justify-self-end"
           />
           <figure data-map>
             <div className="border border-seam bg-coal p-2">
