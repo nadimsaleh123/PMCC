@@ -73,7 +73,6 @@ function Introduction() {
 
   const stack = [...project.floors].reverse();
   const widths = ["sm:w-[70%]", "sm:w-[84%]", "sm:w-[94%]", "sm:w-full"];
-  const area = (f) => f.specs.find(([k]) => k === "Area")?.[1];
 
   return (
     <section ref={root} className="bg-ink py-24 sm:py-28">
@@ -125,7 +124,6 @@ function Introduction() {
                   {f.level}
                 </span>
                 <span className="type-display truncate text-lg text-bone sm:text-xl">{f.name}</span>
-                <span className="ml-auto shrink-0 font-sans text-xs tabular-nums text-smoke">{area(f)}</span>
               </div>
             </Fade>
           ))}
