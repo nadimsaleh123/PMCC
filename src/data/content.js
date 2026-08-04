@@ -136,7 +136,7 @@ export const booklet = [
  * actually produced. Concise, real, and in the company's own order.
  */
 export const achievements = [
-  { title: "Microsoft, twice", text: "We built their regional offices in Beirut Central District, then their Berytus offices ten years later." },
+  { title: "Microsoft", text: "We built their corporate offices in Beirut Central District." },
   { title: "The MEDCO network", text: "Six service stations along the coast, built for the same client over thirteen years." },
   { title: "Banks and brands", text: "Arab Investment Bank, McDonald's and commercial centres. Clients who check everything." },
   { title: "Two generations of villas", text: "Private houses in Faqra, Kfardebian, Fatka, Yarze and Baabdath. Some built new, some restored." },
