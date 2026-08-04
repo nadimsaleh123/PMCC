@@ -47,11 +47,11 @@ function ProjectHero() {
 }
 
 /**
- * From the project book: the introducing render, cropped to the near
- * building and its greenery. The plate drifts and settles as you scroll
- * past it — a page from the book, not a static image.
+ * Introduction: the book's opening plate edge to edge, a short summary in
+ * place of the long narrative, then the four residences stacked like the
+ * building itself — roof at the top, garden at the bottom.
  */
-function BookIntro() {
+function Introduction() {
   const root = useRef(null);
 
   useLayoutEffect(() => {
@@ -59,40 +59,77 @@ function BookIntro() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         "[data-intro-img]",
-        { scale: 1.16, yPercent: 5 },
+        { scale: 1.14, yPercent: 4 },
         {
           scale: 1,
           yPercent: -3,
           ease: "none",
-          scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1 },
+          scrollTrigger: { trigger: "[data-intro-frame]", start: "top bottom", end: "bottom top", scrub: 1 },
         },
       );
     }, root.current);
     return () => ctx.revert();
   }, []);
 
+  const stack = [...project.floors].reverse();
+  const widths = ["sm:w-[70%]", "sm:w-[84%]", "sm:w-[94%]", "sm:w-full"];
+  const area = (f) => f.specs.find(([k]) => k === "Area")?.[1];
+
   return (
-    <section ref={root} className="bg-ink px-5 py-24 sm:px-8 sm:py-28">
-      <div className="mx-auto max-w-6xl">
-        <p className="type-eyebrow text-smoke">Introducing</p>
+    <section ref={root} className="bg-ink py-24 sm:py-28">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <p className="type-eyebrow text-smoke">Introduction</p>
         <Lines className="type-display mt-6 max-w-4xl text-[clamp(2.2rem,5.4vw,4.4rem)] text-bone">
           Dahr el Sawan <em className="type-display-it text-stone">private residences.</em>
         </Lines>
-        <Fade className="mt-12">
-          <div className="overflow-clip">
-            <img
-              data-intro-img
-              src={book563.intro.src}
-              srcSet={`${book563.intro.small} 1000w, ${book563.intro.src} 1420w`}
-              sizes="(min-width: 1024px) 72rem, 100vw"
-              alt={book563.intro.alt}
-              width={book563.intro.w}
-              height={book563.intro.h}
-              loading="lazy"
-              className="w-full will-change-transform"
-            />
-          </div>
+      </div>
+
+      {/* The plate, edge to edge — no margins. */}
+      <div data-intro-frame className="mt-12 overflow-clip">
+        <img
+          data-intro-img
+          src={book563.intro.src}
+          srcSet={`${book563.intro.small} 1000w, ${book563.intro.src} 1420w`}
+          sizes="100vw"
+          alt={book563.intro.alt}
+          width={book563.intro.w}
+          height={book563.intro.h}
+          loading="lazy"
+          className="h-[58svh] w-full object-cover will-change-transform sm:h-[78svh]"
+        />
+      </div>
+
+      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <Fade className="mt-14">
+          <p className="max-w-2xl font-sans text-base leading-relaxed text-bone/85">
+            A gated development on the green ridge above the coast, twenty minutes from
+            Beirut and a world away from it. One boutique building, four full-floor
+            residences, gardens terraced into the hillside, and an elevator to every level.
+          </p>
+          <p className="mt-4 font-sans text-xs uppercase tracking-wideish text-smoke">
+            Architecture · {project.architect}
+          </p>
         </Fade>
+
+        {/* What is for sale, drawn as the building: one residence per floor. */}
+        <Fade className="mt-20">
+          <h3 className="type-display text-center text-2xl text-bone sm:text-3xl">
+            Four residences, <em className="type-display-it text-stone">one per floor.</em>
+          </h3>
+        </Fade>
+        <div className="mx-auto mt-10 max-w-3xl">
+          {stack.map((f, i) => (
+            <Fade key={f.id} className={`mx-auto w-full ${widths[i]} ${i ? "-mt-px" : ""}`}>
+              <div className="flex items-baseline gap-4 border border-seam bg-coal px-5 py-4 transition-colors duration-300 hover:border-stone sm:gap-6 sm:px-7 sm:py-5">
+                <span className="shrink-0 font-sans text-[0.6rem] uppercase tracking-wideish text-stone">
+                  {f.level}
+                </span>
+                <span className="type-display truncate text-lg text-bone sm:text-xl">{f.name}</span>
+                <span className="ml-auto shrink-0 font-sans text-xs tabular-nums text-smoke">{area(f)}</span>
+              </div>
+            </Fade>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -248,11 +285,11 @@ function GatedCommunity() {
 }
 
 /**
- * Block D, from the project book: the entrance and the roofscape as a
- * diptych. The two plates drift at different speeds — the depth of a
- * page you are walking past, not a flat scan.
+ * From the project book: the entrance and the roofscape as a diptych.
+ * The two plates drift at different speeds — the depth of a page you are
+ * walking past, not a flat scan.
  */
-function BlockD() {
+function ResidenceCloseUp() {
   const root = useRef(null);
 
   useLayoutEffect(() => {
@@ -278,10 +315,10 @@ function BlockD() {
       <div className="mx-auto max-w-6xl">
         <p className="type-eyebrow text-smoke">From the project book</p>
         <h2 className="type-display mt-6 text-3xl text-bone sm:text-4xl">
-          Block D, <em className="type-display-it text-stone">drawn close.</em>
+          The residence, <em className="type-display-it text-stone">drawn close.</em>
         </h2>
         <div className="mt-12 grid gap-6 sm:grid-cols-2">
-          {book563.blockD.map((im, i) => (
+          {book563.closeUp.map((im, i) => (
             <div key={im.src} className="aspect-[4/3] overflow-clip">
               <img
                 data-bd={i}
@@ -295,48 +332,6 @@ function BlockD() {
             </div>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-function Narrative() {
-  return (
-    <section className="bg-bone px-5 py-28 text-ink sm:px-8 sm:py-36">
-      <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
-          <p className="type-eyebrow text-ink/65">The place</p>
-          <Lines className="type-display mt-8 text-[clamp(1.9rem,4vw,3.4rem)]">
-            A village above the coast,
-            <br />
-            <em className="type-display-it">a building that steps with the hill.</em>
-          </Lines>
-          <div className="mt-10 max-w-xl space-y-6">
-            {project.narrative.map((p) => (
-              <Fade key={p.slice(0, 24)}>
-                <p className="font-sans text-sm leading-relaxed text-ink/75">{p}</p>
-              </Fade>
-            ))}
-          </div>
-          <Fade className="mt-10">
-            <p className="font-sans text-xs uppercase tracking-wideish text-ink/65">
-              Architecture · {project.architect}
-            </p>
-          </Fade>
-        </div>
-        <Fade className="self-start lg:sticky lg:top-24">
-          <div className="border border-ink/10 p-3">
-            <img
-              src="/im/plan-site.webp"
-              alt="Site plan, the building within its terraced landscape, 1:200"
-              width={2200}
-              height={1420}
-              loading="lazy"
-              className="w-full"
-            />
-            <p className="mt-3 font-sans text-xs text-ink/65">Site plan · 1:200</p>
-          </div>
-        </Fade>
       </div>
     </section>
   );
@@ -629,14 +624,13 @@ export default function Project() {
   return (
     <>
       <ProjectHero />
-      <BookIntro />
-      <Narrative />
+      <Introduction />
       <TheView />
       <BeforeAfter />
       <FloorStack />
       <Gallery />
       <AerialModel />
-      <BlockD />
+      <ResidenceCloseUp />
       <TheStandard />
       <GatedCommunity />
       <Location />

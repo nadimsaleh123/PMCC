@@ -305,7 +305,7 @@ export const project = {
  * From the developer's own project book (Dahr el Sawan, Private Residences):
  * the introducing render (cropped to the near building and its greenery),
  * the gated-community and location pages with their maps, the full general
- * specification, and the Block D renders. Text kept as printed, typos aside.
+ * specification, and the close-up renders. Text kept as printed, typos aside.
  */
 export const book563 = {
   intro: {
@@ -324,11 +324,11 @@ export const book563 = {
   ],
   maps: [
     { src: "/im/dsw-map-region.webp", alt: "Satellite map of the area: the project location above the Metn Highway exit, between Baabdat and Dahr el Sawan", caption: "Exit Metn Highway · Chalimar roundabout · Dahr el Sawan" },
-    { src: "/im/dsw-map-site.webp", alt: "Satellite view of the site with the blocks marked along the private road", caption: "The site from above" },
+    { src: "/im/dsw-map-site.webp", alt: "Satellite view of the site along the private road", caption: "The site from above" },
   ],
-  blockD: [
-    { src: "/im/dsw-blockd-entry-1760.webp", small: "/im/dsw-blockd-entry-1000.webp", alt: "Block D entrance render: the stone gate, driveway and planted forecourt" },
-    { src: "/im/dsw-blockd-aerial-1930.webp", small: "/im/dsw-blockd-aerial-1000.webp", alt: "Block D from above: the terracotta roof against the wooded hillside" },
+  closeUp: [
+    { src: "/im/dsw-entry-1760.webp", small: "/im/dsw-entry-1000.webp", alt: "The entrance: the stone gate, driveway and planted forecourt" },
+    { src: "/im/dsw-aerial-1930.webp", small: "/im/dsw-aerial-1000.webp", alt: "The building from above: the terracotta roof against the wooded hillside" },
   ],
   specs: [
     { title: "Envelope finishes", items: [
@@ -374,7 +374,7 @@ export const book563 = {
       "Grohe mixers or similar",
     ] },
     { title: "General facilities", items: [
-      "Security system across the project, with controlled access to all blocks",
+      "Security system with controlled access across the whole project",
       "Guard booth with controlled gate",
       "Covered parking with each residence, plus visitor parking",
       "External hard and soft landscaping",
