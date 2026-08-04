@@ -382,26 +382,6 @@ function LocationSpread() {
   );
 }
 
-/** The three-step journey from deposit to keys — the "how does buying work" answer. */
-function PaymentPath() {
-  const steps = [
-    { n: "01", title: "Reserve", body: "Choose your floor and place a deposit. The residence is yours, off the market." },
-    { n: "02", title: "Follow the build", body: "We build, and you watch it rise. One company does it all, start to finish." },
-    { n: "03", title: "Move in", body: "Settle the balance on completion. Keys in hand, summer 2027." },
-  ];
-  return (
-    <div className="mx-auto mt-12 grid max-w-4xl gap-px border border-ink/15 bg-ink/15 sm:grid-cols-3">
-      {steps.map((s) => (
-        <div key={s.n} className="bg-bone px-7 py-8 text-left">
-          <p className="font-sans text-xs text-pmcc">{s.n}</p>
-          <p className="type-display mt-2 text-2xl text-ink">{s.title}</p>
-          <p className="mt-3 font-sans text-xs leading-relaxed text-ink/65">{s.body}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Faq() {
   const items = [
     {
@@ -478,9 +458,6 @@ function Availability() {
           <p className="font-sans text-sm leading-relaxed text-ink/70">
             {summary} Fully permitted. {project.onRequest}
           </p>
-        </Fade>
-        <Fade>
-          <PaymentPath />
         </Fade>
         <Fade className="mt-12">
           <LeadForm tone="light" source="project" showWhatsApp={false} />
