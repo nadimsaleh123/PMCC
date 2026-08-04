@@ -94,8 +94,9 @@ export const booklet = [
       meta: "Across Lebanon · 2003 – 2016",
       img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" },
     },
-    grid: [],
-    note: "Six service stations across Lebanon, built for the same client over thirteen years.",
+    grid: [
+      { name: "MEDCO station", img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" } },
+    ],
   },
   {
     title: "Banks and brands",
@@ -104,8 +105,9 @@ export const booklet = [
       meta: "Beirut Central District · 2015",
       img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" },
     },
-    grid: [],
-    note: "McDonald's and commercial centres complete the record. Clients who check everything.",
+    grid: [
+      { name: "Arab Investment Bank", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Building elevation in evening light" } },
+    ],
   },
   {
     title: "Villas",
@@ -136,8 +138,9 @@ export const booklet = [
       meta: "Jounieh · office tower",
       img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Building elevation in evening light" },
     },
-    grid: [],
-    note: "Tiresmart, Zalka 208 and Marina Gate Tower in Jounieh.",
+    grid: [
+      { name: "Marina Gate Tower", img: { src: "/im/site-finished-1280.webp", src2x: "/im/site-finished-1280.webp", alt: "Completed building from above" } },
+    ],
   },
   {
     title: "Building today",

@@ -23,7 +23,6 @@
  * Reduced-motion swaps instantly in both formats.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { gsap, reducedMotion } from "../../lib/motion";
 import { Fade, Lines } from "../reveal";
 import { booklet } from "../../data/content";
@@ -67,8 +66,8 @@ function Plate({ img, eager = false, className = "" }) {
 
 /* ---------------------------------------------------------------- desktop */
 
-/** The left page: the chapter opener. Its headline is the first thing a
- *  turned page shows, exactly as a monograph opens a new chapter. */
+/** The left page: the chapter opener — the headline, then the plate.
+ *  No sentences; the photographs carry the book. */
 function LeftPage({ spread, index, eager = false, plain = false }) {
   const f = spread.feature;
   return (
@@ -77,61 +76,28 @@ function LeftPage({ spread, index, eager = false, plain = false }) {
         <p className="font-sans text-[0.55rem] font-bold uppercase tracking-[0.3em] text-pmcc">Chapter {pad(index)}</p>
         <h3 className="type-display mt-1 text-[clamp(1.2rem,1.8vw,1.8rem)] leading-tight text-ink">{spread.title}</h3>
       </div>
-      <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-5">
-        <div className="flex min-w-0 flex-col justify-center">
-          <p className="type-display text-[clamp(1rem,1.4vw,1.4rem)] leading-tight text-ink">{f.name}</p>
-          <p className="mt-2 font-sans text-[0.68rem] text-ink/55">{f.meta}</p>
-          <span aria-hidden className="mt-4 block h-px w-14 bg-ink/25" />
-          {f.link ? (
-            <Link
-              to={f.link}
-              data-cursor="view"
-              className="group mt-4 inline-flex items-center gap-2 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/70 transition-colors hover:text-pmcc"
-            >
-              View project
-              <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-            </Link>
-          ) : null}
-        </div>
-        <div className="min-h-0 overflow-hidden">
-          <Plate img={f.img} eager={eager} />
-        </div>
+      <div className="mt-4 min-h-0 flex-1 overflow-hidden">
+        <Plate img={f.img} eager={eager} />
       </div>
       {plain ? null : <PaperGrain />}
     </div>
   );
 }
 
-/** The right page: the chapter's plates — or, for chapters that live as a
- *  line in the record rather than photographs, a typeset note page. */
+/** The right page: plates only, edge to edge within the margins. */
 function RightPage({ spread, eager = false, plain = false }) {
   return (
-    <div className="relative h-full bg-bone p-10">
+    <div className="relative flex h-full flex-col bg-bone p-10">
       <p className="pointer-events-none absolute right-8 top-4 font-sans text-[0.55rem] uppercase tracking-[0.25em] text-ink/35">
         {spread.title}
       </p>
-      {spread.grid.length ? (
-        <div className="grid h-full grid-cols-2 gap-x-5 gap-y-4 pt-3">
-          {spread.grid.map((item) => (
-            <figure key={item.name} className="flex min-h-0 flex-col">
-              <div className="min-h-0 flex-1 overflow-hidden">
-                <Plate img={item.img} eager={eager} />
-              </div>
-              <figcaption className="mt-2 shrink-0">
-                <p className="type-display text-[0.95rem] leading-tight text-ink">{item.name}</p>
-                <p className="mt-0.5 font-sans text-[0.62rem] text-ink/50">{item.meta}</p>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      ) : (
-        <div className="flex h-full flex-col justify-center">
-          <span aria-hidden className="block h-px w-16 bg-pmcc" />
-          <p className="type-display mt-6 max-w-md text-[clamp(1.1rem,1.7vw,1.7rem)] leading-snug text-ink">
-            {spread.note}
-          </p>
-        </div>
-      )}
+      <div className={`min-h-0 flex-1 pt-4 ${spread.grid.length > 1 ? "grid grid-cols-2 gap-5" : ""}`}>
+        {spread.grid.map((item) => (
+          <div key={item.name} className="h-full min-h-0 overflow-hidden">
+            <Plate img={item.img} eager={eager} />
+          </div>
+        ))}
+      </div>
       {plain ? null : <PaperGrain />}
     </div>
   );
@@ -171,50 +137,26 @@ function MobilePage({ index, plain = false }) {
   return (
     <div className="relative h-full bg-bone">
       {isFeature ? (
-        <div className="grid h-full grid-rows-[auto_auto_minmax(0,1fr)] gap-4 p-6 pb-9">
+        <div className="grid h-full grid-rows-[auto_minmax(0,1fr)] gap-4 p-6 pb-9">
           <div className="border-b border-ink/15 pb-3">
             <p className="font-sans text-[0.55rem] font-bold uppercase tracking-[0.3em] text-pmcc">Chapter {pad(ci)}</p>
             <h3 className="type-display mt-1 text-2xl leading-tight text-ink">{spread.title}</h3>
-          </div>
-          <div>
-            <p className="type-display text-lg leading-tight text-ink">{f.name}</p>
-            <p className="mt-1 font-sans text-[0.7rem] text-ink/55">{f.meta}</p>
-            {f.link ? (
-              <Link
-                to={f.link}
-                className="group mt-3 inline-flex items-center gap-2 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/70"
-              >
-                View project
-                <span aria-hidden>→</span>
-              </Link>
-            ) : null}
           </div>
           <div className="min-h-0 overflow-hidden">
             <Plate img={f.img} eager />
           </div>
         </div>
-      ) : spread.grid.length ? (
+      ) : (
         <div
           className={`grid h-full gap-x-4 gap-y-3 p-6 pb-9 ${
             spread.grid.length > 1 ? "grid-cols-2 grid-rows-2" : "grid-cols-1"
           }`}
         >
           {spread.grid.map((item) => (
-            <figure key={item.name} className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto]">
-              <div className="min-h-0 overflow-hidden">
-                <Plate img={item.img} eager />
-              </div>
-              <figcaption className="mt-1.5">
-                <p className="type-display text-[0.85rem] leading-tight text-ink">{item.name}</p>
-                <p className="mt-0.5 font-sans text-[0.62rem] text-ink/50">{item.meta}</p>
-              </figcaption>
-            </figure>
+            <div key={item.name} className="min-h-0 overflow-hidden">
+              <Plate img={item.img} eager />
+            </div>
           ))}
-        </div>
-      ) : (
-        <div className="flex h-full flex-col justify-center p-8 pb-12">
-          <span aria-hidden className="block h-px w-14 bg-pmcc" />
-          <p className="type-display mt-5 text-xl leading-snug text-ink">{spread.note}</p>
         </div>
       )}
 
