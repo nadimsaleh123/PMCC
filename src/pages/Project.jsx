@@ -73,6 +73,7 @@ function Introduction() {
 
   const stack = [...project.floors].reverse();
   const widths = ["sm:w-[70%]", "sm:w-[84%]", "sm:w-[94%]", "sm:w-full"];
+  const spec = (f, key) => f.specs.find(([k]) => k === key)?.[1] ?? "—";
 
   return (
     <section ref={root} className="bg-ink py-24 sm:py-28">
@@ -119,11 +120,18 @@ function Introduction() {
         <div className="mx-auto mt-10 max-w-3xl">
           {stack.map((f, i) => (
             <Fade key={f.id} className={`mx-auto w-full ${widths[i]} ${i ? "-mt-px" : ""}`}>
-              <div className="flex items-baseline gap-4 border border-seam bg-coal px-5 py-4 transition-colors duration-300 hover:border-stone sm:gap-6 sm:px-7 sm:py-5">
-                <span className="shrink-0 font-sans text-[0.6rem] uppercase tracking-wideish text-stone">
-                  {f.level}
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border border-seam bg-coal px-5 py-4 transition-colors duration-300 hover:border-stone sm:gap-x-6 sm:px-7 sm:py-5">
+                <span className="type-display text-lg text-bone sm:text-xl">{f.level}</span>
+                <span className="ml-auto flex shrink-0 items-baseline gap-5 font-sans text-xs tabular-nums sm:gap-7">
+                  <span>
+                    <span className="mr-1.5 text-[0.6rem] uppercase tracking-wideish text-stone">Indoor</span>
+                    <span className="text-bone/90">{spec(f, "Area")}</span>
+                  </span>
+                  <span>
+                    <span className="mr-1.5 text-[0.6rem] uppercase tracking-wideish text-stone">Garden</span>
+                    <span className="text-bone/90">{spec(f, "Garden")}</span>
+                  </span>
                 </span>
-                <span className="type-display truncate text-lg text-bone sm:text-xl">{f.name}</span>
               </div>
             </Fade>
           ))}
