@@ -87,10 +87,11 @@ export const booklet = [
       { name: "Microsoft Offices, Berytus", meta: "Beirut Central District · 2012", img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" } },
       { name: "Arab Investment Bank", meta: "Beirut Central District · 2015", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
       { name: "The MEDCO network", meta: "Six stations, BCD to Damour · 2003 – 2016", img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" } },
+      { name: "Marina Gate Tower", meta: "Jounieh · office tower · completed", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Building elevation in evening light" } },
     ],
   },
   {
-    title: "Villas & restoration",
+    title: "Villas",
     feature: {
       name: "Villa Zreik",
       meta: "Faqra · 2008",
@@ -98,35 +99,28 @@ export const booklet = [
     },
     grid: [
       { name: "Villa Fakhoury", meta: "Kfardebian · 2016", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Garden elevation in evening light" } },
-      { name: "WWII Museum", meta: "Khiam · restoration · 2005", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
+    ],
+  },
+  {
+    title: "Restoration",
+    feature: {
+      name: "WWII Museum",
+      meta: "Khiam · restoration · 2005",
+      img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" },
+    },
+    grid: [
       { name: "Villa Tyan", meta: "Baabdath · restoration · 2011", img: { src: "/im/site-finished-1280.webp", src2x: "/im/site-finished-1280.webp", alt: "Completed house from above" } },
     ],
   },
   {
     title: "On site now",
     feature: {
-      name: "Marina Gate Tower",
-      meta: "Jounieh · office tower",
+      name: "Naccache 401–413",
+      meta: "Naccache · residential · 2027",
       img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" },
     },
     grid: [
-      { name: "Naccache 401–413", meta: "Naccache · residential · 2027", img: { src: "/im/elevation-front-1280.webp", src2x: "/im/elevation-front-2560.webp", alt: "Front elevation at dusk" } },
-      { name: "Bcharreh Heritage Houses", meta: "Bcharreh · restoration · 2026", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Garden elevation in evening light" } },
-    ],
-  },
-  {
-    title: "Daher el Souane 563",
-    feature: {
-      name: "Daher el Souane 563",
-      meta: "Our own development · now selling",
-      img: { src: "/im/hero-three-quarter-1280.webp", src2x: "/im/hero-three-quarter-2560.webp", alt: "Daher el Souane 563, three-quarter view" },
-      link: "/daher-el-souane-563",
-    },
-    grid: [
-      { name: "South elevation", meta: "Daher el Souane 563", img: { src: "/im/elevation-front-1280.webp", src2x: "/im/elevation-front-2560.webp", alt: "South elevation at dusk" } },
-      { name: "North elevation", meta: "Daher el Souane 563", img: { src: "/im/elevation-rear-1280.webp", src2x: "/im/elevation-rear-2560.webp", alt: "North elevation" } },
-      { name: "Massing study", meta: "Daher el Souane 563", img: { src: "/im/aerial-model-b.webp", src2x: "/im/aerial-model-b.webp", alt: "Aerial massing model" } },
-      { name: "Ground floor", meta: "Daher el Souane 563", img: { src: "/im/plan-ground.webp", src2x: "/im/plan-ground.webp", alt: "Ground floor plan" } },
+      { name: "Bcharreh Heritage Houses", meta: "Bcharreh · restoration · 2026", img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" } },
     ],
   },
 ];
@@ -141,7 +135,7 @@ export const achievements = [
   { title: "Banks and brands", text: "Arab Investment Bank, McDonald's and commercial centres. Clients who check everything." },
   { title: "Villas", text: "Private houses built for families in Faqra, Kfardebian, Fatka, Yarze and Baabdath." },
   { title: "Restoration", text: "The WWII Museum at Khiam, and heritage mountain houses brought back to life." },
-  { title: "Building today", text: "On site at Marina Gate, Naccache and Bcharreh, and building our own development at Daher el Souane 563." },
+  { title: "Building today", text: "On site at Naccache and Bcharreh. Marina Gate Tower in Jounieh has just been completed." },
 ];
 
 /** ——— Daher el Souane 563 ——— */
