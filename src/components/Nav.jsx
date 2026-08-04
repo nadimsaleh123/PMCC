@@ -60,8 +60,9 @@ export default function Nav() {
         <div className="flex items-center gap-4 sm:gap-6">
           <Link
             to="/daher-el-souane-563"
-            className={`${linkCls} ${onProject ? "underline underline-offset-4" : ""}`}
+            className={`${linkCls} whitespace-nowrap ${onProject ? "underline underline-offset-4" : ""}`}
           >
+            <span aria-hidden className="mr-2 text-[0.6rem] font-bold text-pmcc">Now selling</span>
             Daher el Souane 563
           </Link>
           <a

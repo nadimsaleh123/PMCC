@@ -115,7 +115,7 @@ function Stats() {
 
 function Services() {
   return (
-    <section className="bg-ink px-5 py-28 sm:px-8">
+    <section className="bg-ink px-5 pb-28 pt-14 sm:pt-28 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <p className="type-eyebrow text-smoke">What we do</p>
         <div className="mt-10">
@@ -148,7 +148,7 @@ function Clients() {
     // normal flow is the belt itself. Equal padding then lands the logos on the
     // exact centre line between the rule above and the panel below - stacked,
     // the label's own height pushed them a third of the band too low.
-    <section className="relative overflow-clip bg-ink py-14 sm:py-16" aria-label="Selected clients">
+    <section className="relative overflow-clip bg-ink pb-10 pt-14 sm:py-16" aria-label="Selected clients">
       <p className="type-eyebrow absolute left-5 top-6 text-smoke sm:left-8 sm:top-7">
         Clients we&rsquo;ve built for
       </p>
