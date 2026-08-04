@@ -219,16 +219,28 @@ function TheStandard() {
 }
 
 /**
- * The gated community and the location, from the project book — the words
- * as printed, beside the two satellite maps. The maps land like pinned
- * photographs: a slight tilt that rights itself as they arrive.
+ * The location, laid out as the project book lays it out: Lebanon in the
+ * middle with the site marked, its sight-lines fanning out into the two
+ * satellite maps — country, then area, then the site itself. The maps
+ * land like pinned photographs, with a slight tilt that rights itself.
  */
-function GatedCommunity() {
+function LocationSpread() {
   const root = useRef(null);
 
   useLayoutEffect(() => {
     if (reducedMotion()) return undefined;
     const ctx = gsap.context(() => {
+      gsap.fromTo(
+        "[data-lebanon]",
+        { autoAlpha: 0, y: 40 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 1,
+          ease: "power3.out",
+          scrollTrigger: { trigger: "[data-lebanon]", start: "top 88%", once: true },
+        },
+      );
       gsap.utils.toArray("[data-map]").forEach((el, i) => {
         gsap.fromTo(
           el,
@@ -238,6 +250,7 @@ function GatedCommunity() {
             autoAlpha: 1,
             rotate: 0,
             duration: 1.1,
+            delay: i * 0.15,
             ease: "power3.out",
             scrollTrigger: { trigger: el, start: "top 88%", once: true },
           },
@@ -249,33 +262,43 @@ function GatedCommunity() {
 
   return (
     <section ref={root} className="border-t border-seam bg-ink px-5 py-28 sm:px-8">
-      <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
-        <div>
-          <p className="type-eyebrow text-smoke">From the project book</p>
-          <Lines className="type-display mt-6 text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
-            The gated <em className="type-display-it text-stone">community.</em>
-          </Lines>
-          <Fade className="mt-8">
-            <p className="max-w-xl font-sans text-sm leading-relaxed text-smoke">{book563.community.body}</p>
-          </Fade>
-          <Fade className="mt-12">
-            <h3 className="type-display text-2xl text-bone">The location</h3>
-          </Fade>
-          {book563.location.map((p) => (
-            <Fade key={p.slice(0, 24)} className="mt-4">
-              <p className="max-w-xl font-sans text-sm leading-relaxed text-smoke">{p}</p>
+      <div className="mx-auto max-w-7xl">
+        <p className="type-eyebrow text-smoke">From the project book</p>
+        <Lines className="type-display mt-6 max-w-3xl text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
+          The gated <em className="type-display-it text-stone">community.</em>
+        </Lines>
+        <div className="mt-12 grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-12">
+          <div>
+            <Fade>
+              <p className="max-w-xl font-sans text-sm leading-relaxed text-smoke">{book563.community.body}</p>
             </Fade>
-          ))}
-        </div>
-        <div className="grid content-center gap-8 sm:grid-cols-2">
-          {book563.maps.map((m) => (
-            <figure key={m.src} data-map>
-              <div className="border border-seam bg-coal p-2">
-                <img src={m.src} alt={m.alt} loading="lazy" className="w-full" />
-              </div>
-              <figcaption className="mt-2.5 font-sans text-xs leading-relaxed text-smoke">{m.caption}</figcaption>
-            </figure>
-          ))}
+            <Fade className="mt-10">
+              <h3 className="type-display text-2xl text-bone">The location</h3>
+            </Fade>
+            {book563.location.map((p) => (
+              <Fade key={p.slice(0, 24)} className="mt-4">
+                <p className="max-w-xl font-sans text-sm leading-relaxed text-smoke">{p}</p>
+              </Fade>
+            ))}
+          </div>
+          {/* Country → area → site, exactly as the book zooms in. */}
+          <div className="grid items-center gap-10 sm:grid-cols-[minmax(0,0.72fr)_minmax(0,1.1fr)_minmax(0,1.1fr)] sm:gap-6">
+            <img
+              data-lebanon
+              src="/im/dsw-lebanon.webp"
+              alt="Lebanon, with the project location marked in the hills above Beirut at Dahr el Sawan"
+              loading="lazy"
+              className="mx-auto w-44 sm:w-full sm:max-w-[230px]"
+            />
+            {book563.maps.map((m) => (
+              <figure key={m.src} data-map>
+                <div className="border border-seam bg-coal p-2">
+                  <img src={m.src} alt={m.alt} loading="lazy" className="w-full" />
+                </div>
+                <figcaption className="mt-2.5 font-sans text-xs leading-relaxed text-smoke">{m.caption}</figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -623,6 +646,7 @@ export default function Project() {
     <>
       <ProjectHero />
       <Introduction />
+      <LocationSpread />
       <TheView />
       <BeforeAfter />
       <FloorStack />
@@ -630,7 +654,6 @@ export default function Project() {
       <AerialModel />
       <ResidenceCloseUp />
       <TheStandard />
-      <GatedCommunity />
       <Location />
       <Availability />
       <Faq />
