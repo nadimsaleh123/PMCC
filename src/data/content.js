@@ -86,7 +86,7 @@ export const booklet = [
     grid: [
       { name: "Microsoft Offices, Berytus", meta: "Beirut Central District · 2012", img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" } },
       { name: "Arab Investment Bank", meta: "Beirut Central District · 2015", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
-      { name: "The MEDCO network", meta: "Six stations, BCD to Damour · 2003 – 2016", img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" } },
+      { name: "The MEDCO network", meta: "Six stations across Lebanon · 2003 – 2016", img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" } },
       { name: "Marina Gate Tower", meta: "Jounieh · office tower · completed", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Building elevation in evening light" } },
     ],
   },
@@ -131,7 +131,7 @@ export const booklet = [
  */
 export const achievements = [
   { title: "Microsoft", text: "We built their corporate offices in Beirut Central District." },
-  { title: "The MEDCO network", text: "Six service stations along the coast, built for the same client over thirteen years." },
+  { title: "The MEDCO network", text: "Six service stations across Lebanon, built for the same client over thirteen years." },
   { title: "Banks and brands", text: "Arab Investment Bank, McDonald's and commercial centres. Clients who check everything." },
   { title: "Villas", text: "Private houses built for families in Faqra, Kfardebian, Fatka, Yarze and Baabdath." },
   { title: "Restoration", text: "The WWII Museum at Khiam, and heritage mountain houses brought back to life." },
