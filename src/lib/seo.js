@@ -21,9 +21,9 @@ const abs = (path) => `${SITE}${path}`;
 export const PAGES = {
   home: {
     path: "/",
-    title: "PMCC — General Contracting & Project Management in Lebanon since 1996",
+    title: "PMCC · General Contracting & Project Management, Lebanon",
     description:
-      "PMCC S.A.R.L. — general contracting and project management across Lebanon since 1996. Microsoft, MEDCO, McDonald's, Arab Investment Bank among past clients. Now selling: Daher el Souane 563.",
+      "PMCC S.A.R.L. General contracting and project management across Lebanon since 1996. Microsoft, MEDCO, McDonald's and Arab Investment Bank among past clients. Now selling: Daher el Souane 563.",
     // Dedicated 1200×630 JPEG cards: exactly the aspect the scrapers crop
     // to, and JPEG because WhatsApp/Facebook handle webp og:images unreliably.
     // Two cards on purpose — the company link previews as the brand, the
@@ -31,16 +31,16 @@ export const PAGES = {
     // ?v= is for Meta's image CDN, which caches by exact URL and ignores
     // re-scrapes: bump it whenever the card's pixels change, or WhatsApp
     // and Facebook keep showing the previous artwork indefinitely.
-    image: abs("/im/og-card-home.jpg?v=3"),
-    imageAlt: "PMCC — We manage what we build. General contracting & project management, Lebanon, since 1996",
+    image: abs("/im/og-card-home.jpg?v=4"),
+    imageAlt: "PMCC · One team, from start to finish. General contracting and project management, Lebanon.",
   },
   project: {
     path: "/daher-el-souane-563",
-    title: "Daher el Souane 563 — Four-Bedroom Full-Floor Apartments for Sale, Mount Lebanon",
+    title: "Daher el Souane 563 · Four-Bedroom Full-Floor Apartments, Mount Lebanon",
     description:
-      "Four full-floor residences of 330 m², one per floor, four bedrooms each — in a gated domain 900 m above Beirut. Private gardens and terraces, delivery summer 2027. Developed, managed and built by PMCC.",
+      "Four full-floor residences of 330 m², one per floor, four bedrooms each, in a gated domain 900 m above Beirut. Private gardens and terraces, delivery summer 2027. Developed, managed and built by PMCC.",
     image: abs("/im/og-card.jpg?v=2"),
-    imageAlt: "Daher el Souane 563 — three-quarter view among the umbrella pines",
+    imageAlt: "Daher el Souane 563, three-quarter view among the umbrella pines",
   },
 };
 
@@ -60,7 +60,7 @@ export const ORGANISATION_LD = {
   image: abs("/im/hero-three-quarter-1280.webp"),
   foundingDate: "1996",
   description:
-    "General contracting and project management across Lebanon since 1996 — one team from budgeting to execution and handover.",
+    "General contracting and project management across Lebanon since 1996. One team, from budgeting to handover.",
   address: {
     "@type": "PostalAddress",
     streetAddress: "Al-Bustan Building, Amaret Chalhoub, Nahr El Mot Highway",

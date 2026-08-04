@@ -58,7 +58,7 @@ function Hero() {
         <WarpImage
           src="/im/hero-reveal-2560.webp"
           srcSet="/im/hero-reveal-1280.webp 1280w, /im/hero-reveal-2560.webp 2560w"
-          alt="A concrete frame at first light — the quiet hours of a build"
+          alt="A concrete frame at first light, in the quiet hours of a build"
           className="h-full"
           priority
         />

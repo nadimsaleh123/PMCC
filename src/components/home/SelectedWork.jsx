@@ -72,7 +72,7 @@ export default function SelectedWork() {
             <div>
               <p className="type-eyebrow text-bone/80">And our own development · now selling</p>
               <p className="type-display mt-3 text-3xl text-bone sm:text-4xl">
-                {project.name} — {project.claim[0].toLowerCase()}{" "}
+                {project.name} · {project.claim[0].toLowerCase()}{" "}
                 <em className="type-display-it">{project.claim[1]}</em>
               </p>
             </div>

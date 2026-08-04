@@ -11,7 +11,7 @@ import { project } from "../data/content";
 
 export default function NotFound() {
   useLayoutEffect(() => {
-    document.title = "Page not found — PMCC";
+    document.title = "Page not found · PMCC";
     const meta = document.createElement("meta");
     meta.name = "robots";
     meta.content = "noindex";

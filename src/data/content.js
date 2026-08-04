@@ -20,12 +20,12 @@ export const company = {
 export const heroClaim = {
   eyebrow: "Project management · Construction · Lebanon",
   // The claim is the company's actual shape: builder and manager in one.
-  lines: ["We manage", "what we build."],
-  sub: "General contracting and project management — across Lebanon, under one team.",
+  lines: ["One team,", "from start to finish."],
+  sub: "General contracting and project management, across Lebanon.",
 };
 
 export const stats = [
-  { value: "1996", label: "Established — building across Lebanon ever since" },
+  { value: "1996", label: "The year we started building" },
   { value: "100+", label: "Projects delivered, from villas to office towers" },
 ];
 
@@ -33,7 +33,7 @@ export const services = [
   {
     n: "01",
     title: "Construction management",
-    body: "We run the site day to day — one team accountable for the schedule and the workmanship.",
+    body: "We run the site day to day and stay accountable for the schedule and the quality of the work.",
   },
   {
     n: "02",
@@ -48,7 +48,7 @@ export const services = [
   {
     n: "04",
     title: "Restoration",
-    body: "Older and heritage buildings brought back to use, without losing their character.",
+    body: "We bring older and heritage buildings back to life, without losing their character.",
   },
 ];
 
@@ -76,7 +76,7 @@ export const workGroups = [
   },
   {
     title: "Villas & restoration",
-    note: "Two generations of private houses — built new, or brought back.",
+    note: "Private houses built new, and old ones brought back to life.",
     items: [
       { name: "Villa Zreik", meta: "Faqra · 2008" },
       { name: "Villa Fakhoury", meta: "Kfardebian · 2016" },
@@ -86,7 +86,7 @@ export const workGroups = [
   },
   {
     title: "On site now",
-    note: "Four programmes running today, from Jounieh to the high mountains.",
+    note: "What we are building right now, from Jounieh to the mountains.",
     items: [
       { name: "Marina Gate Tower", meta: "Jounieh · office tower" },
       { name: "Naccache 401–413", meta: "Naccache · residential · 2027" },
@@ -154,12 +154,12 @@ export const booklet = [
  * actually produced. Concise, real, and in the company's own order.
  */
 export const achievements = [
-  { title: "Offices for Microsoft — twice", text: "Their regional offices in Beirut Central District, then again at Berytus ten years later." },
-  { title: "The MEDCO network", text: "Six service stations along the coast, for one client, over thirteen years of repeat work." },
-  { title: "Banks and brands", text: "Arab Investment Bank, McDonald's and commercial centres — clients who audit everything." },
-  { title: "Two generations of villas", text: "Private houses in Faqra, Kfardebian, Fatka, Yarze and Baabdath — built new, or brought back." },
-  { title: "Restoration", text: "The WWII Museum at Khiam and heritage mountain houses returned to service." },
-  { title: "Building today", text: "On site at Marina Gate, Naccache and Bcharreh — and developing Daher el Souane 563, our own." },
+  { title: "Microsoft, twice", text: "We built their regional offices in Beirut Central District, then their Berytus offices ten years later." },
+  { title: "The MEDCO network", text: "Six service stations along the coast, built for the same client over thirteen years." },
+  { title: "Banks and brands", text: "Arab Investment Bank, McDonald's and commercial centres. Clients who check everything." },
+  { title: "Two generations of villas", text: "Private houses in Faqra, Kfardebian, Fatka, Yarze and Baabdath. Some built new, some restored." },
+  { title: "Restoration", text: "The WWII Museum at Khiam, and heritage mountain houses given a second life." },
+  { title: "Building today", text: "On site at Marina Gate, Naccache and Bcharreh, and building our own development at Daher el Souane 563." },
 ];
 
 /** ——— Daher el Souane 563 ——— */
@@ -170,11 +170,11 @@ export const project = {
   architect: "A20/partners",
   eyebrow: "Daher El Souane · Mount Lebanon",
   claim: ["One residence", "per floor."],
-  sub: "A boutique building of four full-floor, four-bedroom residences on a terraced garden site among the umbrella pines — developed, managed and built by PMCC.",
+  sub: "A boutique building of four full-floor, four-bedroom residences on a terraced garden site among the umbrella pines. Developed, managed and built by PMCC.",
   narrative: [
     "Daher el Souane sits on the green ridge above the Beirut coast, a village of stone houses and pine gardens twenty minutes from the city and a world away from it.",
     "On plot 563, A20/partners drew a building that steps with the slope instead of flattening it: sandstone volumes under a terracotta roof, black metal gables glazed to the view, gardens terraced into the hillside.",
-    "There are no corridors of doors here. The building holds four apartments — one per floor, each the full plate, each with four bedrooms. Parking and plant sit in the basement below the garden residence, and an elevator serves every level.",
+    "There are no corridors of doors here. The building holds four apartments, one per floor. Each takes the whole floor and has four bedrooms. Parking sits in the basement, and the elevator serves every level.",
   ],
   floors: [
     {
@@ -215,7 +215,7 @@ export const project = {
         ["Parking", "4 cars"],
       ],
       plan: "/im/plan-first.webp",
-      brief: "The same generous plan lifted above the gardens — longer sightlines over the pines, the ridge light in every room, balconies off reception and both masters.",
+      brief: "The same generous plan, lifted above the gardens. Longer views over the pines, the ridge light in every room, and balconies off the reception and both masters.",
       features: ["Elevated pine views", "Two master suites", "Maid's room", "Balconies on both fronts"],
     },
     {
@@ -228,13 +228,13 @@ export const project = {
         ["Terraces", "Two, off reception & master"],
       ],
       plan: "/im/plan-roof.webp",
-      brief: "Under the glazed gables of the terracotta roof, with two large terraces in place of balconies — one off the reception, one off the master suite. The building's crown.",
+      brief: "Under the glazed gables of the terracotta roof, with two large terraces in place of balconies: one off the reception, one off the master suite. The building's crown.",
       features: ["Two large terraces", "Glazed gable ceilings", "Four bedrooms", "The top of the ridge"],
     },
   ],
   gallery: [
-    { src: "/im/hero-three-quarter-2560.webp", small: "/im/hero-three-quarter-1280.webp", alt: "Daher el Souane 563 — three-quarter view among the umbrella pines", w: 3619, h: 2557 },
-    { src: "/im/elevation-front-2560.webp", small: "/im/elevation-front-1280.webp", alt: "Front elevation — sandstone volumes and black metal gables", w: 3945, h: 2374 },
+    { src: "/im/hero-three-quarter-2560.webp", small: "/im/hero-three-quarter-1280.webp", alt: "Daher el Souane 563, three-quarter view among the umbrella pines", w: 3619, h: 2557 },
+    { src: "/im/elevation-front-2560.webp", small: "/im/elevation-front-1280.webp", alt: "Front elevation, sandstone volumes and black metal gables", w: 3945, h: 2374 },
     { src: "/im/entrance-walk-2560.webp", small: "/im/entrance-walk-1280.webp", alt: "Entrance walk between stone walls and hedges", w: 2734, h: 2690 },
     { src: "/im/rear-three-quarter-2560.webp", small: "/im/rear-three-quarter-1280.webp", alt: "Rear three-quarter view with garden pergola", w: 3840, h: 2042 },
     { src: "/im/elevation-rear-2560.webp", small: "/im/elevation-rear-1280.webp", alt: "Rear elevation with vertical louvre screen", w: 4081, h: 1938 },
@@ -251,7 +251,7 @@ export const project = {
   /** The two facts every buyer asks first — stated, not hidden. */
   terms: {
     delivery: "Delivery summer 2027",
-    payment: "Reserve with a deposit — balance on completion",
+    payment: "Reserve with a deposit, settle the balance on completion",
   },
   /**
    * Drive times are typical light-traffic figures, consistent with the
@@ -283,7 +283,7 @@ export const project = {
     ],
   },
   location: {
-    line: "On the green ridge above the coast — close enough to use the city, far enough not to hear it.",
+    line: "On the green ridge above the coast. Close enough to use the city, far enough not to hear it.",
     altitude: "900",
     driveTimes: [
       { place: "Beirut", minutes: 20 },

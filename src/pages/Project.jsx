@@ -79,7 +79,7 @@ function TheView() {
         <WarpImage
           src="/im/view-ridge-3200.webp"
           srcSet="/im/view-ridge-1280.webp 1280w, /im/view-ridge-2444.webp 2444w, /im/view-ridge-3200.webp 3200w"
-          alt="The view from the site — the Metn valley and the mountains beyond, photographed at Daher el Souane"
+          alt="The view from the site, over the Metn valley and the mountains beyond, photographed at Daher el Souane"
           className="h-full"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/10 to-ink/30" />
@@ -90,7 +90,7 @@ function TheView() {
             <span className="text-stone"> m</span>
           </p>
           <p className="mt-4 max-w-md font-sans text-sm leading-relaxed text-bone/85">
-            above the sea. The valley below, the mountains across — and Beirut twenty
+            above the sea. The valley below, the mountains across, and Beirut twenty
             minutes down the hill.
           </p>
         </div>
@@ -163,7 +163,7 @@ function Narrative() {
           <div className="border border-ink/10 p-3">
             <img
               src="/im/plan-site.webp"
-              alt="Site plan — the building within its terraced landscape, 1:200"
+              alt="Site plan, the building within its terraced landscape, 1:200"
               width={2200}
               height={1420}
               loading="lazy"
@@ -215,7 +215,7 @@ function AerialModel() {
         <img
           data-model
           src="/im/aerial-model-b.webp"
-          alt="Aerial view of Daher el Souane 563 — terracotta roofscape and terraced gardens"
+          alt="Aerial view of Daher el Souane 563, terracotta roofscape and terraced gardens"
           width={2000}
           height={1111}
           loading="lazy"
@@ -285,8 +285,8 @@ function Location() {
 /** The three-step journey from deposit to keys — the "how does buying work" answer. */
 function PaymentPath() {
   const steps = [
-    { n: "01", title: "Reserve", body: "Choose your floor and place a deposit. The residence is yours — off the market." },
-    { n: "02", title: "Follow the build", body: "We build; you watch it rise. One company is the developer, manager and builder." },
+    { n: "01", title: "Reserve", body: "Choose your floor and place a deposit. The residence is yours, off the market." },
+    { n: "02", title: "Follow the build", body: "We build, and you watch it rise. One company does it all, start to finish." },
     { n: "03", title: "Move in", body: "Settle the balance on completion. Keys in hand, summer 2027." },
   ];
   return (
@@ -306,31 +306,31 @@ function Faq() {
   const items = [
     {
       q: "When is the building delivered?",
-      a: "Summer 2027. The programme is managed by PMCC's own project team — the same discipline we've applied to client projects since 1996.",
+      a: "Summer 2027. Our own team runs the programme, the same way we have run client projects since 1996.",
     },
     {
       q: "How does payment work?",
-      a: "A deposit reserves your residence and takes it off the market; the balance is settled on completion. The detailed schedule is shared when we send the price list.",
+      a: "A deposit reserves your residence. The balance is settled on completion, and the detailed schedule comes with the price list.",
     },
     {
       q: "Who is behind the project?",
-      a: "PMCC is the developer, the project manager and the builder — one company, one name accountable since 1996, with Microsoft, MEDCO, McDonald's and Arab Investment Bank among past clients. Architecture by A20/partners.",
+      a: "PMCC is the developer, the manager and the builder. One company, accountable since 1996. Past clients include Microsoft, MEDCO, McDonald's and Arab Investment Bank. Architecture by A20/partners.",
     },
     {
       q: "How private is 'one residence per floor'?",
-      a: "The elevator opens to your floor; there is no shared landing and no neighbour behind a facing door. Four families in the whole building, each with a full floor and four bedrooms.",
+      a: "The elevator opens to your floor. There is no shared landing and no neighbour behind a facing door. Four families in the whole building, each with a full floor.",
     },
     {
       q: "Can I visit the site?",
-      a: "Yes — and we encourage it. Message us on WhatsApp and we'll arrange a walk of the site and the floor you're considering.",
+      a: "Yes, and we encourage it. Message us on WhatsApp and we'll arrange a visit.",
     },
     {
       q: "Is the project permitted?",
-      a: "Fully permitted. And the company that holds the permit is the company that builds — PMCC develops, manages and constructs the project under one name.",
+      a: "Fully permitted. The company that holds the permit is the same company that builds.",
     },
     {
       q: "How do I get areas, finishes and pricing?",
-      a: "Leave your number in the form above or message us on WhatsApp — the full price list, floor areas and finishes schedule come to you the same day.",
+      a: "Leave your number in the form above or message us on WhatsApp. The full price list, floor areas and finishes come to you the same day.",
     },
   ];
   return (

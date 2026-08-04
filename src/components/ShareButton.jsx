@@ -33,7 +33,7 @@ export default function ShareButton({ url, className = "" }) {
 
   return (
     <button type="button" onClick={onShare} className={className}>
-      {copied ? "Link copied — paste it anywhere" : "Share this page"}
+      {copied ? "Link copied. Paste it anywhere" : "Share this page"}
       {!copied && (
         <span aria-hidden className="ml-2 inline-block">
           ↗

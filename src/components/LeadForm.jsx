@@ -98,7 +98,7 @@ export default function LeadForm({ tone = "light", source = "site", showWhatsApp
           phone: `${data.dial} ${data.phone}`,
           country,
           email: data.email || "not provided",
-          _subject: `Price list request — ${project.name} (${data.name}, ${country})`,
+          _subject: `Price list request: ${project.name} (${data.name}, ${country})`,
           _template: "table",
           _captcha: "false",
         }),
@@ -112,7 +112,7 @@ export default function LeadForm({ tone = "light", source = "site", showWhatsApp
   }
 
   const wa = `https://wa.me/${company.whatsapp}?text=${encodeURIComponent(
-    `Hello PMCC — please send me the price list and floor plans for ${project.name}.`,
+    `Hello PMCC, please send me the price list and floor plans for ${project.name}.`,
   )}`;
 
   if (status === "sent") {
@@ -205,7 +205,7 @@ export default function LeadForm({ tone = "light", source = "site", showWhatsApp
 
         {status === "error" && (
           <p className="font-sans text-xs text-pmcc" role="alert">
-            That didn&rsquo;t go through — message us on WhatsApp instead.
+            That didn&rsquo;t go through. Message us on WhatsApp instead.
           </p>
         )}
 

@@ -147,7 +147,7 @@ export default function FloorStack() {
             >
               <img
                 src={f.plan}
-                alt={`${f.name} — floor plan, ${f.level}`}
+                alt={`${f.name} floor plan, ${f.level}`}
                 width={2200}
                 height={1420}
                 className="mx-auto w-full motion-safe:lg:max-h-[min(44vh,calc(100svh-28rem))] motion-safe:lg:w-auto motion-safe:lg:object-contain"
