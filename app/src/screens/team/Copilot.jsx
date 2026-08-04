@@ -124,6 +124,14 @@ function propose(msg, state) {
   return acts;
 }
 
+/** What each action kind IS, and where the owner meets it. */
+const KIND_INFO = {
+  activity: { tag: "Plan update", tone: "stone", dest: "Owner sees it on their Plan tab" },
+  risk: { tag: "Risk", tone: "red", dest: "Owner sees it under More → Risks & notices" },
+  outlook: { tag: "Delivery outlook", tone: "stone", dest: "Owner sees it on Home and the Plan" },
+  note: { tag: "FYI", tone: "smoke", dest: "Only for you — owners see nothing" },
+};
+
 const HINTS = [
   "Concrete pour delayed by two days because the pump broke down",
   "Level 1 column reinforcement is done",
@@ -227,12 +235,17 @@ export default function Copilot() {
               </div>
               {m.actions?.map((a, ai) => {
                 const isApplied = (m.applied ?? []).includes(ai);
+                const info = KIND_INFO[a.kind] ?? KIND_INFO.note;
                 return (
                   <Card key={ai} className="mt-2 max-w-[92%] p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-sans text-sm font-semibold text-bone">{a.label}</p>
+                      <div className="min-w-0">
+                        <Stamp tone={info.tone}>{info.tag}</Stamp>
+                        <p className="mt-2 font-sans text-sm font-semibold text-bone">{a.label}</p>
                         <p className="mt-1 font-sans text-xs leading-relaxed text-smoke">{a.detail}</p>
+                        <p className="mt-2 font-sans text-[0.65rem] leading-relaxed text-stone">
+                          {a.payload ? `On apply → ${info.dest}` : info.dest}
+                        </p>
                       </div>
                       {a.payload ? (
                         isApplied ? (
@@ -242,9 +255,7 @@ export default function Copilot() {
                             Apply
                           </Btn>
                         )
-                      ) : (
-                        <Stamp tone="smoke">fyi</Stamp>
-                      )}
+                      ) : null}
                     </div>
                   </Card>
                 );
