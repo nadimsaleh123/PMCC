@@ -14,36 +14,31 @@ export default function SignIn() {
   const { dispatch } = useStore();
   const nav = useNavigate();
   const [phone, setPhone] = useState(""); // live mode: this field holds the email
-  const [stage, setStage] = useState("phone"); // phone | code
+  const [password, setPassword] = useState("");
+  const [stage, setStage] = useState("phone"); // demo only: phone | code
   const [code, setCode] = useState("");
   const [role, setRole] = useState("owner");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function next() {
-    if (IS_LIVE) {
-      const email = phone.trim().toLowerCase();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        setErr("Enter the email address on your contract.");
-        return;
-      }
-      setErr("");
-      setBusy(true);
-      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-      setBusy(false);
-      if (error) {
-        console.error("[signin]", error);
-        const msg = typeof error.message === "string" && error.message.length > 2 ? error.message : "";
-        setErr(
-          msg.includes("rate")
-            ? "Too many codes requested — wait a few minutes and try again."
-            : `The code could not be sent${msg ? ` (${msg})` : ""} — the email service needs attention. Contact PMCC.`,
-        );
-        return;
-      }
-      setStage("code");
+  async function signInLive() {
+    const email = phone.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !password) {
+      setErr("Enter the email and password PMCC gave you.");
       return;
     }
+    setErr("");
+    setBusy(true);
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) {
+      console.error("[signin]", error);
+      setErr("Email or password incorrect. If you've lost your access, contact PMCC.");
+    }
+    // Success: the auth listener in App boots the record and redirects.
+  }
+
+  function next() {
     if (phone.replace(/\D/g, "").length < 6) {
       setErr("Enter the phone number on your contract.");
       return;
@@ -52,19 +47,7 @@ export default function SignIn() {
     setStage("code");
   }
 
-  async function verify() {
-    if (IS_LIVE) {
-      setBusy(true);
-      const { error } = await sb.auth.verifyOtp({
-        email: phone.trim().toLowerCase(),
-        token: code,
-        type: "email",
-      });
-      setBusy(false);
-      if (error) setErr("That code didn't match — check the email and try again.");
-      // Success: the auth listener in App boots the record and redirects.
-      return;
-    }
+  function verify() {
     if (code !== "000000") {
       setErr("That code didn't match. Demo code: 000000");
       return;
@@ -92,31 +75,59 @@ export default function SignIn() {
       </div>
 
       <div className="rise-2 rise">
-        {stage === "phone" ? (
+        {IS_LIVE ? (
           <>
             <label className="block">
-              <span className="type-eyebrow text-smoke">{IS_LIVE ? "Email address" : "Phone number"}</span>
+              <span className="type-eyebrow text-smoke">Email address</span>
               <input
-                type={IS_LIVE ? "email" : "tel"}
-                inputMode={IS_LIVE ? "email" : "tel"}
+                type="email"
+                inputMode="email"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder={IS_LIVE ? "you@example.com" : "+961 3 616 222"}
+                placeholder="you@example.com"
+                className="mt-2 w-full border border-seam bg-transparent px-4 py-4 font-sans text-base text-bone outline-none placeholder:text-smoke/50 focus:border-stone"
+              />
+            </label>
+            <label className="mt-3 block">
+              <span className="type-eyebrow text-smoke">Password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && signInLive()}
+                placeholder="••••••••"
+                className="mt-2 w-full border border-seam bg-transparent px-4 py-4 font-sans text-base text-bone outline-none placeholder:text-smoke/50 focus:border-stone"
+              />
+            </label>
+            {err && <p className="mt-3 font-sans text-xs text-pmcc">{err}</p>}
+            <Btn full className="mt-4" onClick={signInLive} disabled={busy}>
+              {busy ? "Signing in…" : "Sign in"}
+            </Btn>
+            <p className="mt-6 text-center font-sans text-xs text-smoke">
+              Your access was created by PMCC when your contract was signed.{" "}
+              <a href="?demo" className="underline underline-offset-4">
+                View the demo instead
+              </a>
+            </p>
+          </>
+        ) : stage === "phone" ? (
+          <>
+            <label className="block">
+              <span className="type-eyebrow text-smoke">Phone number</span>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+961 3 616 222"
                 className="mt-2 w-full border border-seam bg-transparent px-4 py-4 font-sans text-base text-bone outline-none placeholder:text-smoke/50 focus:border-stone"
               />
             </label>
             {err && <p className="mt-3 font-sans text-xs text-pmcc">{err}</p>}
             <Btn full className="mt-4" onClick={next} disabled={busy}>
-              {busy ? "Sending code…" : "Continue"}
+              Continue
             </Btn>
-            {IS_LIVE ? (
-              <p className="mt-6 text-center font-sans text-xs text-smoke">
-                A 6-digit code will be emailed to you.{" "}
-                <a href="?demo" className="underline underline-offset-4">
-                  View the demo instead
-                </a>
-              </p>
-            ) : (
+            {(
               <>
                 <div className="mt-6 flex items-center gap-3">
                   <span className="rule flex-1" />

@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Row, Stamp, Btn, Icon, StateDot, Back } from "../../ui";
 import { PHASES, PHOTO_LIBRARY } from "../../data/seed";
-import { IS_LIVE, sb } from "../../lib/supabase";
+import { IS_LIVE, sb, createAccount, suggestPassword } from "../../lib/supabase";
 import { createProjectLive } from "../../live/sync";
 import { loadTeam } from "../../live/load";
 import { uploadPhoto, uploadDoc, openDoc } from "../../lib/storage";
@@ -178,6 +178,19 @@ export function NewProject() {
           if (IS_LIVE) {
             try {
               const created = await createProjectLive(meta);
+              if (meta.ownerEmail) {
+                const pw = suggestPassword();
+                await createAccount(meta.ownerEmail.toLowerCase(), pw);
+                const blurb = `Welcome to the PMCC portal — your private window into ${meta.name}.\n\nOpen: https://pmcclb.com/app\nEmail: ${meta.ownerEmail.toLowerCase()}\nPassword: ${pw}\n\nTip: in Chrome tap ⋮ → Add to Home screen (iPhone: Share → Add to Home Screen) to keep it as an app.`;
+                try {
+                  await navigator.clipboard.writeText(blurb);
+                } catch {
+                  /* clipboard blocked: the alert below still carries the password */
+                }
+                alert(
+                  `Project created, and ${meta.ownerName}'s account is ready.\n\nEmail: ${meta.ownerEmail.toLowerCase()}\nPassword: ${pw}\n\nThe welcome message is on your clipboard — paste it into WhatsApp.`,
+                );
+              }
               dispatch({ type: "boot", slices: await loadTeam(created.id) });
             } catch (e) {
               alert(`Could not create the project: ${e.message ?? e}`);
@@ -585,19 +598,49 @@ function InviteForm() {
   const [name, setName] = useState("");
   const [role, setRole] = useState("owner");
   const [unit, setUnit] = useState("");
+  const [pw, setPw] = useState(suggestPassword());
   const [busy, setBusy] = useState(false);
+  const [made, setMade] = useState(null); // {email, pw, name}
   const units = state.team.owners.filter((o) => o.state !== "active");
+
+  if (made)
+    return (
+      <Card className="mb-5 border-stone/40 p-5">
+        <p className="type-eyebrow text-stone">Account created — send this to {made.name}</p>
+        <pre className="mt-3 whitespace-pre-wrap border border-seam bg-ink p-4 font-sans text-xs leading-relaxed text-bone/90">{`Welcome to the PMCC portal — your private window into your project.
+
+Open: https://pmcclb.com/app
+Email: ${made.email}
+Password: ${made.pw}
+
+Tip: in Chrome tap ⋮ → Add to Home screen (iPhone: Share → Add to Home Screen) to keep it as an app.`}</pre>
+        <div className="mt-3 flex gap-3">
+          <Btn
+            onClick={() => {
+              navigator.clipboard?.writeText(
+                `Welcome to the PMCC portal — your private window into your project.\n\nOpen: https://pmcclb.com/app\nEmail: ${made.email}\nPassword: ${made.pw}\n\nTip: in Chrome tap ⋮ → Add to Home screen (iPhone: Share → Add to Home Screen) to keep it as an app.`,
+              );
+            }}
+          >
+            Copy message
+          </Btn>
+          <Btn tone="ghost" onClick={() => setMade(null)}>
+            Done
+          </Btn>
+        </div>
+      </Card>
+    );
 
   if (!open)
     return (
       <Btn full className="mb-5" onClick={() => setOpen(true)}>
-        <Icon.plus className="h-4 w-4" /> Invite someone
+        <Icon.plus className="h-4 w-4" /> Create an account
       </Btn>
     );
 
   return (
     <Card className="mb-5 p-5">
-      <p className="type-eyebrow text-smoke">Invite by email</p>
+      <p className="type-eyebrow text-smoke">Create an account — you hand them the keys</p>
       <input
         value={email}
         onChange={(e) => setEmail(e.target.value)}
@@ -637,37 +680,53 @@ function InviteForm() {
           ))}
         </select>
       )}
+      <label className="mt-2 block">
+        <span className="font-sans text-[0.65rem] uppercase tracking-wideish text-smoke">Password</span>
+        <div className="mt-1 flex gap-2">
+          <input
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            className="min-w-0 flex-1 border border-seam bg-transparent px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+          />
+          <Btn tone="ghost" onClick={() => setPw(suggestPassword())}>
+            New
+          </Btn>
+        </div>
+      </label>
       <div className="mt-4 flex gap-3">
         <Btn
           full
-          disabled={busy || !email.includes("@") || !name.trim() || (role === "owner" && !unit)}
+          disabled={busy || !email.includes("@") || !name.trim() || pw.length < 8 || (role === "owner" && !unit)}
           onClick={async () => {
             if (!IS_LIVE) {
-              alert("Demo mode — invitations work in the live app.");
+              alert("Demo mode — account creation works in the live app.");
               return;
             }
             setBusy(true);
-            const chosen = units.find((u) => u.unit === unit);
-            const { error } = await sb.from("pre_approved").insert({
-              email: email.trim().toLowerCase(),
-              role,
-              full_name: name.trim(),
-              unit_name: role === "owner" ? unit : null,
-              unit_id: role === "owner" ? (chosen?.unitId ?? null) : null,
-            });
-            setBusy(false);
-            if (error) {
-              alert(`Could not invite: ${error.message}`);
-              return;
+            try {
+              const chosen = units.find((u) => u.unit === unit);
+              const { error } = await sb.from("pre_approved").insert({
+                email: email.trim().toLowerCase(),
+                role,
+                full_name: name.trim(),
+                unit_name: role === "owner" ? unit : null,
+                unit_id: role === "owner" ? (chosen?.unitId ?? null) : null,
+              });
+              if (error) throw error;
+              await createAccount(email.trim().toLowerCase(), pw);
+              setMade({ email: email.trim().toLowerCase(), pw, name: name.trim() });
+              setOpen(false);
+              setEmail("");
+              setName("");
+              setUnit("");
+              setPw(suggestPassword());
+            } catch (e) {
+              alert(`Could not create the account: ${e.message ?? e}`);
             }
-            alert(`${name.trim()} can now sign in at pmcclb.com/app with ${email.trim()} — send them the link.`);
-            setOpen(false);
-            setEmail("");
-            setName("");
-            setUnit("");
+            setBusy(false);
           }}
         >
-          {busy ? "Saving…" : "Grant access"}
+          {busy ? "Creating…" : "Create account"}
         </Btn>
         <Btn tone="ghost" onClick={() => setOpen(false)}>
           Cancel
