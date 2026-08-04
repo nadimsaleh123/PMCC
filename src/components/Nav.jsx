@@ -58,14 +58,16 @@ export default function Nav() {
           <Monogram className="h-7" />
         </Link>
         <div className="flex items-center gap-4 sm:gap-6">
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
-            {/* A label, not a link: only the project name navigates. */}
-            <span aria-hidden className="font-sans text-[0.5rem] font-bold uppercase tracking-wideish text-pmcc">
+          <span className="flex flex-col items-end whitespace-nowrap">
+            {/* A label, not a link, stacked right above the project name. */}
+            <span aria-hidden className="pr-2 font-sans text-[0.5rem] font-bold uppercase tracking-wideish text-pmcc">
               Now selling
             </span>
             <Link
               to="/daher-el-souane-563"
-              className={`${linkCls} ${onProject ? "underline underline-offset-4" : ""}`}
+              className={`type-eyebrow inline-flex items-center px-2 pb-1 text-bone transition-opacity hover:opacity-70 ${
+                onProject ? "underline underline-offset-4" : ""
+              }`}
             >
               Daher el Souane 563
             </Link>
