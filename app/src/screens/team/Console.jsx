@@ -10,9 +10,11 @@ import { useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Row, Stamp, Btn, Icon, StateDot, Back } from "../../ui";
 import { PHASES, PHOTO_LIBRARY } from "../../data/seed";
-import { IS_LIVE } from "../../lib/supabase";
+import { IS_LIVE, sb } from "../../lib/supabase";
 import { createProjectLive } from "../../live/sync";
 import { loadTeam } from "../../live/load";
+import { uploadPhoto, uploadDoc, openDoc } from "../../lib/storage";
+import { parseMSPDI } from "../../lib/mspdi";
 
 /* ------------------------------------------------ Today (dashboard) */
 export function Today() {
@@ -170,6 +172,23 @@ export function Publish() {
   const [phase, setPhase] = useState(PHASES[2]);
   const [photo, setPhoto] = useState(PHOTO_LIBRARY[0]);
   const [preview, setPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  async function onPickPhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (IS_LIVE) {
+      setUploading(true);
+      try {
+        setPhoto(await uploadPhoto(file));
+      } catch (err) {
+        alert(`Upload failed: ${err.message ?? err}`);
+      }
+      setUploading(false);
+    } else {
+      setPhoto(URL.createObjectURL(file));
+    }
+  }
 
   const entry = {
     id: crypto.randomUUID(),
@@ -187,6 +206,18 @@ export function Publish() {
         <>
           <p className="type-eyebrow text-smoke">Photo</p>
           <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-2">
+            <label className={`flex h-20 w-28 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 border-2 border-dashed ${uploading ? "border-stone" : "border-seam"} text-smoke`}>
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={onPickPhoto} />
+              <Icon.camera className="h-5 w-5" />
+              <span className="font-sans text-[0.6rem] uppercase tracking-wideish">
+                {uploading ? "Uploading…" : "Camera"}
+              </span>
+            </label>
+            {!PHOTO_LIBRARY.includes(photo) && (
+              <button type="button" className="h-20 w-28 shrink-0 border-2 border-pmcc">
+                <img src={photo} alt="" className="h-full w-full object-cover" />
+              </button>
+            )}
             {PHOTO_LIBRARY.map((p) => (
               <button
                 key={p}
@@ -365,7 +396,32 @@ export function MoneyDesk() {
               </p>
             </div>
             {p.state === "paid" ? (
-              <Stamp tone="stone">paid {p.date}</Stamp>
+              <span className="flex items-center gap-2">
+                <Stamp tone="stone">paid {p.date}</Stamp>
+                {IS_LIVE && !p.receipt && (
+                  <label className="cursor-pointer font-sans text-[0.65rem] text-stone underline underline-offset-2">
+                    + receipt
+                    <input
+                      type="file"
+                      accept=".pdf,image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !state.owner.unitId) return;
+                        try {
+                          const path = await uploadDoc(file, state.owner.unitId);
+                          const { error } = await sb.from("payments").update({ receipt_url: path }).eq("id", p.id);
+                          if (error) throw error;
+                          alert("Receipt attached — the owner sees it on their Money tab.");
+                        } catch (err) {
+                          alert(`Upload failed: ${err.message ?? err}`);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </span>
             ) : (
               <Btn tone="ghost" onClick={() => dispatch({ type: "pay", id: p.id })}>
                 Mark paid
@@ -487,12 +543,110 @@ export function RisksDesk() {
 }
 
 /* ------------------------------------------------ Owners */
+function InviteForm() {
+  const { state } = useStore();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("owner");
+  const [unit, setUnit] = useState("");
+  const [busy, setBusy] = useState(false);
+  const units = state.team.owners.filter((o) => o.state !== "active");
+
+  if (!open)
+    return (
+      <Btn full className="mb-5" onClick={() => setOpen(true)}>
+        <Icon.plus className="h-4 w-4" /> Invite someone
+      </Btn>
+    );
+
+  return (
+    <Card className="mb-5 p-5">
+      <p className="type-eyebrow text-smoke">Invite by email</p>
+      <input
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        type="email"
+        placeholder="their@email.com"
+        className="mt-3 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+      />
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Full name"
+        className="mt-2 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+      />
+      <div className="mt-3 flex gap-2">
+        {["owner", "team"].map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => setRole(r)}
+            className={`flex-1 border px-3 py-2 font-sans text-xs uppercase tracking-wideish ${role === r ? "border-stone text-bone" : "border-seam text-smoke"}`}
+          >
+            {r === "owner" ? "Owner" : "PMCC team"}
+          </button>
+        ))}
+      </div>
+      {role === "owner" && (
+        <select
+          value={unit}
+          onChange={(e) => setUnit(e.target.value)}
+          className="mt-2 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+        >
+          <option value="">Choose their residence…</option>
+          {units.map((u) => (
+            <option key={u.unit} value={u.unit}>
+              {u.unit}
+            </option>
+          ))}
+        </select>
+      )}
+      <div className="mt-4 flex gap-3">
+        <Btn
+          full
+          disabled={busy || !email.includes("@") || !name.trim() || (role === "owner" && !unit)}
+          onClick={async () => {
+            if (!IS_LIVE) {
+              alert("Demo mode — invitations work in the live app.");
+              return;
+            }
+            setBusy(true);
+            const { error } = await sb.from("pre_approved").insert({
+              email: email.trim().toLowerCase(),
+              role,
+              full_name: name.trim(),
+              unit_name: role === "owner" ? unit : null,
+            });
+            setBusy(false);
+            if (error) {
+              alert(`Could not invite: ${error.message}`);
+              return;
+            }
+            alert(`${name.trim()} can now sign in at pmcclb.com/app with ${email.trim()} — send them the link.`);
+            setOpen(false);
+            setEmail("");
+            setName("");
+            setUnit("");
+          }}
+        >
+          {busy ? "Saving…" : "Grant access"}
+        </Btn>
+        <Btn tone="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Btn>
+      </div>
+    </Card>
+  );
+}
+
 export function OwnersDesk() {
   const { state } = useStore();
   return (
     <Screen>
       <Back to="/team" label="Console" />
       <TopBar eyebrow="Access, activity, read receipts" title="Owners & units" />
+      <InviteForm />
       {state.team.owners.map((o) => (
         <Card key={o.unit} className="mb-3 p-5">
           <div className="flex items-center justify-between gap-3">
@@ -526,12 +680,115 @@ export function OwnersDesk() {
 
 /* ------------------------------------------------ Project & programme */
 export function ProjectDesk() {
-  const { state } = useStore();
-  const [imported, setImported] = useState(false);
+  const { state, dispatch } = useStore();
+  const soldUnits = state.team.owners.filter((o) => o.unitId);
+  const projectId = state.project.id;
+
+  // contract indexing
+  const [cUnit, setCUnit] = useState("");
+  const [cText, setCText] = useState("");
+  const [cBusy, setCBusy] = useState(false);
+  const [cDone, setCDone] = useState(null);
+
+  // programme import
+  const [parsed, setParsed] = useState(null);
+  const [pErr, setPErr] = useState("");
+  const [applying, setApplying] = useState(false);
+
+  // document upload
+  const [dName, setDName] = useState("");
+  const [dUnit, setDUnit] = useState("shared");
+  const [dBusy, setDBusy] = useState(false);
+
+  async function indexContract() {
+    setCBusy(true);
+    try {
+      const { data, error } = await sb.functions.invoke("index-contract", {
+        body: { unit_id: cUnit, text: cText },
+      });
+      if (error) throw error;
+      setCDone(data.clauses);
+      setCText("");
+    } catch (e) {
+      alert(`Indexing failed: ${e.message ?? e}`);
+    }
+    setCBusy(false);
+  }
+
+  function onProgrammeFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPErr("");
+    setParsed(null);
+    if (/\.xer$/i.test(file.name)) {
+      setPErr("Primavera XER: export the programme as MS Project XML for now — native XER support is coming.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        setParsed(parseMSPDI(String(reader.result)));
+      } catch (err) {
+        setPErr(String(err.message ?? err));
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  async function applyProgramme() {
+    setApplying(true);
+    try {
+      if (IS_LIVE) {
+        const e1 = await sb.from("projects").update({ milestones: parsed.milestones }).eq("id", projectId);
+        if (e1.error) throw e1.error;
+        const e2 = await sb.from("lookahead").upsert({
+          project_id: projectId,
+          weeks: parsed.weeks,
+          updated_at: new Date().toISOString(),
+        });
+        if (e2.error) throw e2.error;
+        dispatch({ type: "boot", slices: await loadTeam(projectId) });
+      }
+      setParsed(null);
+      alert("Programme applied — milestones and the look-ahead now follow the file.");
+    } catch (e) {
+      alert(`Could not apply: ${e.message ?? e}`);
+    }
+    setApplying(false);
+  }
+
+  async function uploadDocument(e) {
+    const file = e.target.files?.[0];
+    if (!file || !dName.trim()) {
+      if (file) alert("Give the document a name first.");
+      e.target.value = "";
+      return;
+    }
+    setDBusy(true);
+    try {
+      const folder = dUnit === "shared" ? `shared/${projectId}` : dUnit;
+      const path = await uploadDoc(file, folder);
+      const { error } = await sb.from("documents").insert({
+        project_id: projectId,
+        unit_id: dUnit === "shared" ? null : dUnit,
+        name: dName.trim(),
+        meta: `Uploaded · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+        storage_path: path,
+      });
+      if (error) throw error;
+      setDName("");
+      alert("Document uploaded — owners see it in their Documents.");
+    } catch (err) {
+      alert(`Upload failed: ${err.message ?? err}`);
+    }
+    setDBusy(false);
+    e.target.value = "";
+  }
+
   return (
     <Screen>
       <Back to="/team" label="Console" />
-      <TopBar eyebrow="The source of the milestones" title="Project & programme" />
+      <TopBar eyebrow="The source of the record" title="Project & programme" />
       <Card className="p-5">
         <p className="type-eyebrow text-smoke">Project</p>
         <p className="type-display mt-1 text-2xl text-bone">{state.project.name}</p>
@@ -541,43 +798,86 @@ export function ProjectDesk() {
       </Card>
 
       <Card className="mt-4 p-5">
-        <p className="type-eyebrow text-smoke">Contract upload</p>
-        <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
-          Upload the signed contract — its clauses are indexed into the chat brain, so the owner's
-          "Ask PMCC" answers contract questions from the document itself, never from memory.
-        </p>
-        <label className="mt-4 block cursor-pointer border border-dashed border-seam p-4 text-center transition-colors active:border-stone">
-          <input type="file" accept=".pdf" className="hidden" onChange={(e) => e.target.value && null} />
-          <p className="font-sans text-xs text-smoke">Tap to choose the contract PDF</p>
-        </label>
-        <p className="mt-3 border-l-2 border-stone pl-3 font-sans text-xs leading-relaxed text-smoke">
-          Demo: Rami's contract is already indexed — try asking the owner chatbot "what does my
-          contract say about late delivery?"
-        </p>
-      </Card>
-
-      <Card className="mt-4 p-5">
-        <p className="type-eyebrow text-smoke">Programme import</p>
-        <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
-          Upload the MS Project (XML) or Primavera P6 (XER) file — milestones, phase progress and
-          the three-week look-ahead are derived automatically.
-        </p>
-        <label className="mt-4 block cursor-pointer border border-dashed border-seam p-5 text-center transition-colors active:border-stone">
-          <input
-            type="file"
-            accept=".xml,.xer,.mpp"
-            className="hidden"
-            onChange={() => setImported(true)}
-          />
+        <p className="type-eyebrow text-smoke">Programme import — MS Project XML</p>
+        <label className="mt-3 block cursor-pointer border border-dashed border-seam p-5 text-center transition-colors active:border-stone">
+          <input type="file" accept=".xml,.xer" className="hidden" onChange={onProgrammeFile} />
           <Icon.doc className="mx-auto h-6 w-6 text-stone" />
           <p className="mt-2 font-sans text-xs text-smoke">Tap to choose the programme file</p>
         </label>
-        {imported && (
+        {pErr && <p className="mt-3 font-sans text-xs text-pmcc">{pErr}</p>}
+        {parsed && (
+          <div className="mt-3 border-l-2 border-stone pl-3">
+            <p className="font-sans text-xs leading-relaxed text-bone/85">
+              Parsed: {parsed.taskCount} activities · {parsed.milestones.length} milestones ·
+              look-ahead {parsed.weeks.map((w) => w.items.length).join(" / ")} items over three weeks.
+            </p>
+            <Btn className="mt-3" disabled={applying} onClick={applyProgramme}>
+              {applying ? "Applying…" : "Apply to milestones & look-ahead"}
+            </Btn>
+          </div>
+        )}
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <p className="type-eyebrow text-smoke">Contract → chat brain</p>
+        <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
+          Paste the contract text for a residence; the AI extracts the clauses that owners ask
+          about, and their "Ask PMCC" quotes the document — never memory.
+        </p>
+        <select
+          value={cUnit}
+          onChange={(e) => setCUnit(e.target.value)}
+          className="mt-3 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+        >
+          <option value="">Choose the residence…</option>
+          {soldUnits.map((u) => (
+            <option key={u.unitId} value={u.unitId}>
+              {u.unit} — {u.name}
+            </option>
+          ))}
+        </select>
+        <textarea
+          rows={4}
+          value={cText}
+          onChange={(e) => setCText(e.target.value)}
+          placeholder="Open the contract PDF, select all, copy — paste here."
+          className="mt-2 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-xs text-bone outline-none focus:border-stone"
+        />
+        <Btn className="mt-3" disabled={cBusy || !cUnit || cText.trim().length < 200} onClick={indexContract}>
+          {cBusy ? "Extracting…" : "Extract & index with AI"}
+        </Btn>
+        {cDone && (
           <p className="mt-3 border-l-2 border-stone pl-3 font-sans text-xs leading-relaxed text-bone/85">
-            Programme parsed (demo): 214 activities · critical path 96 · structure top-out Nov 12,
-            2026 · look-ahead refreshed. The live version runs PMCC's own XER/MSPDI parser.
+            Indexed. Delivery clause reads: “{cDone.deliveryClause}” — the owner's chatbot now
+            quotes this document.
           </p>
         )}
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <p className="type-eyebrow text-smoke">Upload a document</p>
+        <input
+          value={dName}
+          onChange={(e) => setDName(e.target.value)}
+          placeholder="Document name — e.g. Finishes schedule rev B"
+          className="mt-3 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+        />
+        <select
+          value={dUnit}
+          onChange={(e) => setDUnit(e.target.value)}
+          className="mt-2 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+        >
+          <option value="shared">All owners in this project</option>
+          {soldUnits.map((u) => (
+            <option key={u.unitId} value={u.unitId}>
+              Only {u.unit}
+            </option>
+          ))}
+        </select>
+        <label className="mt-2 block cursor-pointer border border-dashed border-seam p-4 text-center transition-colors active:border-stone">
+          <input type="file" accept=".pdf,image/*" className="hidden" onChange={uploadDocument} />
+          <p className="font-sans text-xs text-smoke">{dBusy ? "Uploading…" : "Tap to choose the file"}</p>
+        </label>
       </Card>
 
       <Card className="mt-4 p-5">

@@ -93,7 +93,8 @@ async function loadUnitWorld(unit) {
       amount: Number(p.amount),
       state: p.state === "due" ? "upcoming" : p.state,
       date: fmtDate(p.paid_on),
-      receipt: Boolean(p.receipt_file),
+      receipt: Boolean(p.receipt_url),
+      receiptPath: p.receipt_url ?? null,
     })),
     selections: (selections.data ?? []).map((s) => ({
       id: s.id,
@@ -132,7 +133,13 @@ async function loadVisitsDocs(projectId, unitId) {
         .filter((v) => v.state === "offered")
         .map((v) => ({ id: v.id, date: v.visit_date, time: v.visit_time })),
     },
-    documents: (documents.data ?? []).map((d) => ({ id: d.id, name: d.name, meta: d.meta, href: d.url })),
+    documents: (documents.data ?? []).map((d) => ({
+      id: d.id,
+      name: d.name,
+      meta: d.meta,
+      href: d.url,
+      path: d.storage_path ?? null,
+    })),
   };
 }
 
@@ -209,6 +216,7 @@ export async function loadTeam(projectId) {
     team: {
       members: [],
       owners: (units ?? []).map((u) => ({
+        unitId: u.id,
         unit: u.name,
         name: u.users?.full_name ?? "— unsold —",
         state: u.owner_id ? "active" : "available",

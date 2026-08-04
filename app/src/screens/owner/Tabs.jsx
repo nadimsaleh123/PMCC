@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Row, Stamp, Ring, StateDot, Icon, Btn } from "../../ui";
 import { IS_LIVE, sb } from "../../lib/supabase";
+import { openDoc } from "../../lib/storage";
 
 /* ------------------------------------------------ Home */
 export function Home() {
@@ -236,7 +237,19 @@ export function Money() {
               {p.state === "paid" ? (
                 <span className="flex items-center gap-2">
                   <Stamp tone="stone">Paid · {p.date}</Stamp>
-                  {p.receipt && <span className="font-sans text-[0.65rem] text-smoke underline underline-offset-2">receipt</span>}
+                  {p.receipt && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        p.receiptPath
+                          ? openDoc(p.receiptPath).catch((e) => alert(`Could not open: ${e.message ?? e}`))
+                          : null
+                      }
+                      className="font-sans text-[0.65rem] text-smoke underline underline-offset-2"
+                    >
+                      receipt
+                    </button>
+                  )}
                 </span>
               ) : (
                 <Stamp tone="smoke">Upcoming</Stamp>

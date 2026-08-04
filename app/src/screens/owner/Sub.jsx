@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Stamp, Btn, Back, Row, Icon } from "../../ui";
+import { openDoc } from "../../lib/storage";
 
 export function Risks() {
   const { state } = useStore();
@@ -192,7 +193,13 @@ export function Documents() {
             title={d.name}
             meta={d.meta}
             href={d.href ?? undefined}
-            onClick={d.href ? undefined : () => {}}
+            onClick={
+              d.href
+                ? undefined
+                : d.path
+                  ? () => openDoc(d.path).catch((e) => alert(`Could not open: ${e.message ?? e}`))
+                  : () => {}
+            }
           />
         ))}
       </div>
