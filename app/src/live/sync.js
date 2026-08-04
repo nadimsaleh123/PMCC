@@ -38,6 +38,7 @@ export function syncAction(action, nextState) {
       case "setActivity":
       case "addActivity":
       case "removeActivity":
+      case "moveActivity":
         return sb.from("lookahead").upsert({
           project_id: projectId,
           weeks: nextState.lookahead.weeks,

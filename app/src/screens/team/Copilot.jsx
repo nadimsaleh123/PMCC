@@ -15,15 +15,33 @@ import { Screen, TopBar, Btn, Icon, Back, Card, Stamp } from "../../ui";
 import { IS_LIVE } from "../../lib/supabase";
 import { copilotLive } from "../../live/sync";
 
+/** The model speaks in words ("delayed"); the store speaks in codes. */
+const S_MAP = {
+  done: "done", completed: "done", complete: "done", finished: "done",
+  ready: "ready", ontrack: "ready", "on track": "ready",
+  blocked: "blocked", delayed: "blocked", late: "blocked", stuck: "blocked",
+  todo: "todo", "not started": "todo", notstarted: "todo",
+};
+
 /** Shape one AI-returned action into the card the UI applies. */
 function fromAI(a) {
-  if (a.kind === "activity")
+  if (a.kind === "activity") {
+    // Keep the activity's NAME — indices from the model can be off, and the
+    // name is what lets apply() find the real row instead of failing silently.
+    const name = a.name ?? (a.label?.match(/"([^"]+)"/) || [])[1] ?? null;
+    const s = S_MAP[String(a.s ?? "").toLowerCase()] ?? "blocked";
+    const moveTo = a.moveTo ?? a.move_to;
+    const base = { week: Number(a.week), item: Number(a.item), s, note: a.note, name };
     return {
       kind: "activity",
       label: a.label,
       detail: a.detail,
-      payload: { type: "setActivity", week: a.week, item: a.item, s: a.s, note: a.note },
+      payload:
+        moveTo != null
+          ? { type: "moveActivity", ...base, to: Number(moveTo) }
+          : { type: "setActivity", ...base },
     };
+  }
   if (a.kind === "risk")
     return {
       kind: "risk",
@@ -192,10 +210,42 @@ export default function Copilot() {
     setThinking(false);
   }
 
+  /**
+   * Re-anchor an activity payload against the live look-ahead by NAME first,
+   * indices second — the plan may have changed since the card was drafted,
+   * and a model index that misses must fail loudly, never silently.
+   */
+  function resolveActivity(p, weeks) {
+    let week = Number(p.week);
+    let item = Number(p.item);
+    if (p.name) {
+      const key = p.name.trim().toLowerCase();
+      for (let wi = 0; wi < weeks.length; wi++) {
+        const ii = weeks[wi].items.findIndex((it) => it.t.trim().toLowerCase() === key);
+        if (ii >= 0) {
+          week = wi;
+          item = ii;
+          break;
+        }
+      }
+    }
+    return weeks[week]?.items?.[item] ? { ...p, week, item } : null;
+  }
+
   function apply(mi, ai) {
     const m = feed[mi];
     const a = m.actions[ai];
-    if (a.payload) dispatch(a.payload);
+    let payload = a.payload;
+    if (payload && (payload.type === "setActivity" || payload.type === "moveActivity")) {
+      payload = resolveActivity(payload, state.lookahead.weeks);
+      if (!payload) {
+        alert(
+          `Couldn't find "${a.payload.name ?? "that activity"}" in the look-ahead — it may have been renamed or removed. Update it from the Plan editor instead.`,
+        );
+        return;
+      }
+    }
+    if (payload) dispatch(payload);
     dispatch({
       type: "log",
       entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "action", body: a.label },

@@ -156,6 +156,25 @@ function reducer(state, action) {
       );
       return { ...state, lookahead: { ...state.lookahead, weeks } };
     }
+    case "moveActivity": {
+      const src = state.lookahead.weeks[action.week];
+      const it = src?.items[action.item];
+      if (!it || state.lookahead.weeks[action.to] == null) return state;
+      const moved = { ...it, s: action.s ?? it.s, note: action.note ?? it.note };
+      const weeks =
+        action.to === action.week
+          ? state.lookahead.weeks.map((w, wi) =>
+              wi !== action.week
+                ? w
+                : { ...w, items: w.items.map((x, ii) => (ii !== action.item ? x : moved)) },
+            )
+          : state.lookahead.weeks.map((w, wi) => {
+              if (wi === action.week) return { ...w, items: w.items.filter((_, ii) => ii !== action.item) };
+              if (wi === action.to) return { ...w, items: [...w.items, moved] };
+              return w;
+            });
+      return { ...state, lookahead: { ...state.lookahead, weeks } };
+    }
     case "removeActivity": {
       const weeks = state.lookahead.weeks.map((w, wi) =>
         wi !== action.week ? w : { ...w, items: w.items.filter((_, ii) => ii !== action.item) },
