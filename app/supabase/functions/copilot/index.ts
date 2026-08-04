@@ -9,7 +9,9 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "llama-3.3-70b-versatile";
+// Open-weights reasoning model on Groq's free tier — much stronger at
+// reading the log and understanding intent than llama-3.3-70b.
+const MODEL = "openai/gpt-oss-120b";
 
 Deno.serve(async (req) => {
   const cors = {
@@ -37,12 +39,23 @@ Deno.serve(async (req) => {
       supabase.from("risks").select("title, status, shared_on").eq("project_id", project_id),
       supabase.from("projects").select("milestones, delivery, outlook").eq("id", project_id).single(),
       supabase.from("project_log").select("at, author, kind, body").eq("project_id", project_id)
-        .order("at", { ascending: false }).limit(60),
+        .order("at", { ascending: false }).limit(150),
     ]);
+
+    // The log as readable lines, not raw JSON — models trace history far
+    // better this way, and the timestamp sits right next to the event.
+    const logLines = (logQ.data ?? [])
+      .map((l) => `${String(l.at).slice(0, 16).replace("T", " ")} | ${l.author} | ${l.kind} | ${l.body}`)
+      .join("\n");
+    const today = new Date().toISOString().slice(0, 10);
 
     const system = [
       "You are the Site Copilot inside PMCC's construction console. The site engineer either REPORTS site events in plain, sometimes messy words (typos included), or ASKS about the project.",
-      'If the message is a QUESTION (when/what/who/how/status/history), return ONLY {"answer":"<2-4 sentences>"} — answered strictly from the provided data. The LOG entries carry real timestamps: use them for any "when did X happen" question, quoting the date. If the data does not contain the answer, say so plainly; never guess.',
+      'If the message is a QUESTION (when/what/who/how/status/history — anything seeking information rather than reporting news), return ONLY {"answer":"<2-4 sentences>"}. HOW TO ANSWER:',
+      '- The LOG is the project\'s permanent history, newest first, one event per line: "timestamp | author | kind | text". A line like [Look-ahead: "X" → Completed] is the record that X was marked completed at that line\'s timestamp.',
+      '- For "when did X happen?": find the LOG lines mentioning that item (match loosely — typos, partial names, different word order) and quote the date and time of the newest relevant line, e.g. "It was marked completed on Aug 4 at 14:12 by Nadim."',
+      "- Items may cycle through several states as the team taps (Delayed or Not started lines can appear between others); the NEWEST line for an item is its truth. Older lines are history you may summarize if asked.",
+      "- Answer strictly from the provided data. If the exact fact is not in it, say what IS known (e.g. the item's current state in the LOOKAHEAD) and state plainly that the exact date was not logged. Never guess a date, number, or name.",
       'If the message is a REPORT, return ONLY a JSON object: {"actions": [...]}. Action shapes:',
       '{"kind":"risk","label":"Share a risk: <short title>","detail":"<one line>","title":"<short title>","body":"<what happened, its impact, and mitigation if stated — faithful to the report>"}',
       '{"kind":"outlook","label":"Update the delivery outlook","detail":"<one line>","state":"ontrack|watch|atrisk","note":"<ONE sentence the OWNER reads about delivery impact, keeping any number of days the engineer stated>"}',
@@ -67,23 +80,30 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         temperature: 0.1,
-        max_tokens: 700,
+        max_tokens: 1200,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: system },
           {
             role: "user",
-            content: `LOOKAHEAD: ${JSON.stringify(look.data?.weeks ?? [])}\nRISKS: ${JSON.stringify(risks.data ?? [])}\nMILESTONES: ${JSON.stringify(project.data?.milestones ?? [])}\nDELIVERY: ${project.data?.delivery}\nOUTLOOK: ${JSON.stringify(project.data?.outlook ?? null)}\nLOG (newest first, timestamps are real): ${JSON.stringify(logQ.data ?? [])}\n\nMESSAGE: ${report}`,
+            content: `TODAY: ${today}\nLOOKAHEAD: ${JSON.stringify(look.data?.weeks ?? [])}\nRISKS: ${JSON.stringify(risks.data ?? [])}\nMILESTONES: ${JSON.stringify(project.data?.milestones ?? [])}\nDELIVERY: ${project.data?.delivery}\nOUTLOOK: ${JSON.stringify(project.data?.outlook ?? null)}\nLOG (newest first, timestamps are real):\n${logLines}\n\nMESSAGE: ${report}`,
           },
         ],
       }),
     });
     const out = await res.json();
+    if (out.error) throw new Error(out.error.message ?? "Groq error");
+    const raw = out.choices?.[0]?.message?.content ?? "{}";
     let parsed: { actions?: unknown[]; answer?: string } = {};
     try {
-      parsed = JSON.parse(out.choices?.[0]?.message?.content ?? "{}");
+      parsed = JSON.parse(raw);
     } catch {
-      parsed = {};
+      const m = raw.match(/\{[\s\S]*\}/); // salvage JSON if the model wrapped it in prose
+      try {
+        parsed = m ? JSON.parse(m[0]) : {};
+      } catch {
+        parsed = {};
+      }
     }
 
     return new Response(JSON.stringify({ actions: parsed.actions ?? [], answer: parsed.answer }), {

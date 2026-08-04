@@ -11,7 +11,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = "openai/gpt-oss-120b";
 
 Deno.serve(async (req) => {
   const cors = {
