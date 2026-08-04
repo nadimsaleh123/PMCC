@@ -80,7 +80,13 @@ export function syncAction(action, nextState) {
   }).catch((e) => fail(action.type, e));
 }
 
-/** Create a project server-side, return its meta for the reducer. */
+/**
+ * Create a project server-side. Every project gets its residence (one unit —
+ * the common villa case; more can be added later), and when the client's
+ * name/email are given, their sign-in is pre-authorized and linked to that
+ * unit — the client's first login lands them inside their project with
+ * nothing else to do.
+ */
 export async function createProjectLive(meta) {
   const { data, error } = await sb
     .from("projects")
@@ -96,6 +102,23 @@ export async function createProjectLive(meta) {
       { label: "Week after", range: "—", items: [] },
     ],
   });
+  const unitName = "The Residence";
+  const { data: unit, error: uErr } = await sb
+    .from("units")
+    .insert({ project_id: data.id, name: unitName, level: "", area: "", extras: meta.location })
+    .select("id")
+    .single();
+  if (uErr) throw uErr;
+  if (meta.ownerEmail) {
+    const { error: pErr } = await sb.from("pre_approved").insert({
+      email: meta.ownerEmail.trim().toLowerCase(),
+      role: "owner",
+      full_name: meta.ownerName?.trim() || "Owner",
+      unit_name: unitName,
+      unit_id: unit.id,
+    });
+    if (pErr) throw pErr;
+  }
   return data;
 }
 

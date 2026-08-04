@@ -103,6 +103,8 @@ export function NewProject() {
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [delivery, setDelivery] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
   return (
     <Screen>
       <Back to="/team" label="Console" />
@@ -134,12 +136,45 @@ export function NewProject() {
           className="mt-2 w-full border border-seam bg-transparent px-4 py-3.5 font-sans text-sm text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
         />
       </label>
+
+      <div className="mt-8 border-t border-seam pt-6">
+        <p className="type-eyebrow text-smoke">The client (recommended now, possible later)</p>
+        <p className="mt-2 font-sans text-xs leading-relaxed text-smoke">
+          Their email becomes their key: they sign in with it and land directly inside this
+          project — nothing else to set up.
+        </p>
+        <input
+          value={ownerName}
+          onChange={(e) => setOwnerName(e.target.value)}
+          placeholder="Client's full name"
+          className="mt-3 w-full border border-seam bg-transparent px-4 py-3.5 font-sans text-sm text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
+        />
+        <input
+          value={ownerEmail}
+          onChange={(e) => setOwnerEmail(e.target.value)}
+          type="email"
+          placeholder="client@email.com"
+          className="mt-2 w-full border border-seam bg-transparent px-4 py-3.5 font-sans text-sm text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
+        />
+      </div>
+
       <Btn
         full
         className="mt-6"
-        disabled={!name.trim() || !location.trim() || !delivery.trim()}
+        disabled={
+          !name.trim() ||
+          !location.trim() ||
+          !delivery.trim() ||
+          (ownerEmail.trim() !== "" && (!ownerEmail.includes("@") || !ownerName.trim()))
+        }
         onClick={async () => {
-          const meta = { name: name.trim(), location: location.trim(), delivery: delivery.trim() };
+          const meta = {
+            name: name.trim(),
+            location: location.trim(),
+            delivery: delivery.trim(),
+            ownerName: ownerName.trim(),
+            ownerEmail: ownerEmail.trim(),
+          };
           if (IS_LIVE) {
             try {
               const created = await createProjectLive(meta);
@@ -612,11 +647,13 @@ function InviteForm() {
               return;
             }
             setBusy(true);
+            const chosen = units.find((u) => u.unit === unit);
             const { error } = await sb.from("pre_approved").insert({
               email: email.trim().toLowerCase(),
               role,
               full_name: name.trim(),
               unit_name: role === "owner" ? unit : null,
+              unit_id: role === "owner" ? (chosen?.unitId ?? null) : null,
             });
             setBusy(false);
             if (error) {
