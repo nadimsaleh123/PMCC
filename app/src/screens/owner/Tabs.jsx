@@ -55,13 +55,15 @@ export function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/10 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-5">
             <div className="flex items-center gap-2">
-              <p className="type-eyebrow text-stone">{owner.level}</p>
+              {owner.level && <p className="type-eyebrow text-stone">{owner.level}</p>}
               <Stamp tone="red">Yours</Stamp>
             </div>
             <p className="type-display mt-1 truncate text-2xl text-bone">{owner.unit}</p>
-            <p className="mt-1 font-sans text-xs text-bone/80">
-              {owner.area} · {owner.extras}
-            </p>
+            {(owner.area || owner.extras) && (
+              <p className="mt-1 font-sans text-xs text-bone/80">
+                {[owner.area, owner.extras].filter(Boolean).join(" · ")}
+              </p>
+            )}
           </div>
         </div>
       </Card>

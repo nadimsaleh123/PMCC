@@ -94,6 +94,18 @@ export function Today() {
         <Row icon={Icon.doc} title="Project & programme" meta="Contract, milestones, MS Project / P6 import" onClick={() => nav("/team/project")} />
         <Row icon={Icon.diary} title="Site log" meta="Every report and action, permanently" onClick={() => nav("/team/log")} />
       </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          if (IS_LIVE) sb.auth.signOut();
+          dispatch({ type: "signout" });
+          nav("/signin");
+        }}
+        className="mt-8 flex w-full items-center justify-center gap-2 border border-seam py-3.5 font-sans text-sm text-smoke transition-colors active:border-stone active:text-bone"
+      >
+        <Icon.out className="h-4 w-4" /> Sign out
+      </button>
     </Screen>
   );
 }
@@ -825,6 +837,9 @@ export function OwnersDesk() {
 export function ProjectDesk() {
   const { state, dispatch } = useStore();
   const soldUnits = state.team.owners.filter((o) => o.unitId);
+  // The common case: one owner for the whole project — no selectors, the
+  // app just knows. Selectors appear only when a project truly has several.
+  const single = soldUnits.length === 1 ? soldUnits[0] : null;
   const projectId = state.project.id;
 
   // contract indexing
@@ -847,11 +862,11 @@ export function ProjectDesk() {
   const [outlookState, setOutlookState] = useState(state.project.outlook?.state ?? "ontrack");
   const [outlookNote, setOutlookNote] = useState(state.project.outlook?.note ?? "");
 
-  async function indexContract(text) {
+  async function indexContract(text, unitId = cUnit || single?.unitId) {
     setCBusy(true);
     try {
       const { data, error } = await sb.functions.invoke("index-contract", {
-        body: { unit_id: cUnit, text },
+        body: { unit_id: unitId, text },
       });
       if (error) throw error;
       setCDone(data.clauses);
@@ -870,16 +885,17 @@ export function ProjectDesk() {
   async function onContractPdf(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !cUnit) {
+    const target = cUnit || single?.unitId;
+    if (!file || !target) {
       if (file) alert("Choose the residence first.");
       return;
     }
     setCBusy(true);
     try {
-      const path = await uploadDoc(file, cUnit);
+      const path = await uploadDoc(file, target);
       await sb.from("documents").insert({
         project_id: projectId,
-        unit_id: cUnit,
+        unit_id: target,
         name: "Sale & purchase contract",
         meta: `Uploaded · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
         storage_path: path,
@@ -887,7 +903,7 @@ export function ProjectDesk() {
       const text = await extractPdfText(file);
       if (text.length < 200)
         throw new Error("The PDF has no readable text (it may be a scan) — paste the text below instead.");
-      await indexContract(text);
+      await indexContract(text, target);
     } catch (err) {
       alert(`${err.message ?? err}`);
       setCBusy(false);
@@ -945,11 +961,12 @@ export function ProjectDesk() {
     }
     setDBusy(true);
     try {
-      const folder = dUnit === "shared" ? `shared/${projectId}` : dUnit;
+      const effUnit = single ? single.unitId : dUnit;
+      const folder = effUnit === "shared" ? `shared/${projectId}` : effUnit;
       const path = await uploadDoc(file, folder);
       const { error } = await sb.from("documents").insert({
         project_id: projectId,
-        unit_id: dUnit === "shared" ? null : dUnit,
+        unit_id: effUnit === "shared" ? null : effUnit,
         name: dName.trim(),
         meta: `Uploaded · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
         storage_path: path,
@@ -1003,18 +1020,24 @@ export function ProjectDesk() {
           Paste the contract text for a residence; the AI extracts the clauses that owners ask
           about, and their "Ask PMCC" quotes the document — never memory.
         </p>
-        <select
-          value={cUnit}
-          onChange={(e) => setCUnit(e.target.value)}
-          className="mt-3 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
-        >
-          <option value="">Choose the residence…</option>
-          {soldUnits.map((u) => (
-            <option key={u.unitId} value={u.unitId}>
-              {u.unit} — {u.name}
-            </option>
-          ))}
-        </select>
+        {single ? (
+          <p className="mt-3 font-sans text-xs text-stone">
+            For {single.name} — {single.unit}
+          </p>
+        ) : (
+          <select
+            value={cUnit}
+            onChange={(e) => setCUnit(e.target.value)}
+            className="mt-3 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+          >
+            <option value="">Choose the residence…</option>
+            {soldUnits.map((u) => (
+              <option key={u.unitId} value={u.unitId}>
+                {u.unit} — {u.name}
+              </option>
+            ))}
+          </select>
+        )}
         <label className="mt-2 block cursor-pointer border border-dashed border-seam p-5 text-center transition-colors active:border-stone">
           <input type="file" accept=".pdf" className="hidden" onChange={onContractPdf} />
           <Icon.doc className="mx-auto h-6 w-6 text-stone" />
@@ -1031,7 +1054,7 @@ export function ProjectDesk() {
             placeholder="Paste the contract text here."
             className="mt-2 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-xs text-bone outline-none focus:border-stone"
           />
-          <Btn className="mt-2" disabled={cBusy || !cUnit || cText.trim().length < 200} onClick={() => indexContract(cText)}>
+          <Btn className="mt-2" disabled={cBusy || !(cUnit || single?.unitId) || cText.trim().length < 200} onClick={() => indexContract(cText)}>
             {cBusy ? "Extracting…" : "Extract & index with AI"}
           </Btn>
         </details>
@@ -1088,18 +1111,20 @@ export function ProjectDesk() {
           placeholder="Document name — e.g. Finishes schedule rev B"
           className="mt-3 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
         />
-        <select
-          value={dUnit}
-          onChange={(e) => setDUnit(e.target.value)}
-          className="mt-2 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
-        >
-          <option value="shared">All owners in this project</option>
-          {soldUnits.map((u) => (
-            <option key={u.unitId} value={u.unitId}>
-              Only {u.unit}
-            </option>
-          ))}
-        </select>
+        {!single && (
+          <select
+            value={dUnit}
+            onChange={(e) => setDUnit(e.target.value)}
+            className="mt-2 w-full appearance-none border border-seam bg-coal px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+          >
+            <option value="shared">All owners in this project</option>
+            {soldUnits.map((u) => (
+              <option key={u.unitId} value={u.unitId}>
+                Only {u.unit}
+              </option>
+            ))}
+          </select>
+        )}
         <label className="mt-2 block cursor-pointer border border-dashed border-seam p-4 text-center transition-colors active:border-stone">
           <input type="file" accept=".pdf,image/*" className="hidden" onChange={uploadDocument} />
           <p className="font-sans text-xs text-smoke">{dBusy ? "Uploading…" : "Tap to choose the file"}</p>
