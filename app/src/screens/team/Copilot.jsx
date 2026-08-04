@@ -13,7 +13,12 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "../../store";
 import { Screen, TopBar, Btn, Icon, Back, Card, Stamp } from "../../ui";
 import { IS_LIVE } from "../../lib/supabase";
-import { copilotLive } from "../../live/sync";
+import {
+  copilotLive,
+  fetchOpenQuestions,
+  answerQuestion,
+  dismissQuestion,
+} from "../../live/sync";
 
 /** The model speaks in words ("delayed"); the store speaks in codes. */
 const S_MAP = {
@@ -58,6 +63,13 @@ function fromAI(a) {
       label: a.label,
       detail: a.detail,
       payload: { type: "setOutlook", outlook: { state: a.state ?? "watch", note: a.note ?? a.detail, updated: "today" } },
+    };
+  if (a.kind === "decision")
+    return {
+      kind: "decision",
+      label: a.label,
+      detail: a.detail,
+      payload: { type: "addDecision", decision: { body: a.body ?? a.detail, taskName: a.task || null } },
     };
   return { kind: "note", label: a.label, detail: a.detail, payload: null };
 }
@@ -147,6 +159,7 @@ const KIND_INFO = {
   activity: { tag: "Plan update", tone: "stone", dest: "Owner sees it on their Plan tab" },
   risk: { tag: "Risk", tone: "red", dest: "Owner sees it under More → Risks & notices" },
   outlook: { tag: "Delivery outlook", tone: "stone", dest: "Owner sees it on Home and the Plan" },
+  decision: { tag: "Decision needed", tone: "red", dest: "Logged — feeds the Report's decisions list" },
   note: { tag: "FYI", tone: "smoke", dest: "Only for you — owners see nothing" },
 };
 
@@ -156,16 +169,131 @@ const HINTS = [
   "Stone sample panel stuck — supplier truck held at customs",
 ];
 
+/**
+ * One queued post-ingest question: the task, the exact change, learned
+ * option chips, free text, and an optional owner-facing risk. The answer
+ * becomes the task's logged reason — the WHY joining the WHAT.
+ */
+function QuestionCard({ q, author, onDone, dispatch }) {
+  const [free, setFree] = useState("");
+  const [alsoRisk, setAlsoRisk] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function answer(reason) {
+    if (!reason.trim()) return;
+    setBusy(true);
+    try {
+      await answerQuestion(q, reason.trim(), author);
+      dispatch({
+        type: "log",
+        entry: {
+          id: crypto.randomUUID(),
+          at: "Just now",
+          author,
+          kind: "note",
+          body: `Reason — "${q.task_name}" ${q.change}: ${reason.trim()}.`,
+        },
+      });
+      if (alsoRisk) {
+        dispatch({
+          type: "shareRisk",
+          risk: {
+            id: crypto.randomUUID(),
+            title: `${q.task_name} ${q.change.split(" (")[0]}`,
+            body: `${q.task_name} ${q.change}. Reason: ${reason.trim()}.`,
+            status: "watching",
+            shared: "Today",
+            source: "file-derived",
+            taskUid: q.task_uid,
+            taskName: q.task_name,
+          },
+        });
+      }
+      onDone(q.id);
+    } catch (e) {
+      alert(`Could not save: ${e.message ?? e}`);
+    }
+    setBusy(false);
+  }
+
+  const tone = q.kind === "pull" ? "stone" : "red";
+  return (
+    <Card className="mb-3 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Stamp tone={tone}>{q.kind === "pull" ? "Pulled forward" : q.kind === "dep" ? "Sequence change" : "Slip"}</Stamp>
+          <p className="mt-2 font-sans text-sm font-semibold text-bone">
+            “{q.task_name}” {q.change}
+          </p>
+          <p className="mt-1 font-sans text-xs leading-relaxed text-smoke">
+            Why? The answer is logged as this task's reason.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={async () => {
+            await dismissQuestion(q.id);
+            onDone(q.id);
+          }}
+          aria-label="Dismiss"
+          className="shrink-0 px-1 font-sans text-sm text-smoke/60"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(q.options ?? []).map((o) => (
+          <button
+            key={o}
+            type="button"
+            disabled={busy}
+            onClick={() => answer(o)}
+            className="border border-seam px-3 py-1.5 font-sans text-xs text-bone/85 transition-colors active:border-stone"
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <input
+          value={free}
+          onChange={(e) => setFree(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && answer(free)}
+          placeholder="Or type the reason…"
+          className="min-w-0 flex-1 border border-seam bg-transparent px-3 py-2 font-sans text-xs text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
+        />
+        <Btn tone="ghost" disabled={busy || !free.trim()} onClick={() => answer(free)}>
+          Log
+        </Btn>
+      </div>
+      {q.kind !== "pull" && (
+        <label className="mt-2 flex items-center gap-2 font-sans text-[0.65rem] text-smoke">
+          <input type="checkbox" checked={alsoRisk} onChange={(e) => setAlsoRisk(e.target.checked)} />
+          Also share as a risk to the owner (tagged file-derived)
+        </label>
+      )}
+    </Card>
+  );
+}
+
 export default function Copilot() {
   const { state, dispatch } = useStore();
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [queue, setQueue] = useState([]);
   const bottom = useRef(null);
   const feed = state.copilot ?? [];
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }, [feed.length, thinking]);
+
+  // The proactive queue: material deltas from the last ingest, waiting for
+  // their reasons. Live mode only — the demo has no server queue.
+  useEffect(() => {
+    if (!IS_LIVE || !state.project?.id) return;
+    fetchOpenQuestions(state.project.id).then(setQueue).catch(() => {});
+  }, [state.project?.id]);
 
   async function send(text) {
     const q = text.trim();
@@ -261,6 +389,24 @@ export default function Copilot() {
     <Screen>
       <Back to="/team" label="Console" />
       <TopBar eyebrow="Say it — the copilot drafts the actions" title="Site copilot" />
+      {queue.length > 0 && (
+        <div className="mb-6">
+          <p className="type-eyebrow text-pmcc">
+            From the last import — {queue.length} question{queue.length > 1 ? "s" : ""}
+          </p>
+          <div className="mt-3">
+            {queue.map((q) => (
+              <QuestionCard
+                key={q.id}
+                q={q}
+                author={state.session?.name ?? ""}
+                dispatch={dispatch}
+                onDone={(id) => setQueue((prev) => prev.filter((x) => x.id !== id))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
       {feed.length === 0 && (
         <div className="rise rise-1">
           <p className="font-sans text-sm leading-relaxed text-smoke">

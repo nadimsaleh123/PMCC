@@ -11,6 +11,7 @@ import { Risks, Selections, Variations, Visits, Documents, Questions } from "./s
 import Ask from "./screens/owner/Ask";
 import { Today, Publish, PlanEditor, MoneyDesk, InboxDesk, RisksDesk, OwnersDesk, ProjectDesk, NewProject, LogDesk } from "./screens/team/Console";
 import Copilot from "./screens/team/Copilot";
+import Report from "./screens/team/Report";
 
 function Guard({ role, children }) {
   const { state } = useStore();
@@ -142,6 +143,7 @@ export default function App() {
         <Route path="/team/copilot" element={<Guard role="team"><Copilot /></Guard>} />
         <Route path="/team/new" element={<Guard role="team"><NewProject /></Guard>} />
         <Route path="/team/log" element={<Guard role="team"><LogDesk /></Guard>} />
+        <Route path="/team/report" element={<Guard role="team"><Report /></Guard>} />
 
         <Route path="*" element={<Navigate to={state.session ? (role === "team" ? "/team" : "/") : "/signin"} replace />} />
       </Routes>

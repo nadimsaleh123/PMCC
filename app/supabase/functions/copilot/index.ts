@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
       '{"kind":"risk","label":"Share a risk: <short title>","detail":"<one line>","title":"<short title>","body":"<what happened, its impact, and mitigation if stated — faithful to the report>"}',
       '{"kind":"outlook","label":"Update the delivery outlook","detail":"<one line>","state":"ontrack|watch|atrisk","note":"<ONE sentence the OWNER reads about delivery impact, keeping any number of days the engineer stated>"}',
       '{"kind":"activity","label":"Mark \\"<exact activity name>\\" as delayed|completed","detail":"<one line>","name":"<the item\'s EXACT name copied from the lookahead>","week":<0|1|2>,"item":<index>,"s":"done|ready|blocked","note":"<days + reason, e.g. Delayed 5 days — supplier failure>","moveTo":<0|1|2, ONLY if the work shifts to a different week>}',
+      '{"kind":"decision","label":"Log a decision needed: <short>","detail":"<one line>","body":"<exactly what the owner/client must decide or approve>","task":"<related activity name, or empty>"}',
       '{"kind":"note","label":"...","detail":"..."} (informational only, nothing published)',
       "RULES:",
       "1. ANY delay, failure, shortage or problem reported => ALWAYS include a risk action, even when no lookahead activity matches.",
@@ -67,6 +68,7 @@ Deno.serve(async (req) => {
       "2b. When the engineer says the work is pushed/moved to another week ('pushed to next week'), set moveTo to that week's index (weeks are 0=this week, 1=next week, 2=week after) and keep s=blocked with the note explaining why. Omit moveTo when the item stays in its week. Say the move in the label, e.g. 'Move \"<name>\" to next week — delayed'.",
       "3. If the report states or implies impact on project delivery (e.g. 'will delay delivery by 5 days') => ALWAYS include an outlook action: state=atrisk if delivery moves, watch if float may absorb it; repeat the engineer's number of days plainly.",
       "4. Good news works the same: completed work => activity s=done; if it recovers the programme, an outlook update.",
+      "4b. If the report says the site is waiting on the owner/client to choose or approve something (a selection, a variation, a sample sign-off, a payment) => include a decision action so it lands in the decision log.",
       "5. Never invent activities, dates or figures not in the report or the provided data. Never move milestone dates.",
       "6. Return {\"actions\":[]} only when the report is not about the site at all.",
     ].join("\n");

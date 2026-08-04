@@ -11,7 +11,14 @@ import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Row, Stamp, Btn, Icon, StateDot, StateLegend, Back } from "../../ui";
 import { PHASES, PHOTO_LIBRARY } from "../../data/seed";
 import { IS_LIVE, sb, createAccount, suggestPassword } from "../../lib/supabase";
-import { createProjectLive } from "../../live/sync";
+import {
+  createProjectLive,
+  saveSnapshot,
+  queueQuestions,
+  learnedOptions,
+  fetchReasons,
+  linkRiskToTask,
+} from "../../live/sync";
 import { loadTeam } from "../../live/load";
 import { uploadPhoto, uploadDoc, openDoc } from "../../lib/storage";
 import { parseMSPDI, diffProgramme } from "../../lib/mspdi";
@@ -92,6 +99,7 @@ export function Today() {
         <Row icon={Icon.compass} title="Variations" meta={!hasOwners ? "No owners yet" : offered ? `${offered} awaiting owner decision` : "All settled"} badge={offered} onClick={() => nav("/team/owners")} />
         <Row icon={Icon.home} title="Owners & access" meta="Accounts, read receipts" onClick={() => nav("/team/owners")} />
         <Row icon={Icon.doc} title="Project & programme" meta="Contract, milestones, MS Project / P6 import" onClick={() => nav("/team/project")} />
+        <Row icon={Icon.doc} title="Report" meta="Period roll-up — internal & client flavours" onClick={() => nav("/team/report")} />
         <Row icon={Icon.diary} title="Site log" meta="Every report and action, permanently" onClick={() => nav("/team/log")} />
       </div>
 
@@ -266,9 +274,16 @@ export function Publish() {
   const nav = useNavigate();
   const [text, setText] = useState("");
   const [phase, setPhase] = useState(PHASES[2]);
+  const [linkedActivity, setLinkedActivity] = useState("");
   const [photo, setPhoto] = useState(PHOTO_LIBRARY[0]);
   const [preview, setPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // A photo can be tied to a specific look-ahead activity, or stay general.
+  const activityChoices = [
+    ...new Set(
+      state.lookahead.weeks.slice(0, 2).flatMap((w) => w.items.map((it) => it.t)),
+    ),
+  ].slice(0, 10);
 
   async function onPickPhoto(e) {
     const file = e.target.files?.[0];
@@ -290,6 +305,7 @@ export function Publish() {
     id: crypto.randomUUID(),
     date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
     phase,
+    activity: linkedActivity || null,
     photo,
     text: text.trim(),
   };
@@ -340,6 +356,31 @@ export function Publish() {
               </button>
             ))}
           </div>
+
+          {activityChoices.length > 0 && (
+            <>
+              <p className="type-eyebrow mt-6 text-smoke">Activity (optional)</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLinkedActivity("")}
+                  className={`border px-3 py-1.5 font-sans text-xs transition-colors ${!linkedActivity ? "border-stone text-bone" : "border-seam text-smoke"}`}
+                >
+                  General
+                </button>
+                {activityChoices.map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => setLinkedActivity(a)}
+                    className={`border px-3 py-1.5 font-sans text-xs transition-colors ${linkedActivity === a ? "border-stone text-bone" : "border-seam text-smoke"}`}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           <p className="type-eyebrow mt-6 text-smoke">What happened</p>
           <textarea
@@ -434,9 +475,10 @@ export function PlanEditor() {
                   className="flex min-w-0 flex-1 items-start gap-3 py-2.5 text-left"
                 >
                   <StateDot s={it.s} />
-                  <span className={`font-sans text-sm ${it.s === "done" ? "text-smoke line-through" : "text-bone/90"}`}>
+                  <span className={`min-w-0 flex-1 font-sans text-sm ${it.s === "done" ? "text-smoke line-through" : "text-bone/90"}`}>
                     {it.t}
                   </span>
+                  {it.d && <span className="shrink-0 font-sans text-[0.65rem] tabular-nums text-smoke">{it.d}</span>}
                 </button>
                 <button
                   type="button"
@@ -650,7 +692,14 @@ export function RisksDesk() {
           onClick={() => {
             dispatch({
               type: "shareRisk",
-              risk: { id: crypto.randomUUID(), title: title.trim(), body: body.trim(), status: "watching", shared: "Today" },
+              risk: {
+                id: crypto.randomUUID(),
+                title: title.trim(),
+                body: body.trim(),
+                status: "watching",
+                shared: "Today",
+                source: "manual",
+              },
             });
             dispatch({
               type: "log",
@@ -676,7 +725,13 @@ export function RisksDesk() {
                 </Btn>
               )}
             </div>
-            <p className="mt-1 font-sans text-xs text-smoke">Shared {r.shared}</p>
+            <p className="mt-1 font-sans text-xs text-smoke">
+              Shared {r.shared} ·{" "}
+              <span className={r.source === "file-derived" ? "text-[#D9A441]" : ""}>
+                {r.source === "file-derived" ? "file-derived" : "manual"}
+              </span>
+              {r.taskName ? ` · linked to “${r.taskName}”` : ""}
+            </p>
           </div>
         ))}
       </div>
@@ -883,6 +938,8 @@ export function ProjectDesk() {
   // programme import
   const [parsed, setParsed] = useState(null);
   const [pErr, setPErr] = useState("");
+  // manual risks that look like a slipping task — offered for linking
+  const [riskLinks, setRiskLinks] = useState([]);
   const [applying, setApplying] = useState(false);
 
   // document upload
@@ -972,8 +1029,13 @@ export function ProjectDesk() {
             return old && old.date !== m.date ? `${m.name}: ${old.date} → ${m.date}` : null;
           })
           .filter(Boolean);
-        // The full programme-to-programme truth, against the stored snapshot.
-        p.diff = diffProgramme(state.project.programme?.tasks, p.snapshot);
+        // The full programme-to-programme truth, against the stored snapshot,
+        // classified with this project's materiality threshold.
+        p.diff = diffProgramme(
+          state.project.programme?.tasks,
+          p.snapshot,
+          state.project.thresholdDays ?? 3,
+        );
         setParsed(p);
       } catch (err) {
         setPErr(String(err.message ?? err));
@@ -985,6 +1047,7 @@ export function ProjectDesk() {
   async function applyProgramme() {
     setApplying(true);
     try {
+      let questionCount = 0;
       if (IS_LIVE) {
         const e1 = await sb
           .from("projects")
@@ -1002,6 +1065,66 @@ export function ProjectDesk() {
           updated_at: new Date().toISOString(),
         });
         if (e2.error) throw e2.error;
+
+        // The permanent record: every ingest is a snapshot; the first one
+        // is the baseline.
+        await saveSnapshot(projectId, parsed, !state.project.programme);
+
+        // Material deltas become questions — anchored to the task and the
+        // exact change, with learned option chips. Wobbles under the
+        // threshold are deliberately left alone.
+        if (parsed.diff) {
+          const reasons = await fetchReasons(projectId);
+          const qs = [
+            ...parsed.diff.slipped
+              .filter((s) => s.material)
+              .map((s) => ({
+                taskUid: s.u,
+                taskName: s.n,
+                kind: "slip",
+                change: `moved out ${s.days} day${s.days > 1 ? "s" : ""} (${s.from} → ${s.to})`,
+                options: learnedOptions(reasons, s.u, s.n),
+              })),
+            ...parsed.diff.pulled
+              .filter((s) => s.material)
+              .map((s) => ({
+                taskUid: s.u,
+                taskName: s.n,
+                kind: "pull",
+                change: `pulled forward ${s.days} day${s.days > 1 ? "s" : ""} (${s.from} → ${s.to})`,
+                options: learnedOptions(reasons, s.u, s.n),
+              })),
+            ...parsed.diff.depChanged.map((c) => ({
+              taskUid: c.u,
+              taskName: c.n,
+              kind: "dep",
+              change: `dependencies changed (${c.from} → ${c.to})`,
+              options: ["Resequenced on site", "Design change", "Recovery plan", "Modelling correction"],
+            })),
+          ];
+          questionCount = qs.length;
+          await queueQuestions(projectId, qs);
+
+          // Reconciliation: open manual risks that look like a slipping
+          // task get suggested links, offered in the preview panel.
+          const { data: openRisks } = await sb
+            .from("risks")
+            .select("id, title, task_uid, source")
+            .eq("project_id", projectId)
+            .neq("status", "closed");
+          const unlinked = (openRisks ?? []).filter((r) => r.source === "manual" && !r.task_uid);
+          const words = (s) => new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+          const suggestions = [];
+          for (const r of unlinked) {
+            const rw = words(r.title);
+            for (const sl of parsed.diff.slipped) {
+              const overlap = [...words(sl.n)].filter((w) => rw.has(w)).length;
+              if (overlap >= 1) suggestions.push({ risk: r, task: sl });
+            }
+          }
+          setRiskLinks(suggestions);
+        }
+
         dispatch({ type: "boot", slices: await loadTeam(projectId) });
       }
       dispatch({
@@ -1015,15 +1138,27 @@ export function ProjectDesk() {
             parsed.changes?.length ? ` Milestones moved — ${parsed.changes.join("; ")}.` : " No milestone dates moved."
           }${
             parsed.diff
-              ? ` Activities: ${parsed.diff.moved.length} shifted${
+              ? ` Completed since last: ${parsed.diff.completed.length}${
+                  parsed.diff.completed.length
+                    ? ` (${parsed.diff.completed.map((c) => `${c.n}${c.af ? ` on ${c.af}` : ""}`).join("; ")})`
+                    : ""
+                }. Activities: ${parsed.diff.moved.length} shifted${
                   parsed.diff.moved.length ? ` (${parsed.diff.moved.map((m) => m.text).join("; ")})` : ""
-                }, ${parsed.diff.added.length} added, ${parsed.diff.removed.length} dropped.`
+                }, ${parsed.diff.added.length} added, ${parsed.diff.removed.length} dropped, ${
+                  parsed.diff.depChanged.length
+                } dependency change${parsed.diff.depChanged.length === 1 ? "" : "s"}.`
               : " First import — comparison baseline set."
           }`,
         },
       });
       setParsed(null);
-      alert("Programme applied — milestones and the look-ahead now follow the file.");
+      alert(
+        `Programme applied — milestones and the look-ahead now follow the file.${
+          questionCount
+            ? `\n\n${questionCount} question${questionCount > 1 ? "s" : ""} queued in the Site copilot — answer them to log the reasons.`
+            : ""
+        }`,
+      );
     } catch (e) {
       alert(`Could not apply: ${e.message ?? e}`);
     }
@@ -1115,6 +1250,21 @@ export function ProjectDesk() {
             )}
             {parsed.diff ? (
               <div className="mt-3 space-y-2">
+                {parsed.diff.completed.length > 0 && (
+                  <div>
+                    <p className="font-sans text-[0.65rem] font-semibold uppercase tracking-wideish text-[#55996A]">
+                      Completed since last import ({parsed.diff.completed.length})
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                      {parsed.diff.completed.slice(0, 6).map((c) => (
+                        <li key={c.n} className="font-sans text-xs leading-relaxed text-bone/85">
+                          {c.n}
+                          {c.af ? ` — actual finish ${c.af} (from the file)` : " — finish date from this import"}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {parsed.diff.moved.length > 0 && (
                   <div>
                     <p className="font-sans text-[0.65rem] font-semibold uppercase tracking-wideish text-[#D9A441]">
@@ -1132,25 +1282,40 @@ export function ProjectDesk() {
                         …and {parsed.diff.moved.length - 8} more (all recorded in the log on apply)
                       </p>
                     )}
+                    <p className="mt-1 font-sans text-[0.65rem] leading-relaxed text-smoke">
+                      Moves of {state.project.thresholdDays ?? 3}+ days queue a copilot question on
+                      apply; smaller wobbles are recorded but not asked about.
+                    </p>
                   </div>
+                )}
+                {parsed.diff.depChanged.length > 0 && (
+                  <p className="font-sans text-xs text-bone/85">
+                    <span className="font-semibold uppercase tracking-wideish text-[0.65rem] text-smoke">Dependencies changed:</span>{" "}
+                    {parsed.diff.depChanged.slice(0, 4).map((c) => c.n).join(" · ")}
+                    {parsed.diff.depChanged.length > 4 ? ` · +${parsed.diff.depChanged.length - 4} more` : ""}
+                  </p>
                 )}
                 {parsed.diff.added.length > 0 && (
                   <p className="font-sans text-xs text-bone/85">
                     <span className="font-semibold uppercase tracking-wideish text-[0.65rem] text-smoke">New activities:</span>{" "}
-                    {parsed.diff.added.slice(0, 5).join(" · ")}
+                    {parsed.diff.added.slice(0, 5).map((a) => `${a.n} (${a.s} → ${a.f})`).join(" · ")}
                     {parsed.diff.added.length > 5 ? ` · +${parsed.diff.added.length - 5} more` : ""}
                   </p>
                 )}
                 {parsed.diff.removed.length > 0 && (
                   <p className="font-sans text-xs text-bone/85">
                     <span className="font-semibold uppercase tracking-wideish text-[0.65rem] text-smoke">Dropped:</span>{" "}
-                    {parsed.diff.removed.slice(0, 5).join(" · ")}
+                    {parsed.diff.removed.slice(0, 5).map((r) => r.n).join(" · ")}
                     {parsed.diff.removed.length > 5 ? ` · +${parsed.diff.removed.length - 5} more` : ""}
                   </p>
                 )}
-                {parsed.diff.moved.length === 0 && parsed.diff.added.length === 0 && parsed.diff.removed.length === 0 && (
-                  <p className="font-sans text-xs text-[#55996A]">No activity changes against the last import.</p>
-                )}
+                {parsed.diff.moved.length === 0 &&
+                  parsed.diff.completed.length === 0 &&
+                  parsed.diff.added.length === 0 &&
+                  parsed.diff.removed.length === 0 &&
+                  parsed.diff.depChanged.length === 0 && (
+                    <p className="font-sans text-xs text-[#55996A]">No activity changes against the last import.</p>
+                  )}
               </div>
             ) : (
               <p className="mt-2 font-sans text-[0.65rem] text-smoke">
@@ -1161,6 +1326,40 @@ export function ProjectDesk() {
             <Btn className="mt-3" disabled={applying} onClick={applyProgramme}>
               {applying ? "Applying…" : "Apply to milestones & look-ahead"}
             </Btn>
+          </div>
+        )}
+        {riskLinks.length > 0 && (
+          <div className="mt-4 border-l-2 border-pmcc pl-3">
+            <p className="font-sans text-[0.65rem] font-semibold uppercase tracking-wideish text-pmcc">
+              Manual risks that match a slipping activity
+            </p>
+            {riskLinks.map((s, i) => (
+              <div key={`${s.risk.id}-${s.task.n}`} className="mt-2 flex flex-wrap items-center gap-2">
+                <p className="font-sans text-xs leading-relaxed text-bone/85">
+                  Risk “{s.risk.title}” ↔ “{s.task.n}” (+{s.task.days}d)
+                </p>
+                <Btn
+                  tone="ghost"
+                  onClick={async () => {
+                    try {
+                      await linkRiskToTask(s.risk.id, s.task.u, s.task.n);
+                      setRiskLinks((prev) => prev.filter((_, j) => j !== i));
+                    } catch (e) {
+                      alert(`Could not link: ${e.message ?? e}`);
+                    }
+                  }}
+                >
+                  Link them
+                </Btn>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setRiskLinks([])}
+              className="mt-2 font-sans text-[0.65rem] text-smoke underline underline-offset-2"
+            >
+              Not related — dismiss
+            </button>
           </div>
         )}
       </Card>

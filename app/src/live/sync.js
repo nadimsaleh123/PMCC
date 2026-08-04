@@ -30,6 +30,7 @@ export function syncAction(action, nextState) {
           id: action.entry.id,
           project_id: projectId,
           phase: action.entry.phase,
+          activity: action.entry.activity ?? null,
           photo_url: action.entry.photo,
           body: action.entry.text,
           published: true,
@@ -65,6 +66,16 @@ export function syncAction(action, nextState) {
           title: action.risk.title,
           body: action.risk.body,
           status: action.risk.status,
+          source: action.risk.source ?? "manual",
+          task_uid: action.risk.taskUid ?? null,
+          task_name: action.risk.taskName ?? null,
+        });
+      case "addDecision":
+        return sb.from("decisions").insert({
+          project_id: projectId,
+          body: action.decision.body,
+          task_uid: action.decision.taskUid ?? null,
+          task_name: action.decision.taskName ?? null,
         });
       case "closeRisk":
         return sb.from("risks").update({ status: "closed" }).eq("id", action.id);
@@ -144,6 +155,127 @@ export async function copilotLive(report, projectId) {
   const { data, error } = await sb.functions.invoke("copilot", { body: { report, project_id: projectId } });
   if (error) throw error;
   return data; // {actions} for reports, {answer} for questions
+}
+
+/* ------------------------------------------------------------------ */
+/* The programme engine: snapshots, questions, reasons, decisions.     */
+
+/** Append this ingest's full parsed state to the permanent history. */
+export async function saveSnapshot(projectId, parsed, isBaseline) {
+  const { error } = await sb.from("programme_snapshots").insert({
+    project_id: projectId,
+    source: "manual",
+    is_baseline: isBaseline,
+    task_count: parsed.taskCount,
+    overall: parsed.overall,
+    tasks: parsed.snapshot,
+  });
+  if (error) throw error;
+}
+
+export const BASE_REASONS = [
+  "Material delivery",
+  "Labour availability",
+  "Design change",
+  "Permit / approvals",
+  "Weather",
+  "Client decision pending",
+];
+
+/**
+ * Option chips for a question, learned: reasons already logged for this
+ * task lead, then the project's most frequent, then the base list.
+ */
+export function learnedOptions(reasons, taskUid, taskName) {
+  const freq = new Map();
+  const taskFreq = new Map();
+  for (const r of reasons ?? []) {
+    freq.set(r.reason, (freq.get(r.reason) ?? 0) + 1);
+    if ((taskUid && r.task_uid === taskUid) || r.task_name === taskName) {
+      taskFreq.set(r.reason, (taskFreq.get(r.reason) ?? 0) + 1);
+    }
+  }
+  const rank = (o) => (taskFreq.get(o) ?? 0) * 1000 + (freq.get(o) ?? 0);
+  const seen = new Set();
+  const all = [...taskFreq.keys(), ...freq.keys(), ...BASE_REASONS].filter((o) => {
+    const k = o.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return all.sort((a, b) => rank(b) - rank(a)).slice(0, 6);
+}
+
+/** Queue the post-ingest questions — one per material delta. */
+export async function queueQuestions(projectId, rows) {
+  if (!rows.length) return;
+  const { error } = await sb.from("copilot_questions").insert(
+    rows.map((q) => ({
+      project_id: projectId,
+      task_uid: q.taskUid ?? null,
+      task_name: q.taskName,
+      kind: q.kind,
+      change: q.change,
+      options: q.options,
+    })),
+  );
+  if (error) throw error;
+}
+
+export async function fetchOpenQuestions(projectId) {
+  const { data, error } = await sb
+    .from("copilot_questions")
+    .select("*")
+    .eq("project_id", projectId)
+    .eq("status", "open")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** The answer becomes the task's logged reason; the question closes. */
+export async function answerQuestion(q, reason, author) {
+  const { error: rErr } = await sb.from("task_reasons").insert({
+    project_id: q.project_id,
+    task_uid: q.task_uid,
+    task_name: q.task_name,
+    reason,
+    change: q.change,
+    author,
+  });
+  if (rErr) throw rErr;
+  const { error } = await sb.from("copilot_questions").update({ status: "answered" }).eq("id", q.id);
+  if (error) throw error;
+}
+
+export async function dismissQuestion(id) {
+  await sb.from("copilot_questions").update({ status: "dismissed" }).eq("id", id);
+}
+
+export async function fetchReasons(projectId) {
+  const { data } = await sb
+    .from("task_reasons")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("at", { ascending: false })
+    .limit(400);
+  return data ?? [];
+}
+
+/** Connect a manual risk to the task an ingest showed slipping. */
+export async function linkRiskToTask(riskId, taskUid, taskName) {
+  const { error } = await sb
+    .from("risks")
+    .update({ task_uid: taskUid ?? null, task_name: taskName })
+    .eq("id", riskId);
+  if (error) throw error;
+}
+
+export async function decideDecision(id) {
+  await sb
+    .from("decisions")
+    .update({ status: "decided", decided_at: new Date().toISOString() })
+    .eq("id", id);
 }
 
 /**

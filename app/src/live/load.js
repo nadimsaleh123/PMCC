@@ -27,6 +27,7 @@ function mapProject(row) {
         milestones: row.milestones ?? [],
         outlook: row.outlook ?? null,
         programme: row.programme ?? null,
+        thresholdDays: row.threshold_days ?? 3,
       }
     : null;
 }
@@ -37,6 +38,7 @@ function mapContent({ diary, lookahead, risks, questions }) {
       id: d.id,
       date: fmtDate(d.entry_date),
       phase: d.phase,
+      activity: d.activity ?? null,
       photo: d.photo_url,
       text: d.body,
     })),
@@ -49,6 +51,8 @@ function mapContent({ diary, lookahead, risks, questions }) {
       body: r.body,
       status: r.status,
       shared: fmtDate(r.shared_on),
+      source: r.source ?? "manual",
+      taskName: r.task_name ?? null,
     })),
     questions: (questions ?? []).map((q) => ({
       id: q.id,

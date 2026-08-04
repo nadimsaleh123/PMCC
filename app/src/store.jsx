@@ -222,6 +222,10 @@ function reducer(state, action) {
       };
     case "shareRisk":
       return { ...state, risks: [action.risk, ...state.risks] };
+    // Decisions live server-side (the Report reads them); the reducer only
+    // needs to let the action through to the sync layer.
+    case "addDecision":
+      return state;
     case "closeRisk":
       return {
         ...state,

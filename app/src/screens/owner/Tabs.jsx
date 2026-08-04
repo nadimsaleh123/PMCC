@@ -152,6 +152,9 @@ export function Diary() {
               <p className="type-eyebrow text-stone">{d.date}</p>
               <Stamp tone="stone">{d.phase}</Stamp>
             </div>
+            {d.activity && (
+              <p className="mt-1.5 font-sans text-[0.65rem] uppercase tracking-wideish text-smoke">{d.activity}</p>
+            )}
             <p className="mt-2.5 font-sans text-sm leading-relaxed text-bone/90">{d.text}</p>
           </div>
         </Card>
@@ -193,10 +196,11 @@ export function Plan() {
             {w.items.map((it) => (
               <li key={it.t} className="flex items-start gap-3 border-t border-seam pt-3 first:border-t-0 first:pt-0">
                 <StateDot s={it.s} />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className={`font-sans text-sm ${it.s === "done" ? "text-smoke line-through" : "text-bone/90"}`}>{it.t}</p>
                   {it.note && <p className="mt-0.5 font-sans text-xs text-smoke">{it.note}</p>}
                 </div>
+                {it.d && <span className="shrink-0 font-sans text-[0.65rem] tabular-nums text-smoke">{it.d}</span>}
               </li>
             ))}
           </ul>
