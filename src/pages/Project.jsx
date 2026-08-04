@@ -119,16 +119,18 @@ function Introduction() {
         </Fade>
         <div className="mx-auto mt-10 max-w-3xl">
           {stack.map((f, i) => (
-            <Fade key={f.id} className={`mx-auto w-full ${widths[i]} ${i ? "-mt-px" : ""}`}>
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border border-seam bg-coal px-5 py-4 transition-colors duration-300 hover:border-stone sm:gap-x-6 sm:px-7 sm:py-5">
-                <span className="type-display text-lg text-bone sm:text-xl">{f.level}</span>
-                <span className="ml-auto flex shrink-0 items-baseline gap-5 font-sans text-xs tabular-nums sm:gap-7">
-                  <span>
-                    <span className="mr-1.5 text-[0.6rem] uppercase tracking-wideish text-stone">Indoor</span>
+            <Fade key={f.id} className={`ml-auto w-full ${widths[i]} ${i ? "-mt-px" : ""}`}>
+              {/* All rows share the right edge, and the two value cells have
+                  fixed widths — so Indoor and Garden stack perfectly. */}
+              <div className="flex items-baseline gap-x-3 border border-seam bg-coal px-4 py-4 transition-colors duration-300 hover:border-stone sm:px-7 sm:py-5">
+                <span className="type-display truncate text-lg text-bone sm:text-xl">{f.level}</span>
+                <span className="ml-auto flex shrink-0 items-baseline gap-4 font-sans text-xs tabular-nums sm:gap-8">
+                  <span className="flex w-[6.4rem] items-baseline justify-between sm:w-[7.5rem]">
+                    <span className="text-[0.6rem] uppercase tracking-wideish text-stone">Indoor</span>
                     <span className="text-bone/90">{spec(f, "Area")}</span>
                   </span>
-                  <span>
-                    <span className="mr-1.5 text-[0.6rem] uppercase tracking-wideish text-stone">Garden</span>
+                  <span className="flex w-[6rem] items-baseline justify-between sm:w-[7rem]">
+                    <span className="text-[0.6rem] uppercase tracking-wideish text-stone">Garden</span>
                     <span className="text-bone/90">{spec(f, "Garden")}</span>
                   </span>
                 </span>
