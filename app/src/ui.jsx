@@ -205,9 +205,79 @@ export function Ring({ pct, size = 148, label = "complete" }) {
   );
 }
 
+/**
+ * The colour language, stated once: stone = completed, bone = on track,
+ * red = delayed. Red is reserved for the thing that needs eyes.
+ */
+export const STATE_META = {
+  done: { dot: "bg-stone", label: "Completed" },
+  ready: { dot: "bg-bone/70", label: "On track" },
+  blocked: { dot: "bg-pmcc", label: "Delayed" },
+};
+
 export function StateDot({ s }) {
-  const map = { done: "bg-stone", ready: "bg-pmcc", blocked: "bg-smoke/40" };
-  return <span className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${map[s]}`} />;
+  return <span className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${STATE_META[s]?.dot ?? "bg-smoke/40"}`} />;
+}
+
+export function StateLegend() {
+  return (
+    <div className="flex items-center gap-5 font-sans text-[0.65rem] uppercase tracking-wideish text-smoke">
+      {Object.entries(STATE_META).map(([k, m]) => (
+        <span key={k} className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${m.dot}`} /> {m.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The programme, drawn: milestone diamonds on a single time band, the built
+ * span in stone, the road ahead in seam, today as a hairline. Simple on
+ * purpose — an owner reads this in three seconds.
+ */
+export function Gantt({ milestones }) {
+  const dated = milestones
+    .map((m) => ({ ...m, t: new Date(m.date).getTime() }))
+    .filter((m) => !Number.isNaN(m.t));
+  if (dated.length < 2) return null;
+  const min = dated[0].t;
+  const max = dated[dated.length - 1].t;
+  const span = max - min || 1;
+  const x = (t) => 4 + ((t - min) / span) * 92; // % with margins
+  const now = Date.now();
+  const lastDone = [...dated].reverse().find((m) => m.done);
+  return (
+    <div>
+      <svg viewBox="0 0 100 16" className="w-full" preserveAspectRatio="none" aria-hidden>
+        <line x1="4" y1="8" x2="96" y2="8" stroke="#2A2722" strokeWidth="1.6" />
+        {lastDone && (
+          <line x1="4" y1="8" x2={x(lastDone.t)} y2="8" stroke="#C9BBA2" strokeWidth="1.6" />
+        )}
+        {now >= min && now <= max && (
+          <line x1={x(now)} y1="2" x2={x(now)} y2="14" stroke="#C8102E" strokeWidth="0.5" />
+        )}
+        {dated.map((m) => (
+          <rect
+            key={m.name}
+            x={x(m.t) - 1.1}
+            y={8 - 1.1 * 2.2}
+            width="2.2"
+            height="4.84"
+            transform={`rotate(45 ${x(m.t)} 8)`}
+            fill={m.done ? "#C9BBA2" : m.next ? "#C8102E" : "#171512"}
+            stroke={m.done ? "#C9BBA2" : m.next ? "#C8102E" : "#8F887C"}
+            strokeWidth="0.4"
+          />
+        ))}
+      </svg>
+      <div className="mt-1 flex justify-between font-sans text-[0.6rem] uppercase tracking-wideish text-smoke">
+        <span>{dated[0].date}</span>
+        <span className="text-pmcc">today</span>
+        <span>{dated[dated.length - 1].date}</span>
+      </div>
+    </div>
+  );
 }
 
 /* ---------- navigation ---------- */

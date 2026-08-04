@@ -43,8 +43,9 @@ Deno.serve(async (req) => {
       "Return ONLY a JSON object: {\"actions\": [...]}. Each action is one of:",
       '{"kind":"activity","label":"...","detail":"...","week":<0|1|2>,"item":<index>,"s":"done|ready|blocked","note":"..."}',
       '{"kind":"risk","label":"...","detail":"...","title":"...","body":"..."}',
-      '{"kind":"note","label":"...","detail":"..."}  (informational only, e.g. milestone impact assessment)',
-      "Match activities to the provided lookahead weeks/items by meaning; use exact indices. If a delay is reported, propose the activity state change AND a risk. Assess milestone impact honestly in a note — never move dates yourself.",
+      '{"kind":"note","label":"...","detail":"..."}  (informational only)',
+      '{"kind":"outlook","label":"Update the delivery outlook","detail":"...","state":"ontrack|watch|atrisk","note":"one sentence the OWNER will read about delivery impact, e.g. A 3-day slip is absorbed in float — delivery unchanged."}',
+      "Match activities to the provided lookahead weeks/items by meaning; use exact indices. If a delay is reported: propose the activity state change (s=blocked means delayed), a risk, AND an outlook action assessing the delivery impact honestly against the milestones and stated delivery. Never move milestone dates yourself.",
       "Never invent activities that are not in the lookahead; if nothing matches, return {\"actions\":[]}.",
     ].join("\n");
 

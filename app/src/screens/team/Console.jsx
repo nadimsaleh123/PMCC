@@ -8,13 +8,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
-import { Screen, TopBar, Card, Row, Stamp, Btn, Icon, StateDot, Back } from "../../ui";
+import { Screen, TopBar, Card, Row, Stamp, Btn, Icon, StateDot, StateLegend, Back } from "../../ui";
 import { PHASES, PHOTO_LIBRARY } from "../../data/seed";
 import { IS_LIVE, sb, createAccount, suggestPassword } from "../../lib/supabase";
 import { createProjectLive } from "../../live/sync";
 import { loadTeam } from "../../live/load";
 import { uploadPhoto, uploadDoc, openDoc } from "../../lib/storage";
 import { parseMSPDI } from "../../lib/mspdi";
+import { extractPdfText } from "../../lib/pdf";
 
 /* ------------------------------------------------ Today (dashboard) */
 export function Today() {
@@ -91,7 +92,42 @@ export function Today() {
         <Row icon={Icon.compass} title="Variations" meta={!hasOwners ? "No owners yet" : offered ? `${offered} awaiting owner decision` : "All settled"} badge={offered} onClick={() => nav("/team/owners")} />
         <Row icon={Icon.home} title="Owners & units" meta="Access, read receipts, invitations" onClick={() => nav("/team/owners")} />
         <Row icon={Icon.doc} title="Project & programme" meta="Contract, milestones, MS Project / P6 import" onClick={() => nav("/team/project")} />
+        <Row icon={Icon.diary} title="Site log" meta="Every report and action, permanently" onClick={() => nav("/team/log")} />
       </div>
+    </Screen>
+  );
+}
+
+/* ------------------------------------------------ Site log */
+export function LogDesk() {
+  const { state } = useStore();
+  const KINDS = { report: "stone", action: "smoke", risk: "red", publish: "stone", note: "smoke" };
+  return (
+    <Screen>
+      <Back to="/team" label="Console" />
+      <TopBar eyebrow="The project's memory — nothing here is ever lost" title="Site log" />
+      {(state.log ?? []).length === 0 && (
+        <p className="font-sans text-sm leading-relaxed text-smoke">
+          Empty so far. Every copilot report, applied action and published update lands here with
+          its timestamp — the contemporaneous record of how this building was built.
+        </p>
+      )}
+      {(state.log ?? []).map((l) => (
+        <div key={l.id} className="border-b border-seam py-3.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <Stamp tone={KINDS[l.kind] ?? "smoke"}>{l.kind}</Stamp>
+            <p className="font-sans text-[0.65rem] tabular-nums text-smoke">
+              {l.at}
+              {l.author ? ` · ${l.author}` : ""}
+            </p>
+          </div>
+          <p className="mt-2 font-sans text-sm leading-relaxed text-bone/90">{l.body}</p>
+        </div>
+      ))}
+      <p className="mt-6 pb-4 font-sans text-xs leading-relaxed text-smoke">
+        The chatbot and the copilot draw on this record — the more the site reports, the smarter
+        every answer gets.
+      </p>
     </Screen>
   );
 }
@@ -322,6 +358,10 @@ export function Publish() {
               full
               onClick={() => {
                 dispatch({ type: "publish", entry });
+                dispatch({
+                  type: "log",
+                  entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "publish", body: `Update published (${entry.phase}): ${entry.text.slice(0, 120)}` },
+                });
                 nav("/team");
               }}
             >
@@ -349,7 +389,10 @@ export function PlanEditor() {
   return (
     <Screen>
       <Back to="/team" label="Console" />
-      <TopBar eyebrow="Tap a task to cycle done → planned → waiting" title="Look-ahead" />
+      <TopBar eyebrow="Tap a task to cycle completed → on track → delayed" title="Look-ahead" />
+      <div className="mb-4 px-1">
+        <StateLegend />
+      </div>
       {state.lookahead.weeks.map((w, wi) => (
         <Card key={w.label} className="mb-4 p-5">
           <div className="flex items-baseline justify-between">
@@ -561,6 +604,10 @@ export function RisksDesk() {
             dispatch({
               type: "shareRisk",
               risk: { id: crypto.randomUUID(), title: title.trim(), body: body.trim(), status: "watching", shared: "Today" },
+            });
+            dispatch({
+              type: "log",
+              entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "risk", body: `Risk shared: ${title.trim()}` },
             });
             setTitle("");
             setBody("");
@@ -796,19 +843,55 @@ export function ProjectDesk() {
   const [dUnit, setDUnit] = useState("shared");
   const [dBusy, setDBusy] = useState(false);
 
-  async function indexContract() {
+  // delivery outlook
+  const [outlookState, setOutlookState] = useState(state.project.outlook?.state ?? "ontrack");
+  const [outlookNote, setOutlookNote] = useState(state.project.outlook?.note ?? "");
+
+  async function indexContract(text) {
     setCBusy(true);
     try {
       const { data, error } = await sb.functions.invoke("index-contract", {
-        body: { unit_id: cUnit, text: cText },
+        body: { unit_id: cUnit, text },
       });
       if (error) throw error;
       setCDone(data.clauses);
       setCText("");
+      dispatch({
+        type: "log",
+        entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "note", body: "Contract indexed into the chat brain." },
+      });
     } catch (e) {
       alert(`Indexing failed: ${e.message ?? e}`);
     }
     setCBusy(false);
+  }
+
+  /** The whole pipeline from one tap: store the PDF, read it, index it. */
+  async function onContractPdf(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !cUnit) {
+      if (file) alert("Choose the residence first.");
+      return;
+    }
+    setCBusy(true);
+    try {
+      const path = await uploadDoc(file, cUnit);
+      await sb.from("documents").insert({
+        project_id: projectId,
+        unit_id: cUnit,
+        name: "Sale & purchase contract",
+        meta: `Uploaded · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+        storage_path: path,
+      });
+      const text = await extractPdfText(file);
+      if (text.length < 200)
+        throw new Error("The PDF has no readable text (it may be a scan) — paste the text below instead.");
+      await indexContract(text);
+    } catch (err) {
+      alert(`${err.message ?? err}`);
+      setCBusy(false);
+    }
   }
 
   function onProgrammeFile(e) {
@@ -932,22 +1015,69 @@ export function ProjectDesk() {
             </option>
           ))}
         </select>
-        <textarea
-          rows={4}
-          value={cText}
-          onChange={(e) => setCText(e.target.value)}
-          placeholder="Open the contract PDF, select all, copy — paste here."
-          className="mt-2 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-xs text-bone outline-none focus:border-stone"
-        />
-        <Btn className="mt-3" disabled={cBusy || !cUnit || cText.trim().length < 200} onClick={indexContract}>
-          {cBusy ? "Extracting…" : "Extract & index with AI"}
-        </Btn>
+        <label className="mt-2 block cursor-pointer border border-dashed border-seam p-5 text-center transition-colors active:border-stone">
+          <input type="file" accept=".pdf" className="hidden" onChange={onContractPdf} />
+          <Icon.doc className="mx-auto h-6 w-6 text-stone" />
+          <p className="mt-2 font-sans text-xs text-smoke">
+            {cBusy ? "Reading & indexing…" : "Tap to upload the contract PDF — stored, read, and indexed in one go"}
+          </p>
+        </label>
+        <details className="mt-2">
+          <summary className="cursor-pointer font-sans text-xs text-smoke">Scanned PDF? Paste the text instead</summary>
+          <textarea
+            rows={4}
+            value={cText}
+            onChange={(e) => setCText(e.target.value)}
+            placeholder="Paste the contract text here."
+            className="mt-2 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-xs text-bone outline-none focus:border-stone"
+          />
+          <Btn className="mt-2" disabled={cBusy || !cUnit || cText.trim().length < 200} onClick={() => indexContract(cText)}>
+            {cBusy ? "Extracting…" : "Extract & index with AI"}
+          </Btn>
+        </details>
         {cDone && (
           <p className="mt-3 border-l-2 border-stone pl-3 font-sans text-xs leading-relaxed text-bone/85">
             Indexed. Delivery clause reads: “{cDone.deliveryClause}” — the owner's chatbot now
             quotes this document.
           </p>
         )}
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <p className="type-eyebrow text-smoke">Delivery outlook — the line owners see</p>
+        <div className="mt-3 flex gap-2">
+          {[["ontrack", "On track"], ["watch", "Watching"], ["atrisk", "At risk"]].map(([k, l]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setOutlookState(k)}
+              className={`flex-1 border px-2 py-2 font-sans text-xs uppercase tracking-wideish ${outlookState === k ? "border-stone text-bone" : "border-seam text-smoke"}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        <textarea
+          rows={2}
+          value={outlookNote}
+          onChange={(e) => setOutlookNote(e.target.value)}
+          placeholder={`e.g. On track — delivery ${state.project.delivery}. Two weeks of float in hand.`}
+          className="mt-2 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
+        />
+        <Btn
+          className="mt-2"
+          disabled={!outlookNote.trim()}
+          onClick={() => {
+            dispatch({ type: "setOutlook", outlook: { state: outlookState, note: outlookNote.trim(), updated: "today" } });
+            dispatch({
+              type: "log",
+              entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "note", body: `Delivery outlook set (${outlookState}): ${outlookNote.trim()}` },
+            });
+            alert("Outlook updated — owners see it on Home and the Plan.");
+          }}
+        >
+          Publish outlook
+        </Btn>
       </Card>
 
       <Card className="mt-4 p-5">

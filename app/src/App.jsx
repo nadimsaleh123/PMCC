@@ -9,7 +9,7 @@ import SignIn from "./screens/SignIn";
 import { Home, Diary, Plan, Money, More } from "./screens/owner/Tabs";
 import { Risks, Selections, Variations, Visits, Documents, Questions } from "./screens/owner/Sub";
 import Ask from "./screens/owner/Ask";
-import { Today, Publish, PlanEditor, MoneyDesk, InboxDesk, RisksDesk, OwnersDesk, ProjectDesk, NewProject } from "./screens/team/Console";
+import { Today, Publish, PlanEditor, MoneyDesk, InboxDesk, RisksDesk, OwnersDesk, ProjectDesk, NewProject, LogDesk } from "./screens/team/Console";
 import Copilot from "./screens/team/Copilot";
 
 function Guard({ role, children }) {
@@ -141,6 +141,7 @@ export default function App() {
         <Route path="/team/project" element={<Guard role="team"><ProjectDesk /></Guard>} />
         <Route path="/team/copilot" element={<Guard role="team"><Copilot /></Guard>} />
         <Route path="/team/new" element={<Guard role="team"><NewProject /></Guard>} />
+        <Route path="/team/log" element={<Guard role="team"><LogDesk /></Guard>} />
 
         <Route path="*" element={<Navigate to={state.session ? (role === "team" ? "/team" : "/") : "/signin"} replace />} />
       </Routes>

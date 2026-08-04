@@ -6,7 +6,23 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
-import { Screen, TopBar, Card, Row, Stamp, Ring, StateDot, Icon, Btn } from "../../ui";
+import { Screen, TopBar, Card, Row, Stamp, Ring, StateDot, StateLegend, Gantt, Icon, Btn } from "../../ui";
+
+/** The one-line answer to "are we late?" — set by the team, seen by all. */
+function OutlookLine({ project, className = "" }) {
+  const o = project.outlook;
+  const tone = { ontrack: "bg-stone", watch: "bg-bone/70", atrisk: "bg-pmcc" }[o?.state] ?? "bg-stone";
+  const text = o?.note ?? `On track — delivery ${project.delivery}.`;
+  return (
+    <p className={`flex items-start gap-3 font-sans text-xs leading-relaxed text-bone/85 ${className}`}>
+      <span className={`mt-1 inline-block h-2 w-2 shrink-0 rounded-full ${tone}`} />
+      <span>
+        <span className="font-semibold uppercase tracking-wideish text-smoke">Delivery outlook · </span>
+        {text}
+      </span>
+    </p>
+  );
+}
 import { IS_LIVE, sb } from "../../lib/supabase";
 import { openDoc } from "../../lib/storage";
 
@@ -71,9 +87,9 @@ export function Home() {
         {nextMilestone && (
           <p className="mt-4 border-t border-seam pt-3 font-sans text-xs text-smoke">
             Next milestone — <span className="text-bone">{nextMilestone.name}</span> · {nextMilestone.date}.
-            Delivery {project.delivery}.
           </p>
         )}
+        <OutlookLine project={project} className="mt-3 border-t border-seam pt-3" />
       </Card>
 
       {/* This week */}
@@ -179,13 +195,23 @@ export function Plan() {
           </ul>
         </Card>
       ))}
-      <div className="mb-2 flex items-center gap-5 px-1 font-sans text-[0.65rem] uppercase tracking-wideish text-smoke">
-        <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-stone" /> Done</span>
-        <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-pmcc" /> Planned</span>
-        <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-smoke/40" /> Waiting</span>
+      <div className="mb-4 px-1">
+        <StateLegend />
       </div>
-      <p className="px-1 pb-4 font-sans text-xs leading-relaxed text-smoke">
-        Drawn from the site programme · updated {lookahead.updated}. Delivery {project.delivery}.
+
+      <Card className="p-5">
+        <div className="flex items-baseline justify-between">
+          <p className="type-eyebrow text-smoke">The road to your keys</p>
+          <p className="font-sans text-xs text-stone">{project.delivery}</p>
+        </div>
+        <div className="mt-4">
+          <Gantt milestones={project.milestones} />
+        </div>
+        <OutlookLine project={project} className="mt-4 border-t border-seam pt-3" />
+      </Card>
+
+      <p className="mt-4 px-1 pb-4 font-sans text-xs leading-relaxed text-smoke">
+        Drawn from the site programme · updated {lookahead.updated}.
       </p>
     </Screen>
   );

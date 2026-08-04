@@ -25,6 +25,7 @@ function mapProject(row) {
         overall: row.overall ?? 0,
         phases: row.phases ?? [],
         milestones: row.milestones ?? [],
+        outlook: row.outlook ?? null,
       }
     : null;
 }
@@ -189,6 +190,12 @@ export async function loadTeam(projectId) {
   const sold = (units ?? []).find((u) => u.owner_id);
   const world = sold ? await loadUnitWorld(sold) : { payments: [], selections: [], variations: [], contract: null };
   const vd = await loadVisitsDocs(active.id, sold?.id);
+  const { data: logRows } = await sb
+    .from("project_log")
+    .select("*")
+    .eq("project_id", active.id)
+    .order("at", { ascending: false })
+    .limit(80);
   return {
     activeProjectId: active.id,
     projectsMeta: projects.map((p) => ({ id: p.id, name: p.name })),
@@ -213,6 +220,13 @@ export async function loadTeam(projectId) {
     selections: world.selections,
     variations: world.variations,
     ...vd,
+    log: (logRows ?? []).map((l) => ({
+      id: l.id,
+      at: new Date(l.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      author: l.author,
+      kind: l.kind,
+      body: l.body,
+    })),
     team: {
       members: [],
       owners: (units ?? []).map((u) => ({

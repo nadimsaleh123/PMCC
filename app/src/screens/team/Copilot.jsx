@@ -34,6 +34,13 @@ function fromAI(a) {
         risk: { id: crypto.randomUUID(), title: a.title, body: a.body, status: "watching", shared: "Today" },
       },
     };
+  if (a.kind === "outlook")
+    return {
+      kind: "outlook",
+      label: a.label,
+      detail: a.detail,
+      payload: { type: "setOutlook", outlook: { state: a.state ?? "watch", note: a.note ?? a.detail, updated: "today" } },
+    };
   return { kind: "note", label: a.label, detail: a.detail, payload: null };
 }
 
@@ -80,7 +87,7 @@ function propose(msg, state) {
     const note = `Delayed${delayDays ? ` ${delayDays} day${delayDays > 1 ? "s" : ""}` : ""}${reason ? ` — ${reason}` : ""}`;
     acts.push({
       kind: "activity",
-      label: `Set "${hit.it.t}" to waiting`,
+      label: `Mark "${hit.it.t}" as delayed`,
       detail: `Plan note: "${note}"`,
       payload: { type: "setActivity", week: hit.week, item: hit.item, s: "blocked", note },
     });
@@ -105,12 +112,13 @@ function propose(msg, state) {
       },
     });
   }
-  if (delay && delayDays && !acts.some((a) => a.kind === "milestone")) {
+  if (delay && delayDays) {
+    const note = `A ${delayDays}-day slip is being absorbed in programme float — delivery ${state.project.delivery} unchanged.`;
     acts.push({
-      kind: "note",
-      label: "Milestones unchanged",
-      detail: `A ${delayDays}-day slip sits inside the programme float — no owner-facing dates move. If float runs out, re-import the programme and the dates update everywhere.`,
-      payload: null,
+      kind: "outlook",
+      label: "Update the delivery outlook",
+      detail: `Owners will see: "${note}"`,
+      payload: { type: "setOutlook", outlook: { state: "watch", note, updated: "today" } },
     });
   }
   return acts;
@@ -138,6 +146,11 @@ export default function Copilot() {
     if (!q) return;
     setInput("");
     dispatch({ type: "copilot", messages: [{ role: "user", text: q }] });
+    // The report itself is site history — into the permanent log, verbatim.
+    dispatch({
+      type: "log",
+      entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "report", body: q },
+    });
     setThinking(true);
 
     let actions;
@@ -168,6 +181,10 @@ export default function Copilot() {
     const m = feed[mi];
     const a = m.actions[ai];
     if (a.payload) dispatch(a.payload);
+    dispatch({
+      type: "log",
+      entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "action", body: a.label },
+    });
     // record the application on the message itself
     const updated = feed.map((msg, i) =>
       i !== mi ? msg : { ...msg, applied: [...(msg.applied ?? []), ai] },

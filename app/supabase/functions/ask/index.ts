@@ -35,23 +35,27 @@ Deno.serve(async (req) => {
 
     // Everything below runs under the owner's own RLS — the model can only
     // ever see what this owner is entitled to see.
-    const [unit, project, diaryQ, look, risksQ, paymentsQ, contractQ] = await Promise.all([
+    const [unit, project, diaryQ, look, risksQ, paymentsQ, contractQ, selQ, varQ] = await Promise.all([
       supabase.from("units").select("*").limit(1).single(),
       supabase.from("projects").select("*").limit(1).single(),
-      supabase.from("diary").select("entry_date, phase, body").order("entry_date", { ascending: false }).limit(8),
+      supabase.from("diary").select("entry_date, phase, body").order("entry_date", { ascending: false }).limit(10),
       supabase.from("lookahead").select("weeks, updated_at").limit(1).maybeSingle(),
       supabase.from("risks").select("title, body, status, shared_on"),
       supabase.from("payments").select("name, milestone, amount, state, paid_on").order("ord"),
       supabase.from("contract_index").select("clauses").maybeSingle(),
+      supabase.from("selections").select("title, state, chosen_name, due, decided_on"),
+      supabase.from("variations").select("title, price, state, approved_on"),
     ]);
 
     const record = {
       unit: unit.data,
-      project: project.data,
+      project: project.data, // includes the delivery outlook the team publishes
       diary: diaryQ.data,
       lookahead: look.data,
       risks: risksQ.data,
       payments: paymentsQ.data,
+      selections: selQ.data,
+      variations: varQ.data,
       contract: contractQ.data?.clauses ?? null,
     };
 

@@ -70,6 +70,15 @@ export function syncAction(action, nextState) {
         return sb.from("questions").insert({ id: action.question.id, unit_id: unitId, q: action.question.q });
       case "answer":
         return sb.from("questions").update({ a: action.text, answered_on: iso() }).eq("id", action.id);
+      case "log":
+        return sb.from("project_log").insert({
+          project_id: projectId,
+          author: action.entry.author,
+          kind: action.entry.kind,
+          body: action.entry.body,
+        });
+      case "setOutlook":
+        return sb.from("projects").update({ outlook: action.outlook }).eq("id", projectId);
       default:
         return null;
     }

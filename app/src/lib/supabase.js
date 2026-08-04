@@ -12,8 +12,20 @@ export const SUPABASE_URL = "https://gqgqnognxdcwgkwtxknf.supabase.co";
 const SUPABASE_ANON =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxZ3Fub2dueGRjd2drd3R4a25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MjYyMjYsImV4cCI6MjEwMTQwMjIyNn0.J4YjmJw4EDFRGkB8eHlROGEO3s_4op-eV6-gPTajVGU";
 
-export const IS_LIVE =
-  typeof window !== "undefined" && !window.location.search.includes("demo");
+// ?demo enters demo mode and it sticks for the tab (router redirects strip
+// the query string); ?live leaves it.
+const demoFlag = (() => {
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.location.search.includes("live")) sessionStorage.removeItem("pmcc-demo");
+    else if (window.location.search.includes("demo")) sessionStorage.setItem("pmcc-demo", "1");
+    return Boolean(sessionStorage.getItem("pmcc-demo"));
+  } catch {
+    return window.location.search.includes("demo");
+  }
+})();
+
+export const IS_LIVE = typeof window !== "undefined" && !demoFlag;
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
