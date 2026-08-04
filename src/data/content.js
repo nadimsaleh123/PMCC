@@ -77,7 +77,7 @@ export const clients = [
  */
 export const booklet = [
   {
-    title: "Corporate & banking",
+    title: "Microsoft",
     feature: {
       name: "Microsoft Regional Offices",
       meta: "Beirut Central District · 2002",
@@ -85,10 +85,27 @@ export const booklet = [
     },
     grid: [
       { name: "Microsoft Offices, Berytus", meta: "Beirut Central District · 2012", img: { src: "/im/site-progress-1280.webp", src2x: "/im/site-progress-1280.webp", alt: "Concrete frame under construction" } },
-      { name: "Arab Investment Bank", meta: "Beirut Central District · 2015", img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" } },
-      { name: "The MEDCO network", meta: "Six stations across Lebanon · 2003 – 2016", img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" } },
-      { name: "Marina Gate Tower", meta: "Jounieh · office tower", img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Building elevation in evening light" } },
     ],
+  },
+  {
+    title: "The MEDCO network",
+    feature: {
+      name: "Six service stations",
+      meta: "Across Lebanon · 2003 – 2016",
+      img: { src: "/im/entrance-walk-1280.webp", src2x: "/im/entrance-walk-2560.webp", alt: "Stone entrance walk under arches" },
+    },
+    grid: [],
+    note: "Six service stations across Lebanon, built for the same client over thirteen years.",
+  },
+  {
+    title: "Banks and brands",
+    feature: {
+      name: "Arab Investment Bank",
+      meta: "Beirut Central District · 2015",
+      img: { src: "/im/rear-three-quarter-1280.webp", src2x: "/im/rear-three-quarter-2560.webp", alt: "Stone building, rear three-quarter view" },
+    },
+    grid: [],
+    note: "McDonald's and commercial centres complete the record. Clients who check everything.",
   },
   {
     title: "Villas",
@@ -113,7 +130,17 @@ export const booklet = [
     ],
   },
   {
-    title: "On site now",
+    title: "Towers and buildings",
+    feature: {
+      name: "Marina Gate Tower",
+      meta: "Jounieh · office tower",
+      img: { src: "/im/portrait-garden-1280.webp", src2x: "/im/portrait-garden-2189.webp", alt: "Building elevation in evening light" },
+    },
+    grid: [],
+    note: "Tiresmart, Zalka 208 and Marina Gate Tower in Jounieh.",
+  },
+  {
+    title: "Building today",
     feature: {
       name: "Naccache 401–413",
       meta: "Naccache · residential · 2027",

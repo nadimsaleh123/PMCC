@@ -67,51 +67,71 @@ function Plate({ img, eager = false, className = "" }) {
 
 /* ---------------------------------------------------------------- desktop */
 
-/** The left page of the open spread: one featured plate, caption beside it. */
-function LeftPage({ spread, eager = false, plain = false }) {
+/** The left page: the chapter opener. Its headline is the first thing a
+ *  turned page shows, exactly as a monograph opens a new chapter. */
+function LeftPage({ spread, index, eager = false, plain = false }) {
   const f = spread.feature;
   return (
-    <div className="relative grid h-full grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-5 bg-bone p-10">
-      <div className="flex flex-col justify-center">
-        <h3 className="type-display text-[clamp(1.3rem,1.9vw,1.9rem)] leading-tight text-ink">{f.name}</h3>
-        <p className="mt-2 font-sans text-[0.7rem] text-ink/55">{f.meta}</p>
-        <span aria-hidden className="mt-5 block h-px w-16 bg-ink/25" />
-        {f.link ? (
-          <Link
-            to={f.link}
-            data-cursor="view"
-            className="group mt-5 inline-flex items-center gap-2 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/70 transition-colors hover:text-pmcc"
-          >
-            View project
-            <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-          </Link>
-        ) : (
-          <p className="mt-5 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/40">Selected plates</p>
-        )}
+    <div className="relative flex h-full flex-col bg-bone p-10 pb-8">
+      <div className="shrink-0 border-b border-ink/15 pb-3">
+        <p className="font-sans text-[0.55rem] font-bold uppercase tracking-[0.3em] text-pmcc">Chapter {pad(index)}</p>
+        <h3 className="type-display mt-1 text-[clamp(1.2rem,1.8vw,1.8rem)] leading-tight text-ink">{spread.title}</h3>
       </div>
-      <div className="overflow-hidden">
-        <Plate img={f.img} eager={eager} />
+      <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-5">
+        <div className="flex min-w-0 flex-col justify-center">
+          <p className="type-display text-[clamp(1rem,1.4vw,1.4rem)] leading-tight text-ink">{f.name}</p>
+          <p className="mt-2 font-sans text-[0.68rem] text-ink/55">{f.meta}</p>
+          <span aria-hidden className="mt-4 block h-px w-14 bg-ink/25" />
+          {f.link ? (
+            <Link
+              to={f.link}
+              data-cursor="view"
+              className="group mt-4 inline-flex items-center gap-2 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/70 transition-colors hover:text-pmcc"
+            >
+              View project
+              <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+            </Link>
+          ) : null}
+        </div>
+        <div className="min-h-0 overflow-hidden">
+          <Plate img={f.img} eager={eager} />
+        </div>
       </div>
       {plain ? null : <PaperGrain />}
     </div>
   );
 }
 
-/** The right page of the open spread: four captioned plates. */
+/** The right page: the chapter's plates — or, for chapters that live as a
+ *  line in the record rather than photographs, a typeset note page. */
 function RightPage({ spread, eager = false, plain = false }) {
   return (
-    <div className="relative grid h-full grid-cols-2 gap-x-5 gap-y-4 bg-bone p-10">
-      {spread.grid.map((item) => (
-        <figure key={item.name} className="flex min-h-0 flex-col">
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <Plate img={item.img} eager={eager} />
-          </div>
-          <figcaption className="mt-2 shrink-0">
-            <p className="type-display text-[0.95rem] leading-tight text-ink">{item.name}</p>
-            <p className="mt-0.5 font-sans text-[0.62rem] text-ink/50">{item.meta}</p>
-          </figcaption>
-        </figure>
-      ))}
+    <div className="relative h-full bg-bone p-10">
+      <p className="pointer-events-none absolute right-8 top-4 font-sans text-[0.55rem] uppercase tracking-[0.25em] text-ink/35">
+        {spread.title}
+      </p>
+      {spread.grid.length ? (
+        <div className="grid h-full grid-cols-2 gap-x-5 gap-y-4 pt-3">
+          {spread.grid.map((item) => (
+            <figure key={item.name} className="flex min-h-0 flex-col">
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <Plate img={item.img} eager={eager} />
+              </div>
+              <figcaption className="mt-2 shrink-0">
+                <p className="type-display text-[0.95rem] leading-tight text-ink">{item.name}</p>
+                <p className="mt-0.5 font-sans text-[0.62rem] text-ink/50">{item.meta}</p>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      ) : (
+        <div className="flex h-full flex-col justify-center">
+          <span aria-hidden className="block h-px w-16 bg-pmcc" />
+          <p className="type-display mt-6 max-w-md text-[clamp(1.1rem,1.7vw,1.7rem)] leading-snug text-ink">
+            {spread.note}
+          </p>
+        </div>
+      )}
       {plain ? null : <PaperGrain />}
     </div>
   );
@@ -143,22 +163,26 @@ function SheetEdges({ side }) {
  *  odd indices the plate grid of the same spread. Fixed 3:4 page, so the
  *  book never changes size as it is read. */
 function MobilePage({ index, plain = false }) {
-  const spread = booklet[Math.floor(index / 2) % booklet.length];
+  const ci = Math.floor(index / 2) % booklet.length;
+  const spread = booklet[ci];
   const isFeature = index % 2 === 0;
   const f = spread.feature;
 
   return (
     <div className="relative h-full bg-bone">
       {isFeature ? (
-        <div className="grid h-full grid-rows-[auto_minmax(0,1fr)] gap-4 p-6 pb-9">
+        <div className="grid h-full grid-rows-[auto_auto_minmax(0,1fr)] gap-4 p-6 pb-9">
+          <div className="border-b border-ink/15 pb-3">
+            <p className="font-sans text-[0.55rem] font-bold uppercase tracking-[0.3em] text-pmcc">Chapter {pad(ci)}</p>
+            <h3 className="type-display mt-1 text-2xl leading-tight text-ink">{spread.title}</h3>
+          </div>
           <div>
-            <h3 className="type-display text-2xl leading-tight text-ink">{f.name}</h3>
-            <p className="mt-1.5 font-sans text-[0.7rem] text-ink/55">{f.meta}</p>
-            <span aria-hidden className="mt-4 block h-px w-14 bg-ink/25" />
+            <p className="type-display text-lg leading-tight text-ink">{f.name}</p>
+            <p className="mt-1 font-sans text-[0.7rem] text-ink/55">{f.meta}</p>
             {f.link ? (
               <Link
                 to={f.link}
-                className="group mt-4 inline-flex items-center gap-2 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/70"
+                className="group mt-3 inline-flex items-center gap-2 font-sans text-[0.65rem] uppercase tracking-[0.16em] text-ink/70"
               >
                 View project
                 <span aria-hidden>→</span>
@@ -169,8 +193,12 @@ function MobilePage({ index, plain = false }) {
             <Plate img={f.img} eager />
           </div>
         </div>
-      ) : (
-        <div className="grid h-full grid-cols-2 grid-rows-2 gap-x-4 gap-y-3 p-6 pb-9">
+      ) : spread.grid.length ? (
+        <div
+          className={`grid h-full gap-x-4 gap-y-3 p-6 pb-9 ${
+            spread.grid.length > 1 ? "grid-cols-2 grid-rows-2" : "grid-cols-1"
+          }`}
+        >
           {spread.grid.map((item) => (
             <figure key={item.name} className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto]">
               <div className="min-h-0 overflow-hidden">
@@ -182,6 +210,11 @@ function MobilePage({ index, plain = false }) {
               </figcaption>
             </figure>
           ))}
+        </div>
+      ) : (
+        <div className="flex h-full flex-col justify-center p-8 pb-12">
+          <span aria-hidden className="block h-px w-14 bg-pmcc" />
+          <p className="type-display mt-5 text-xl leading-snug text-ink">{spread.note}</p>
         </div>
       )}
 
@@ -224,17 +257,6 @@ export default function Booklet() {
   const mCast = useRef(null);
 
   const busy = useRef(false);
-
-  // Which format is on screen, so the contents list highlights the right
-  // chapter (desktop counts spreads, mobile counts pages).
-  const [lg, setLg] = useState(true);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const update = () => setLg(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
 
   // Warm every plate with the same candidate selection the render uses,
   // decoded, so a leaf never turns onto an undecoded image.
@@ -281,12 +303,19 @@ export default function Booklet() {
     else turnMobile(mpage + delta);
   };
 
-  // The contents list: tap a chapter, the book turns straight to it.
+  // Open a chapter directly — the achievement cards above dispatch this.
   const jumpTo = (i) => {
     if (busy.current) return;
     if (isLg()) turnSpread(i);
     else turnMobile(i * 2);
   };
+  const jumpRef = useRef(jumpTo);
+  jumpRef.current = jumpTo;
+  useEffect(() => {
+    const onOpen = (e) => jumpRef.current(e.detail);
+    window.addEventListener("book:open", onOpen);
+    return () => window.removeEventListener("book:open", onOpen);
+  }, []);
 
   // Swiping the page is how a phone turns it. Handlers never preventDefault
   // and the card declares touch-action: pan-y, so vertical scrolling through
@@ -410,8 +439,10 @@ export default function Booklet() {
   // beneath it. Forward keeps the old words and reveals the new plates;
   // backward mirrors.
   const dir = turning?.dir ?? 1;
-  const leftSpread = booklet[turning ? (dir === 1 ? turning.from : turning.to) : page];
-  const rightSpread = booklet[turning ? (dir === 1 ? turning.to : turning.from) : page];
+  const leftIdx = turning ? (dir === 1 ? turning.from : turning.to) : page;
+  const rightIdx = turning ? (dir === 1 ? turning.to : turning.from) : page;
+  const leftSpread = booklet[leftIdx];
+  const rightSpread = booklet[rightIdx];
   const shown = turning ? turning.to : page;
 
   // Beneath the flight: forward reveals the destination as the page lifts
@@ -419,8 +450,6 @@ export default function Booklet() {
   const mShown = mturning ? (mturning.dir === 1 ? mturning.to : mturning.from) : mpage;
   const mFace = mturning ? (mturning.dir === 1 ? mturning.from : mturning.to) : null;
 
-  // The open chapter, for the contents list.
-  const chapter = lg ? shown : Math.floor(mShown / 2);
 
   const faceStyle = (isBack) => ({
     backfaceVisibility: "hidden",
@@ -438,27 +467,8 @@ export default function Booklet() {
           </Lines>
           <Fade className="mt-6">
             <p className="max-w-[16rem] font-sans text-sm leading-relaxed text-smoke">
-              Our work since 1996, as a book. Pick a chapter, or turn the pages.
+              Our work since 1996, as a book. Tap a chapter above, or turn the pages.
             </p>
-          </Fade>
-          <Fade className="mt-8">
-            <ul aria-label="Chapters" className="border-b border-seam">
-              {booklet.map((s, i) => (
-                <li key={s.title}>
-                  <button
-                    type="button"
-                    onClick={() => jumpTo(i)}
-                    aria-current={chapter === i ? "true" : undefined}
-                    className={`flex w-full items-baseline justify-between gap-4 border-t border-seam py-2.5 text-left font-sans text-xs transition-colors ${
-                      chapter === i ? "text-bone" : "text-smoke hover:text-bone/80"
-                    }`}
-                  >
-                    <span>{s.title}</span>
-                    <span className={`tabular-nums ${chapter === i ? "text-pmcc" : "text-smoke/60"}`}>{pad(i)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
           </Fade>
           <Fade className="mt-8 hidden items-center gap-4 lg:flex">
             <p className="font-sans text-xs tabular-nums text-smoke" aria-live="polite">
@@ -519,7 +529,7 @@ export default function Booklet() {
                         without it the leaf turns orthographically. */}
                     <div className="relative aspect-[15/7] bg-bone" style={{ perspective: "2400px" }}>
                       <div className="absolute inset-y-0 left-0 w-1/2">
-                        <LeftPage spread={leftSpread} eager />
+                        <LeftPage spread={leftSpread} index={leftIdx} eager />
                         <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24" style={{ background: "linear-gradient(to left, rgba(20,17,15,0.34), rgba(20,17,15,0.12) 45%, transparent)" }} />
                         <span aria-hidden className="pointer-events-none absolute inset-y-0 right-4 z-10 w-1.5 bg-gradient-to-l from-white/20 to-transparent" />
                         {turning ? (
@@ -579,7 +589,7 @@ export default function Booklet() {
                             {dir === 1 ? (
                               <RightPage spread={booklet[turning.from]} eager plain />
                             ) : (
-                              <LeftPage spread={booklet[turning.from]} eager plain />
+                              <LeftPage spread={booklet[turning.from]} index={turning.from} eager plain />
                             )}
                             <span ref={shadeFront} className="pointer-events-none absolute inset-0 opacity-0" style={{ background: shadeGradient(dir === 1 ? "right" : "left") }} />
                             <span
@@ -590,7 +600,7 @@ export default function Booklet() {
                           </div>
                           <div className="absolute inset-0 overflow-hidden" style={faceStyle(true)}>
                             {dir === 1 ? (
-                              <LeftPage spread={booklet[turning.to]} eager plain />
+                              <LeftPage spread={booklet[turning.to]} index={turning.to} eager plain />
                             ) : (
                               <RightPage spread={booklet[turning.to]} eager plain />
                             )}
