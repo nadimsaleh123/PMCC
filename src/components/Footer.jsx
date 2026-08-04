@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Lines, Fade } from "./reveal";
 import Monogram from "./Monogram";
 import Magnetic from "./Magnetic";
@@ -8,6 +8,8 @@ import { track } from "../lib/analytics";
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  // The price-list form belongs to the development's own page only.
+  const onProject = useLocation().pathname.startsWith("/daher");
   return (
     <footer className="relative overflow-clip bg-ink px-5 pb-10 pt-28 text-bone sm:px-8">
       <div className="mx-auto max-w-6xl">
@@ -40,15 +42,17 @@ export default function Footer() {
           </a>
         </Fade>
 
-        <Fade className="mt-16 max-w-3xl">
-          <p className="type-eyebrow text-smoke">Daher el Souane 563</p>
-          <p className="mt-3 font-sans text-sm leading-relaxed text-smoke">
-            Leave your details and the price list &amp; floor plans come to you.
-          </p>
-          <div className="mt-6">
-            <LeadForm tone="dark" source="footer" showWhatsApp={false} />
-          </div>
-        </Fade>
+        {onProject && (
+          <Fade className="mt-16 max-w-3xl">
+            <p className="type-eyebrow text-smoke">Daher el Souane 563</p>
+            <p className="mt-3 font-sans text-sm leading-relaxed text-smoke">
+              Leave your details and the price list &amp; floor plans come to you.
+            </p>
+            <div className="mt-6">
+              <LeadForm tone="dark" source="footer" showWhatsApp={false} />
+            </div>
+          </Fade>
+        )}
 
         <div className="rule mt-20" />
 

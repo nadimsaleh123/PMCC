@@ -222,39 +222,6 @@ function DevelopmentPromo() {
   );
 }
 
-function FlagshipPromo() {
-  return (
-    <section className="relative">
-      <Link to="/daher-el-souane-563" className="group block">
-        <div className="relative h-[92svh] overflow-clip">
-          <WarpImage
-            src="/im/hero-three-quarter-2560.webp"
-            srcSet="/im/hero-three-quarter-1280.webp 1280w, /im/hero-three-quarter-2560.webp 2560w"
-            alt={project.gallery[0].alt}
-            className="h-full"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/20 to-ink/40" />
-          <div className="absolute inset-x-0 bottom-0 px-5 pb-14 sm:px-8">
-            <p className="type-eyebrow text-stone">Now selling · {project.eyebrow}</p>
-            <Lines className="type-display mt-6 max-w-4xl text-[clamp(2.8rem,8vw,7.5rem)] text-bone">
-              {project.claim[0]} <em className="type-display-it">{project.claim[1]}</em>
-            </Lines>
-            <p className="mt-8 inline-flex items-center gap-3 font-sans text-sm font-semibold text-bone">
-              Visit {project.name}
-              <span
-                aria-hidden
-                className="inline-block bg-pmcc px-3 py-2 transition-transform duration-300 ease-out-expo group-hover:translate-x-2"
-              >
-                →
-              </span>
-            </p>
-          </div>
-        </div>
-      </Link>
-    </section>
-  );
-}
-
 export default function Home() {
   // Client-side navigation leaves the baked-in <head> describing the wrong
   // page; put it right. Scrapers read the baked copy, Google reads this.
@@ -269,7 +236,6 @@ export default function Home() {
       <Timeline />
       <Booklet />
       <DevelopmentPromo />
-      <FlagshipPromo />
     </>
   );
 }
