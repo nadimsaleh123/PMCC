@@ -11,7 +11,7 @@ import { Screen, TopBar, Card, Row, Stamp, Ring, StateDot, StateLegend, Gantt, I
 /** The one-line answer to "are we late?" — set by the team, seen by all. */
 function OutlookLine({ project, className = "" }) {
   const o = project.outlook;
-  const tone = { ontrack: "bg-stone", watch: "bg-bone/70", atrisk: "bg-pmcc" }[o?.state] ?? "bg-stone";
+  const tone = { ontrack: "bg-[#55996A]", watch: "bg-[#D9A441]", atrisk: "bg-pmcc" }[o?.state] ?? "bg-[#55996A]";
   const text = o?.note ?? `On track — delivery ${project.delivery}.`;
   return (
     <p className={`flex items-start gap-3 font-sans text-xs leading-relaxed text-bone/85 ${className}`}>

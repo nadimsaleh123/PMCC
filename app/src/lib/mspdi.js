@@ -56,7 +56,7 @@ export function parseMSPDI(xmlText) {
         return s >= from && s <= to;
       })
       .slice(0, 8)
-      .map((t) => ({ t: t.name, s: t.pct >= 100 ? "done" : "ready" }));
+      .map((t) => ({ t: t.name, s: t.pct >= 100 ? "done" : t.pct > 0 ? "ready" : "todo" }));
     return {
       label: w === 0 ? "This week" : w === 1 ? "Next week" : "Week after",
       range: `${fmtDay(from)} – ${fmtDay(to)}`,

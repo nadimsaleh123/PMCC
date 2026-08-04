@@ -389,7 +389,7 @@ export function PlanEditor() {
   return (
     <Screen>
       <Back to="/team" label="Console" />
-      <TopBar eyebrow="Tap a task to cycle completed → on track → delayed" title="Look-ahead" />
+      <TopBar eyebrow="Tap a task to cycle completed → on track → delayed → not started" title="Look-ahead" />
       <div className="mb-4 px-1">
         <StateLegend />
       </div>

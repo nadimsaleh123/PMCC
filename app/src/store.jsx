@@ -141,11 +141,11 @@ function reducer(state, action) {
           ? w
           : {
               ...w,
-              items: w.items.map((it, ii) =>
-                ii !== action.item
-                  ? it
-                  : { ...it, s: it.s === "done" ? "ready" : it.s === "ready" ? "blocked" : "done" },
-              ),
+              items: w.items.map((it, ii) => {
+                if (ii !== action.item) return it;
+                const cycle = { done: "ready", ready: "blocked", blocked: "todo", todo: "done" };
+                return { ...it, s: cycle[it.s] ?? "done" };
+              }),
             },
       );
       return { ...state, lookahead: { ...state.lookahead, weeks } };

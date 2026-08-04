@@ -206,13 +206,21 @@ export function Ring({ pct, size = 148, label = "complete" }) {
 }
 
 /**
- * The colour language, stated once: stone = completed, bone = on track,
- * red = delayed. Red is reserved for the thing that needs eyes.
+ * The colour language, stated once — the site-board traffic light:
+ * green = completed, yellow = on track, red = delayed, grey = not started.
+ * Muted tones so they sit inside the brand's dark palette.
  */
+export const COLORS = {
+  done: "#55996A",
+  ready: "#D9A441",
+  blocked: "#C8102E",
+  todo: "#8F887C",
+};
 export const STATE_META = {
-  done: { dot: "bg-stone", label: "Completed" },
-  ready: { dot: "bg-bone/70", label: "On track" },
+  done: { dot: "bg-[#55996A]", label: "Completed" },
+  ready: { dot: "bg-[#D9A441]", label: "On track" },
   blocked: { dot: "bg-pmcc", label: "Delayed" },
+  todo: { dot: "bg-smoke/50", label: "Not started" },
 };
 
 export function StateDot({ s }) {
@@ -252,10 +260,10 @@ export function Gantt({ milestones }) {
       <svg viewBox="0 0 100 16" className="w-full" preserveAspectRatio="none" aria-hidden>
         <line x1="4" y1="8" x2="96" y2="8" stroke="#2A2722" strokeWidth="1.6" />
         {lastDone && (
-          <line x1="4" y1="8" x2={x(lastDone.t)} y2="8" stroke="#C9BBA2" strokeWidth="1.6" />
+          <line x1="4" y1="8" x2={x(lastDone.t)} y2="8" stroke={COLORS.done} strokeWidth="1.6" />
         )}
         {now >= min && now <= max && (
-          <line x1={x(now)} y1="2" x2={x(now)} y2="14" stroke="#C8102E" strokeWidth="0.5" />
+          <line x1={x(now)} y1="2" x2={x(now)} y2="14" stroke="#EFE9DD" strokeWidth="0.5" />
         )}
         {dated.map((m) => (
           <rect
@@ -265,15 +273,15 @@ export function Gantt({ milestones }) {
             width="2.2"
             height="4.84"
             transform={`rotate(45 ${x(m.t)} 8)`}
-            fill={m.done ? "#C9BBA2" : m.next ? "#C8102E" : "#171512"}
-            stroke={m.done ? "#C9BBA2" : m.next ? "#C8102E" : "#8F887C"}
+            fill={m.done ? COLORS.done : m.next ? COLORS.ready : "#171512"}
+            stroke={m.done ? COLORS.done : m.next ? COLORS.ready : COLORS.todo}
             strokeWidth="0.4"
           />
         ))}
       </svg>
       <div className="mt-1 flex justify-between font-sans text-[0.6rem] uppercase tracking-wideish text-smoke">
         <span>{dated[0].date}</span>
-        <span className="text-pmcc">today</span>
+        <span className="text-bone">today</span>
         <span>{dated[dated.length - 1].date}</span>
       </div>
     </div>
