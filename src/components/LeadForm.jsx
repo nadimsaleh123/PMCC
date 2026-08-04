@@ -200,7 +200,7 @@ export default function LeadForm({ tone = "light", source = "site", showWhatsApp
           disabled={status === "sending"}
           className={`inline-flex items-center gap-3 px-8 py-4 font-sans text-sm font-semibold transition-colors disabled:opacity-60 ${t.button}`}
         >
-          {status === "sending" ? "Sending…" : "Request the price list & floor plans"}
+          {status === "sending" ? "Sending…" : "Request the price list"}
         </button>
 
         {status === "error" && (
