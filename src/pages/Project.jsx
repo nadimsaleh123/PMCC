@@ -196,26 +196,83 @@ function TheView() {
   );
 }
 
-/** The general specification, in full from the project book. */
+/** The book's own pictograms, redrawn as line icons — one per category. */
+function SpecIcon({ name, className = "h-9 w-9" }) {
+  const P = { stroke: "currentColor", strokeWidth: 1.4, fill: "none", strokeLinecap: "round", strokeLinejoin: "round" };
+  const icons = {
+    "Envelope finishes": (
+      <>
+        <rect {...P} x="5" y="7" width="22" height="18" />
+        <path {...P} d="M5 13h22M5 19h22M12 7v6M20 13v6M12 19v6M20 7v6M12 13h0" />
+      </>
+    ),
+    Flooring: <path {...P} d="M5 14l7-7 7 7M5 20l7-7 7 7M12 27l7-7 7 7M19 20l4-4 4 4" />,
+    Bathrooms: (
+      <>
+        <rect {...P} x="6" y="5" width="9" height="8" rx="1" />
+        <path {...P} d="M6 16h18a8 8 0 0 1-8 8h-3a7 7 0 0 1-7-7v-1zM12 24l-1 3h7l-1-3" />
+      </>
+    ),
+    "Walls & ceilings": (
+      <>
+        <path {...P} d="M6 10l10-5 10 5-10 5-10-5z" />
+        <path {...P} d="M6 10v11l10 5V15M26 10v11l-10 5" />
+      </>
+    ),
+    Woodwork: (
+      <>
+        <rect {...P} x="5" y="8" width="22" height="16" rx="1" />
+        <path {...P} d="M10 12c3 2 3 6 0 8M19 11c4 3 4 8 0 10M24 13v6" />
+      </>
+    ),
+    "Electro-mechanical": <path {...P} d="M17 4L9 18h6l-2 10 10-16h-6l2-8z" />,
+    Elevator: (
+      <>
+        <rect {...P} x="7" y="7" width="18" height="20" />
+        <path {...P} d="M16 7v20M11 12l1.5-2 1.5 2M11 15h3M20 19h-1.5m1.5 3l-1.5 2-1.5-2" />
+      </>
+    ),
+    "Fixtures & fittings": (
+      <>
+        <path {...P} d="M8 13h9a6 6 0 0 1 6 6v2M11 13V9h6M14 9V5h6" />
+        <path {...P} d="M23 26a1.8 1.8 0 0 1-3.6 0c0-1.2 1.8-3 1.8-3s1.8 1.8 1.8 3z" />
+      </>
+    ),
+    "General facilities": (
+      <>
+        <circle {...P} cx="16" cy="11" r="4.5" />
+        <path {...P} d="M11 9h10M16 4v2.5M6 27c0-6 4.7-9 10-9s10 3 10 9" />
+      </>
+    ),
+  };
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      {icons[name] ?? <circle {...P} cx="16" cy="16" r="10" />}
+    </svg>
+  );
+}
+
+/** The general specification, laid out as the book's General Specs page:
+ *  a light sheet, category pictograms, plain bulleted facts. */
 function TheStandard() {
   return (
-    <section className="border-t border-seam bg-coal px-5 py-28 sm:px-8">
+    <section className="bg-bone px-5 py-28 text-ink sm:px-8">
       <div className="mx-auto max-w-6xl">
-        <p className="type-eyebrow text-smoke">The standard · from the project book</p>
-        <Lines className="type-display mt-6 max-w-4xl text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
-          Specified like a private house,{" "}
-          <em className="type-display-it text-stone">secured like a gated estate.</em>
+        <p className="type-eyebrow text-ink/60">From the project book</p>
+        <Lines className="type-display mt-6 max-w-4xl text-[clamp(2rem,4.8vw,3.8rem)]">
+          General <em className="type-display-it">specs.</em>
         </Lines>
-        <div className="mt-14 grid gap-x-12 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-x-12 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
           {book563.specs.map((g) => (
             <Fade key={g.title}>
-              <p className="font-sans text-xs font-semibold uppercase tracking-wideish text-stone">
+              <SpecIcon name={g.title} className="h-9 w-9 text-ink/65" />
+              <p className="mt-4 font-sans text-xs font-bold uppercase tracking-wideish text-ink">
                 {g.title}
               </p>
-              <ul className="mt-5 space-y-3">
+              <ul className="mt-4 space-y-2.5">
                 {g.items.map((item) => (
-                  <li key={item} className="flex items-baseline gap-3 border-t border-seam pt-3 font-sans text-sm leading-relaxed text-bone/85">
-                    <span aria-hidden className="inline-block h-[3px] w-[14px] shrink-0 translate-y-[-3px] bg-pmcc" />
+                  <li key={item} className="flex items-baseline gap-2.5 font-sans text-sm leading-relaxed text-ink/70">
+                    <span aria-hidden className="inline-block h-1 w-1 shrink-0 -translate-y-[3px] rounded-full bg-ink/40" />
                     {item}
                   </li>
                 ))}
@@ -319,122 +376,6 @@ function LocationSpread() {
               {book563.map.caption}
             </figcaption>
           </figure>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/**
- * From the project book: the entrance and the roofscape as a diptych.
- * The two plates drift at different speeds — the depth of a page you are
- * walking past, not a flat scan.
- */
-function ResidenceCloseUp() {
-  const root = useRef(null);
-
-  useLayoutEffect(() => {
-    if (reducedMotion()) return undefined;
-    const ctx = gsap.context(() => {
-      gsap.utils.toArray("[data-bd]").forEach((el, i) => {
-        gsap.fromTo(
-          el,
-          { yPercent: i === 0 ? 6 : 10 },
-          {
-            yPercent: i === 0 ? -6 : -2,
-            ease: "none",
-            scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1 },
-          },
-        );
-      });
-    }, root.current);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <section ref={root} className="bg-ink px-5 py-24 sm:px-8">
-      <div className="mx-auto max-w-6xl">
-        <p className="type-eyebrow text-smoke">From the project book</p>
-        <h2 className="type-display mt-6 text-3xl text-bone sm:text-4xl">
-          The residence, <em className="type-display-it text-stone">drawn close.</em>
-        </h2>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2">
-          {book563.closeUp.map((im, i) => (
-            <div key={im.src} className="aspect-[4/3] overflow-clip">
-              <img
-                data-bd={i}
-                src={im.src}
-                srcSet={`${im.small} 1000w, ${im.src} 1760w`}
-                sizes="(min-width: 640px) 36rem, 100vw"
-                alt={im.alt}
-                loading="lazy"
-                className="h-full w-full scale-[1.14] object-cover will-change-transform"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function AerialModel() {
-  const root = useRef(null);
-
-  useLayoutEffect(() => {
-    if (reducedMotion()) return undefined;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        "[data-model]",
-        { yPercent: 10, rotate: -3, scale: 0.94 },
-        {
-          yPercent: -6,
-          rotate: 1.5,
-          scale: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: root.current,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 1,
-          },
-        },
-      );
-    }, root.current);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <section ref={root} className="relative overflow-clip bg-coal px-5 py-32 sm:px-8">
-      <p
-        aria-hidden="true"
-        className="type-display pointer-events-none absolute -top-10 right-0 select-none text-[clamp(10rem,30vw,26rem)] leading-none text-bone/[0.04]"
-      >
-        563
-      </p>
-      <div className="mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-[1.2fr_0.8fr]">
-        <img
-          data-model
-          src="/im/aerial-model-b.webp"
-          alt="Aerial view of Daher el Souane 563, terracotta roofscape and terraced gardens"
-          width={2000}
-          height={1111}
-          loading="lazy"
-          className="w-full drop-shadow-[0_60px_80px_rgba(0,0,0,0.55)]"
-        />
-        <div>
-          <p className="type-eyebrow text-smoke">The setting</p>
-          <h2 className="type-display mt-6 text-3xl text-bone sm:text-4xl">
-            Gardens first, <em className="type-display-it text-stone">then architecture.</em>
-          </h2>
-          <ul className="mt-8 space-y-4">
-            {project.setting.map((s) => (
-              <Fade as="li" key={s} className="flex items-baseline gap-4 border-t border-seam pt-4">
-                <span aria-hidden className="inline-block h-[3px] w-[14px] shrink-0 bg-tile" />
-                <span className="font-sans text-sm text-bone/85">{s}</span>
-              </Fade>
-            ))}
-          </ul>
         </div>
       </div>
     </section>
@@ -629,8 +570,6 @@ export default function Project() {
       <BeforeAfter />
       <FloorStack />
       <Gallery />
-      <AerialModel />
-      <ResidenceCloseUp />
       <TheStandard />
       <Availability />
       <Faq />
