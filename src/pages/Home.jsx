@@ -200,21 +200,37 @@ function DevelopmentPromo() {
           <Link
             to="/daher-el-souane-563"
             data-cursor="view"
-            className="group flex flex-col justify-between gap-6 bg-pmcc p-8 transition-transform duration-500 ease-out-expo hover:scale-[1.01] sm:flex-row sm:items-center sm:p-10"
+            className="group relative block bg-pmcc p-8 transition-transform duration-500 ease-out-expo hover:scale-[1.01] sm:p-10"
           >
-            <div>
-              <p className="type-eyebrow text-bone/80">Our own development · now selling</p>
+            {/* The round seal, turning slowly in the top-right corner. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute right-5 top-5 h-20 w-20 sm:right-8 sm:top-8 sm:h-24 sm:w-24"
+            >
+              <svg
+                viewBox="0 0 100 100"
+                className="h-full w-full animate-spin motion-reduce:animate-none"
+                style={{ animationDuration: "18s" }}
+              >
+                <defs>
+                  <path id="selling-ring" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" fill="none" />
+                </defs>
+                <text className="fill-bone font-sans" style={{ fontSize: "9.5px", fontWeight: 700, letterSpacing: "0.24em" }}>
+                  <textPath href="#selling-ring">NOW SELLING · NOW SELLING ·</textPath>
+                </text>
+              </svg>
+              <span className="absolute inset-[22px] rounded-full border border-bone/35" />
+              <span className="absolute inset-0 grid place-items-center font-sans text-base text-bone transition-transform duration-300 group-hover:translate-x-1">
+                →
+              </span>
+            </span>
+            <div className="pr-20 sm:pr-32">
+              <p className="type-eyebrow text-bone/80">Our own development</p>
               <p className="type-display mt-3 text-3xl text-bone sm:text-4xl">
                 {project.name} · {project.claim[0].toLowerCase()}{" "}
                 <em className="type-display-it">{project.claim[1]}</em>
               </p>
             </div>
-            <span
-              aria-hidden
-              className="type-display shrink-0 text-4xl text-bone transition-transform duration-500 ease-out-expo group-hover:translate-x-3"
-            >
-              →
-            </span>
           </Link>
         </Fade>
       </div>
