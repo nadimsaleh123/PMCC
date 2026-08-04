@@ -11,7 +11,7 @@ services:
   - type: web
     name: pmcc
     runtime: static
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci && npm run build && npm run build:app
     staticPublishPath: ./dist
 
     # Client-side routing. /daher-el-souane-563 is a real URL a client will be
@@ -26,6 +26,14 @@ services:
       - type: rewrite
         source: /daher-el-souane-563
         destination: /daher-el-souane-563.html
+      # The owner portal is its own SPA under /app — its client routes must
+      # fall through to its own shell, never the website's.
+      - type: rewrite
+        source: /app
+        destination: /app/index.html
+      - type: rewrite
+        source: /app/*
+        destination: /app/index.html
       - type: rewrite
         source: /*
         destination: /index.html
