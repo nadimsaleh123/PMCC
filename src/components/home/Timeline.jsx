@@ -29,9 +29,11 @@ export default function Timeline() {
                   {a.title}
                 </h3>
                 <p className="mt-3 max-w-sm font-sans text-sm leading-relaxed text-smoke">{a.text}</p>
-                <span className="mt-4 inline-flex items-center gap-2 font-sans text-[0.65rem] font-semibold uppercase tracking-wideish text-pmcc">
-                  Open chapter {String(i + 1).padStart(2, "0")}
-                  <span aria-hidden className="transition-transform duration-300 group-hover:translate-y-0.5">↓</span>
+                <span
+                  aria-hidden
+                  className="mt-4 inline-block font-sans text-base text-pmcc transition-transform duration-300 group-hover:translate-y-1"
+                >
+                  ↓
                 </span>
               </button>
             </Fade>
