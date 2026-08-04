@@ -9,7 +9,7 @@ import BeforeAfter from "../components/project/BeforeAfter";
 import Gallery from "../components/project/Gallery";
 import LeadForm from "../components/LeadForm";
 import ShareButton from "../components/ShareButton";
-import { project, company } from "../data/content";
+import { project, company, book563 } from "../data/content";
 import { track } from "../lib/analytics";
 
 function ProjectHero() {
@@ -40,6 +40,58 @@ function ProjectHero() {
         <Fade delay={0.9} className="mt-8 flex flex-wrap items-end justify-between gap-6">
           <p className="max-w-md font-sans text-sm leading-relaxed text-bone/80">{project.sub}</p>
           <p className="type-eyebrow text-smoke" aria-hidden="true">Scroll ↓</p>
+        </Fade>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * From the project book: the introducing render, cropped to the near
+ * building and its greenery. The plate drifts and settles as you scroll
+ * past it — a page from the book, not a static image.
+ */
+function BookIntro() {
+  const root = useRef(null);
+
+  useLayoutEffect(() => {
+    if (reducedMotion()) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        "[data-intro-img]",
+        { scale: 1.16, yPercent: 5 },
+        {
+          scale: 1,
+          yPercent: -3,
+          ease: "none",
+          scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1 },
+        },
+      );
+    }, root.current);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section ref={root} className="bg-ink px-5 py-24 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-6xl">
+        <p className="type-eyebrow text-smoke">Introducing</p>
+        <Lines className="type-display mt-6 max-w-4xl text-[clamp(2.2rem,5.4vw,4.4rem)] text-bone">
+          Dahr el Sawan <em className="type-display-it text-stone">private residences.</em>
+        </Lines>
+        <Fade className="mt-12">
+          <div className="overflow-clip">
+            <img
+              data-intro-img
+              src={book563.intro.src}
+              srcSet={`${book563.intro.small} 1000w, ${book563.intro.src} 1420w`}
+              sizes="(min-width: 1024px) 72rem, 100vw"
+              alt={book563.intro.alt}
+              width={book563.intro.w}
+              height={book563.intro.h}
+              loading="lazy"
+              className="w-full will-change-transform"
+            />
+          </div>
         </Fade>
       </div>
     </section>
@@ -99,27 +151,23 @@ function TheView() {
   );
 }
 
-/** The general specification, verbatim from the project book. */
+/** The general specification, in full from the project book. */
 function TheStandard() {
-  const groups = [
-    { title: "The residence", items: project.specs.residence },
-    { title: "The domain", items: project.specs.domain },
-  ];
   return (
     <section className="border-t border-seam bg-coal px-5 py-28 sm:px-8">
       <div className="mx-auto max-w-6xl">
-        <p className="type-eyebrow text-smoke">The standard</p>
+        <p className="type-eyebrow text-smoke">The standard · from the project book</p>
         <Lines className="type-display mt-6 max-w-4xl text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
           Specified like a private house,{" "}
           <em className="type-display-it text-stone">secured like a gated estate.</em>
         </Lines>
-        <div className="mt-14 grid gap-14 lg:grid-cols-2">
-          {groups.map((g) => (
+        <div className="mt-14 grid gap-x-12 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          {book563.specs.map((g) => (
             <Fade key={g.title}>
               <p className="font-sans text-xs font-semibold uppercase tracking-wideish text-stone">
                 {g.title}
               </p>
-              <ul className="mt-6 space-y-3">
+              <ul className="mt-5 space-y-3">
                 {g.items.map((item) => (
                   <li key={item} className="flex items-baseline gap-3 border-t border-seam pt-3 font-sans text-sm leading-relaxed text-bone/85">
                     <span aria-hidden className="inline-block h-[3px] w-[14px] shrink-0 translate-y-[-3px] bg-pmcc" />
@@ -128,6 +176,123 @@ function TheStandard() {
                 ))}
               </ul>
             </Fade>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The gated community and the location, from the project book — the words
+ * as printed, beside the two satellite maps. The maps land like pinned
+ * photographs: a slight tilt that rights itself as they arrive.
+ */
+function GatedCommunity() {
+  const root = useRef(null);
+
+  useLayoutEffect(() => {
+    if (reducedMotion()) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray("[data-map]").forEach((el, i) => {
+        gsap.fromTo(
+          el,
+          { y: 70, autoAlpha: 0, rotate: i % 2 ? 2 : -2 },
+          {
+            y: 0,
+            autoAlpha: 1,
+            rotate: 0,
+            duration: 1.1,
+            ease: "power3.out",
+            scrollTrigger: { trigger: el, start: "top 88%", once: true },
+          },
+        );
+      });
+    }, root.current);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section ref={root} className="border-t border-seam bg-ink px-5 py-28 sm:px-8">
+      <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[1fr_1.25fr] lg:gap-16">
+        <div>
+          <p className="type-eyebrow text-smoke">From the project book</p>
+          <Lines className="type-display mt-6 text-[clamp(1.9rem,4.2vw,3.4rem)] text-bone">
+            The gated <em className="type-display-it text-stone">community.</em>
+          </Lines>
+          <Fade className="mt-8">
+            <p className="max-w-xl font-sans text-sm leading-relaxed text-smoke">{book563.community.body}</p>
+          </Fade>
+          <Fade className="mt-12">
+            <h3 className="type-display text-2xl text-bone">The location</h3>
+          </Fade>
+          {book563.location.map((p) => (
+            <Fade key={p.slice(0, 24)} className="mt-4">
+              <p className="max-w-xl font-sans text-sm leading-relaxed text-smoke">{p}</p>
+            </Fade>
+          ))}
+        </div>
+        <div className="grid content-center gap-8 sm:grid-cols-2">
+          {book563.maps.map((m) => (
+            <figure key={m.src} data-map>
+              <div className="border border-seam bg-coal p-2">
+                <img src={m.src} alt={m.alt} loading="lazy" className="w-full" />
+              </div>
+              <figcaption className="mt-2.5 font-sans text-xs leading-relaxed text-smoke">{m.caption}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Block D, from the project book: the entrance and the roofscape as a
+ * diptych. The two plates drift at different speeds — the depth of a
+ * page you are walking past, not a flat scan.
+ */
+function BlockD() {
+  const root = useRef(null);
+
+  useLayoutEffect(() => {
+    if (reducedMotion()) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray("[data-bd]").forEach((el, i) => {
+        gsap.fromTo(
+          el,
+          { yPercent: i === 0 ? 6 : 10 },
+          {
+            yPercent: i === 0 ? -6 : -2,
+            ease: "none",
+            scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1 },
+          },
+        );
+      });
+    }, root.current);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section ref={root} className="bg-ink px-5 py-24 sm:px-8">
+      <div className="mx-auto max-w-6xl">
+        <p className="type-eyebrow text-smoke">From the project book</p>
+        <h2 className="type-display mt-6 text-3xl text-bone sm:text-4xl">
+          Block D, <em className="type-display-it text-stone">drawn close.</em>
+        </h2>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2">
+          {book563.blockD.map((im, i) => (
+            <div key={im.src} className="aspect-[4/3] overflow-clip">
+              <img
+                data-bd={i}
+                src={im.src}
+                srcSet={`${im.small} 1000w, ${im.src} 1760w`}
+                sizes="(min-width: 640px) 36rem, 100vw"
+                alt={im.alt}
+                loading="lazy"
+                className="h-full w-full scale-[1.14] object-cover will-change-transform"
+              />
+            </div>
           ))}
         </div>
       </div>
@@ -464,13 +629,16 @@ export default function Project() {
   return (
     <>
       <ProjectHero />
+      <BookIntro />
       <Narrative />
       <TheView />
       <BeforeAfter />
       <FloorStack />
       <Gallery />
       <AerialModel />
+      <BlockD />
       <TheStandard />
+      <GatedCommunity />
       <Location />
       <Availability />
       <Faq />

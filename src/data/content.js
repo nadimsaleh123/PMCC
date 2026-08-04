@@ -300,3 +300,84 @@ export const project = {
     note: "Typical driving times in light traffic.",
   },
 };
+
+/**
+ * From the developer's own project book (Dahr el Sawan, Private Residences):
+ * the introducing render (cropped to the near building and its greenery),
+ * the gated-community and location pages with their maps, the full general
+ * specification, and the Block D renders. Text kept as printed, typos aside.
+ */
+export const book563 = {
+  intro: {
+    src: "/im/dsw-intro-1420.webp",
+    small: "/im/dsw-intro-1000.webp",
+    alt: "Aerial render from the project book: the residence with its red roof among the pines, the stone entrance road winding below",
+    w: 1420,
+    h: 1243,
+  },
+  community: {
+    body: "The Dahr el Sawan Residence 563 is a gated community situated in the green hills of Dahr el Sawan. It is protected by a state of the art security system, complemented by a 24/7 guard post. It flourishes at an altitude of 900 m above sea level, with a magnificent view overlooking a wide range of mountains. Even with its close proximity to the capital, residents enjoy the fresh air of a peaceful and relaxing environment.",
+  },
+  location: [
+    "Ideally located at a 15-minute drive from Beirut. With the moderate temperature during winter, more and more people are acquiring homes in the area as a permanent residence, away from the pollution of the congested city centers.",
+    "The privacy and greenery of this location, combined with high-end building standards, make it a prime long-lasting real estate project. Access from Beirut is convenient: the new Metn Highway, the mountain roads, and the road via Zaarour.",
+  ],
+  maps: [
+    { src: "/im/dsw-map-region.webp", alt: "Satellite map of the area: the project location above the Metn Highway exit, between Baabdat and Dahr el Sawan", caption: "Exit Metn Highway · Chalimar roundabout · Dahr el Sawan" },
+    { src: "/im/dsw-map-site.webp", alt: "Satellite view of the site with the blocks marked along the private road", caption: "The site from above" },
+  ],
+  blockD: [
+    { src: "/im/dsw-blockd-entry-1760.webp", small: "/im/dsw-blockd-entry-1000.webp", alt: "Block D entrance render: the stone gate, driveway and planted forecourt" },
+    { src: "/im/dsw-blockd-aerial-1930.webp", small: "/im/dsw-blockd-aerial-1000.webp", alt: "Block D from above: the terracotta roof against the wooded hillside" },
+  ],
+  specs: [
+    { title: "Envelope finishes", items: [
+      "Façade finished with natural stone (100%)",
+      "Aluminum false ceiling and handrails for the balconies",
+      "Double-glazing Sidem 2000 aluminum with electric rolling shutters by FOLDA",
+    ] },
+    { title: "Flooring", items: [
+      "60×60 cm Botticino marble or equivalent for the reception, dining, guest area and main terraces",
+      "First choice imported ceramic for the kitchen and related balconies",
+      "Ceramic or terrazzo tiles for bedrooms, with provision to apply wood flooring",
+      "Stairs and landings in first choice local stone",
+    ] },
+    { title: "Bathrooms", items: [
+      "First choice imported ceramic for bathroom floors and walls",
+      "Marble counter tops with vanity units for master bathrooms",
+    ] },
+    { title: "Walls & ceilings", items: [
+      "Cement plaster and paint on walls and ceilings",
+      "Painted gypsum ceilings for bathrooms, coordinated with the lighting design",
+      "First quality paint (ICI or similar)",
+    ] },
+    { title: "Woodwork", items: [
+      "Main entrance door in solid natural wood",
+      "Reception doors in solid wood frames with natural veneered leaves",
+      "Bedroom and bathroom doors in solid frames with painted MDF leaves",
+      "Bedroom closets in laminated boxes with painted MDF doors and drawers",
+      "Kitchen cabinets in water-repellent MFC with PVC edging and self-close drawers",
+    ] },
+    { title: "Electro-mechanical", items: [
+      "European polypropylene piping for hot and domestic water (Polymutan or similar)",
+      "European UPVC drainage (Redi or similar)",
+      "European burners, radiators and hot water tanks (Ferroli or similar)",
+      "Copper tubing and drainage for the future AC installation",
+      "Legrand Arteor wiring devices or similar",
+      "Video intercom system",
+    ] },
+    { title: "Elevator", items: [
+      "High quality elevator with stainless steel telescopic or central opening doors",
+    ] },
+    { title: "Fixtures & fittings", items: [
+      "First quality European sanitary ware (Duravit or similar)",
+      "Grohe mixers or similar",
+    ] },
+    { title: "General facilities", items: [
+      "Security system across the project, with controlled access to all blocks",
+      "Guard booth with controlled gate",
+      "Covered parking with each residence, plus visitor parking",
+      "External hard and soft landscaping",
+    ] },
+  ],
+};
