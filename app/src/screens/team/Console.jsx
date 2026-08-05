@@ -41,15 +41,20 @@ export function Today() {
   // the counts below it say how much of something there is.
   const [line, setLine] = useState(null);
   useEffect(() => {
-    if (!IS_LIVE || !state.project?.id) return;
+    // Clear first: a headline left on screen while the next project loads
+    // reads as that project's, and it is not.
+    setLine(null);
+    if (!IS_LIVE || !state.project?.id) return undefined;
     let live = true;
-    latestBrief(state.project.id).then((b) => {
-      if (live) setLine(b);
-    });
+    latestBrief(state.project.id)
+      .then((b) => live && setLine(b))
+      .catch(() => {}); // no briefs table yet is not a reason to break Today
     return () => {
       live = false;
     };
   }, [state.project?.id]);
+  // A weekday alone makes a month-old headline read as this morning's.
+  const lineAge = line ? Math.floor((Date.now() - +new Date(line.generated_at)) / 86400000) : 0;
 
   return (
     <Screen>
@@ -88,12 +93,16 @@ export function Today() {
       <Card className="rise rise-2 mt-4 p-5" onClick={() => nav("/team/brief")}>
         <p className="type-eyebrow text-smoke">
           {line
-            ? `Brief · ${new Date(line.generated_at).toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" })}`
+            ? `Brief · ${new Date(line.generated_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
             : "Brief"}
+          {lineAge >= 1 && <span className="text-pmcc"> · {lineAge} days old</span>}
         </p>
         <p className="mt-2 font-sans text-sm leading-relaxed text-bone/90">
           {line?.headline ?? "No brief written yet. Open to read where this project stands, in plain sentences."}
         </p>
+        {line?.headline_source === "model" && (
+          <p className="mt-2 font-sans text-[0.6rem] text-smoke">That sentence was phrased by a model from checked facts.</p>
+        )}
       </Card>
 
       <div className="rise rise-2 mt-4 grid grid-cols-3 gap-3">

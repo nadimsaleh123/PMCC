@@ -197,13 +197,24 @@ export function diffProgramme(oldSnapshot, newSnapshot, thresholdDays = 3) {
   }
   const seen = new Set();
 
+  // A name is only a safe identity when one side genuinely carries no UID,
+  // which is the legacy case this fallback exists for. Two live activities
+  // can share a name — "Screed" appears on every floor — and matching those
+  // to each other manufactures a slip that never happened.
+  const match = (t) => {
+    const byUid = old.get(key(t));
+    if (byUid) return byUid;
+    const byName = old.get(nameKey(t));
+    return byName && (t.u == null || byName.u == null) ? byName : undefined;
+  };
+
   const completed = [];
   const slipped = [];
   const pulled = [];
   const depChanged = [];
 
   for (const t of newSnapshot) {
-    const o = old.get(key(t)) ?? old.get(nameKey(t));
+    const o = match(t);
     if (!o) continue;
     seen.add(key(o));
     seen.add(nameKey(o));
@@ -215,14 +226,21 @@ export function diffProgramme(oldSnapshot, newSnapshot, thresholdDays = 3) {
     const ds = t.s && o.s ? Math.round((new Date(t.s) - new Date(o.s)) / day) : 0;
     const delta = df !== 0 ? df : ds;
     if (delta !== 0 && (t.p ?? 0) < 100) {
+      // Print the dates of whichever end actually moved. Reporting the
+      // finish pair for a start-only shift shows two identical dates next
+      // to a day count, which reads as a contradiction.
+      const onFinish = df !== 0;
+      const from = fmtShort(onFinish ? o.f : o.s);
+      const to = fmtShort(onFinish ? t.f : t.s);
       const entry = {
         u: t.u,
         n: t.n,
         days: Math.abs(delta),
-        from: fmtShort(o.f || o.s),
-        to: fmtShort(t.f || t.s),
+        end: onFinish ? "finish" : "start",
+        from,
+        to,
         material: Math.abs(delta) >= thresholdDays,
-        text: `${t.n}: ${delta > 0 ? "+" : "−"}${Math.abs(delta)}d (${fmtShort(o.f || o.s)} → ${fmtShort(t.f || t.s)})`,
+        text: `${t.n}: ${delta > 0 ? "+" : "−"}${Math.abs(delta)}d (${from} → ${to})`,
       };
       (delta > 0 ? slipped : pulled).push(entry);
     }
@@ -232,7 +250,7 @@ export function diffProgramme(oldSnapshot, newSnapshot, thresholdDays = 3) {
   }
 
   const added = newSnapshot
-    .filter((t) => !(old.has(key(t)) || old.has(nameKey(t))))
+    .filter((t) => !match(t))
     .map((t) => ({ u: t.u, n: t.n, s: fmtShort(t.s), f: fmtShort(t.f) }));
   const removed = oldSnapshot.filter((t) => !seen.has(key(t))).map((t) => ({ u: t.u, n: t.n }));
 

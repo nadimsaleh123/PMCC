@@ -169,7 +169,19 @@ export async function writeBrief(projectId, period = "day") {
   const { data, error } = await sb.functions.invoke("brief", {
     body: { project_id: projectId, period },
   });
-  if (error) throw error;
+  if (error) {
+    // supabase-js collapses every non-2xx into "Edge Function returned a
+    // non-2xx status code" and hides the body. The body is the only thing
+    // that says what actually went wrong, so read it.
+    const body = await error.context?.text?.().catch(() => null);
+    let detail = body ?? "";
+    try {
+      detail = JSON.parse(body).error ?? body;
+    } catch {
+      /* not JSON — the raw text is already the best message */
+    }
+    throw new Error(detail || error.message);
+  }
   if (data?.error) throw new Error(data.error);
   return data;
 }

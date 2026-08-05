@@ -80,8 +80,11 @@ export default function Brief() {
       setBriefs((prev) => [fresh, ...prev]);
       setIdx(0);
     } catch (e) {
+      const msg = String(e.message ?? e);
       setErr(
-        `${e.message ?? e}. If this says "Failed to send a request", the brief function is not deployed yet — Supabase, Edge Functions.`,
+        /failed to send|fetch/i.test(msg)
+          ? `${msg}. That usually means the brief function is not deployed yet — Supabase, Edge Functions.`
+          : msg,
       );
     }
     setBusy(false);
@@ -182,7 +185,12 @@ export default function Brief() {
                 ? "That sentence was phrased by a language model from the facts below. It was checked for invented figures and for claims about cause before it was shown. Every other word on this page was written by the system from the record."
                 : "That sentence was chosen by the system, not written by a model. Everything on this page comes from the record."}
               {b.headline_source === "fallback" && b.violations?.length ? (
-                <span className="text-pmcc"> The model&apos;s draft was rejected: {b.violations.join("; ")}.</span>
+                <span className="text-pmcc">
+                  {" "}
+                  {b.headline_draft
+                    ? `The model's draft was rejected: ${b.violations.join("; ")}.`
+                    : `No line was written by the model: ${b.violations.join("; ")}.`}
+                </span>
               ) : null}
             </p>
           </Card>

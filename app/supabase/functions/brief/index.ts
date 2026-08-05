@@ -69,13 +69,24 @@ function diffProgramme(oldSnapshot: Row[], newSnapshot: Row[], thresholdDays = 3
   const seen = new Set<string>();
   const day = 86400000;
 
+  // A name is only a safe identity when one side genuinely carries no UID,
+  // which is the legacy case this fallback exists for. Two live activities
+  // can share a name — "Screed" appears on every floor — and matching those
+  // to each other manufactures a slip that never happened.
+  const match = (t: Row) => {
+    const byUid = old.get(key(t));
+    if (byUid) return byUid;
+    const byName = old.get(nameKey(t));
+    return byName && (t.u == null || byName.u == null) ? byName : undefined;
+  };
+
   const completed: Row[] = [];
   const slipped: Row[] = [];
   const pulled: Row[] = [];
   const depChanged: Row[] = [];
 
   for (const t of newSnapshot) {
-    const o = old.get(key(t)) ?? old.get(nameKey(t));
+    const o = match(t);
     if (!o) continue;
     seen.add(key(o));
     seen.add(nameKey(o));
@@ -87,12 +98,17 @@ function diffProgramme(oldSnapshot: Row[], newSnapshot: Row[], thresholdDays = 3
     const ds = t.s && o.s ? Math.round((+new Date(t.s) - +new Date(o.s)) / day) : 0;
     const delta = df !== 0 ? df : ds;
     if (delta !== 0 && (t.p ?? 0) < 100) {
+      // Print the dates of whichever end actually moved. Reporting the
+      // finish pair for a start-only shift shows two identical dates next
+      // to a day count, which reads as a contradiction.
+      const onFinish = df !== 0;
       (delta > 0 ? slipped : pulled).push({
         u: t.u,
         n: t.n,
         days: Math.abs(delta),
-        from: fmtShort(o.f || o.s),
-        to: fmtShort(t.f || t.s),
+        end: onFinish ? "finish" : "start",
+        from: fmtShort(onFinish ? o.f : o.s),
+        to: fmtShort(onFinish ? t.f : t.s),
         material: Math.abs(delta) >= thresholdDays,
       });
     }
@@ -102,7 +118,7 @@ function diffProgramme(oldSnapshot: Row[], newSnapshot: Row[], thresholdDays = 3
   }
 
   const added = newSnapshot
-    .filter((t) => !(old.has(key(t)) || old.has(nameKey(t))))
+    .filter((t) => !match(t))
     .map((t) => ({ u: t.u, n: t.n, s: fmtShort(t.s), f: fmtShort(t.f) }));
   const removed = oldSnapshot.filter((t) => !seen.has(key(t))).map((t) => ({ u: t.u, n: t.n }));
 
@@ -130,25 +146,67 @@ function factory() {
 /* ------------------------------------------------------------------ */
 /* The verifier. It runs on the model's draft before a human sees it.  */
 
-// Any causal or blame-bearing word. The body of the brief never needs one
-// (cause is always a quoted human reason), so a draft containing one is
-// asserting something the record does not.
-const CAUSAL = [
-  "because", "due to", "owing to", "caused", "causing", "as a result", "result of",
-  "therefore", "thus", "hence", "led to", "leads to", "knock-on", "consequence",
-  "blame", "fault", "liable", "liability", "entitle", "entitlement", "claim",
-  "responsib", "attributable", "stems from", "driven by", "thanks to",
-];
-// Numbers spelled out, and month names: the digit gate alone would miss these.
-const NUMBER_WORDS = [
-  "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
-  "eleven", "twelve", "dozen", "couple", "several", "few", "many", "most", "half",
-  "first", "second", "third", "fourth", "fifth", "last", "next",
-  "january", "february", "march", "april", "may", "june", "july", "august",
-  "september", "october", "november", "december",
-  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
-  "week", "month", "day", "days", "weeks", "months", "percent", "%",
-];
+// The gate is an ALLOWLIST, not a denylist.
+//
+// A denylist cannot be enumerated safely. Ban "twelve" and the model writes
+// "thirteen"; ban "because" and it writes "held up by the supplier". Every
+// list of forbidden words is a list of the ones somebody thought of.
+//
+// So the model may use only two kinds of word: ordinary connective English
+// from the fixed list below, and vocabulary that already appears in the
+// system's own fact sentences. Anything else is rejected by construction.
+// There is no gap to find, because the permitted set is finite and known.
+const CONNECTIVES = `
+a an and the of in on at to for with from by is are was were be been being am
+it its this that these those there here no not nothing none neither nor
+but or if while as so yet still again also only just even though although however meanwhile
+all both each other another same such more less
+project programme site work works record brief page line item items
+thing things story picture position shape state note point focus
+quiet steady unchanged open outstanding ahead behind clear
+holding moving standing sitting stays stay stands stand remains remain
+looks look seems seem reads read says say shows show sits
+`.trim().split(/\s+/);
+
+// Subtracted from the permitted set unconditionally, even when the word
+// occurs in a fact. Quantities and dates because the model must never
+// author one; cause and blame because responsibility is recorded by a
+// human or it is not recorded at all.
+const NEVER = `
+zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen
+fifteen sixteen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety
+hundred hundreds thousand thousands dozen dozens couple several few many most half quarter
+first second third fourth fifth sixth seventh eighth ninth tenth last next every
+day days week weeks month months year years percent
+january february march april may june july august september october november december
+jan feb mar apr jun jul aug sep sept oct nov dec
+monday tuesday wednesday thursday friday saturday sunday
+mon tue tues wed thu thur thurs fri sat sun today tomorrow yesterday now soon early late
+because due owing caused causing cause causes result results resulting therefore thus hence
+led leads leading knock consequence consequences blame blamed blaming fault liable liability
+entitle entitled entitlement claim claims responsible responsibility attributable
+stems driven thanks waiting awaiting pending held holds blocked blocking stalled
+delayed delaying slipping failing failure failed missed missing
+`.trim().split(/\s+/);
+
+// Facts whose text embeds something a human typed freely. Their vocabulary
+// is deliberately NOT lent to the model: it may place the whole quoted
+// sentence as a token, but it may not borrow the words and speak them in
+// its own voice.
+const HUMAN_TEXT_KINDS = new Set(["reason", "outlook", "decision", "risk"]);
+
+const wordsIn = (s: string) => s.toLowerCase().match(/[a-z']+/g) ?? [];
+
+function permitted(facts: Fact[]) {
+  const never = new Set(NEVER);
+  const ok = new Set<string>();
+  for (const w of CONNECTIVES) if (!never.has(w)) ok.add(w);
+  for (const f of facts) {
+    if (HUMAN_TEXT_KINDS.has(f.kind)) continue;
+    for (const w of wordsIn(f.text)) if (!never.has(w)) ok.add(w);
+  }
+  return ok;
+}
 
 function verifyLine(draft: string, facts: Fact[]) {
   const violations: string[] = [];
@@ -159,7 +217,7 @@ function verifyLine(draft: string, facts: Fact[]) {
     violations.push("empty");
     return { violations, prose: "" };
   }
-  if (line.length > 200) violations.push(`too long (${line.length} chars)`);
+  if (line.length > 200) violations.push(`too long (${line.length} characters)`);
 
   // Tokens must all be real.
   const used = [...line.matchAll(/\[\[(F\d+)\]\]/g)].map((m) => m[1]);
@@ -169,20 +227,18 @@ function verifyLine(draft: string, facts: Fact[]) {
 
   // Everything the model itself typed, with the tokens taken out.
   const prose = line.replace(/\[\[F\d+\]\]/g, " ").replace(/\s+/g, " ").trim();
-  const lower = ` ${prose.toLowerCase()} `;
 
   if (/\d/.test(prose)) violations.push("contains a digit outside a fact");
-  for (const w of NUMBER_WORDS) {
-    if (new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z]|$)`).test(lower)) {
-      violations.push(`quantifier or date word "${w}"`);
-    }
-  }
-  for (const w of CAUSAL) if (lower.includes(w)) violations.push(`causal claim "${w}"`);
-  if (/["'“”]/.test(prose)) violations.push("quotes something not in a fact");
+  if (/["'“”]/.test(prose.replace(/(\w)'(\w)/g, "$1$2"))) violations.push("quotes something not in a fact");
+
+  const ok = permitted(facts);
+  const bad = [...new Set(wordsIn(prose).filter((w) => !ok.has(w)))];
+  if (bad.length) violations.push(`used ${bad.map((w) => `"${w}"`).join(", ")}, which ${plural(bad.length, "is", "are")} not permitted`);
+
   // Hard cap on the model's own words. A short connective cannot smuggle
   // an argument; a paragraph can.
-  const words = prose.split(/\s+/).filter(Boolean);
-  if (words.length > 14) violations.push(`${words.length} of its own words (max 14)`);
+  const count = prose.split(/\s+/).filter(Boolean).length;
+  if (count > 14) violations.push(`${count} of its own words, where 14 is the most allowed`);
 
   return { violations, prose };
 }
@@ -246,10 +302,18 @@ Deno.serve(async (req) => {
 
     const latest = snaps[0] ?? null;
     // Compare against the newest snapshot taken at or before the window
-    // opened. If none exists, fall back to the previous one and print the
-    // real dates rather than pretend the window was honoured.
+    // opened. If none exists, fall back to the previous one — but then the
+    // period is not what was asked for, and every sentence below has to say
+    // the real dates rather than "this period".
     const prior = snaps.slice(1).find((s: Row) => new Date(s.taken_at) <= from) ?? snaps[1] ?? null;
     const diff = latest && prior ? diffProgramme(prior.tasks, latest.tasks, threshold) : null;
+    // Was there actually an import inside the window? If the last one was a
+    // fortnight ago, "nothing moved this period" is true but misleading —
+    // nothing moved because nobody imported anything.
+    const importedInWindow = Boolean(latest && new Date(latest.taken_at) >= from);
+    const window = importedInWindow
+      ? `in this period`
+      : `between the imports of ${prior ? fmtShort(prior.taken_at) : "?"} and ${latest ? fmtShort(latest.taken_at) : "?"}`;
 
     const { facts, add } = factory();
     const sections: Array<{ title: string; lines: string[]; tone?: string }> = [];
@@ -257,11 +321,18 @@ Deno.serve(async (req) => {
     /* ---- Where it stands ------------------------------------------ */
     const standing: string[] = [];
     if (latest) {
-      standing.push(
-        add("overall", prior
-          ? `Overall progress reads ${latest.overall}%, against ${prior.overall}% at the import of ${fmtShort(prior.taken_at)}`
-          : `Overall progress reads ${latest.overall}% at the import of ${fmtShort(latest.taken_at)}`),
-      );
+      // A file that parsed to nothing is not a project at 0%. Saying so
+      // would be a fabricated measurement of the worst kind: confident,
+      // precise, and wrong.
+      if (!latest.task_count) {
+        standing.push(add("overall", `The import of ${fmtShort(latest.taken_at)} carried no activities, so overall progress is not measured`));
+      } else {
+        standing.push(
+          add("overall", prior
+            ? `Overall progress reads ${latest.overall}%, against ${prior.overall}% at the import of ${fmtShort(prior.taken_at)}`
+            : `Overall progress reads ${latest.overall}% at the import of ${fmtShort(latest.taken_at)}`),
+        );
+      }
     } else {
       standing.push(add("overall", "No programme has been imported yet, so there is no measured progress"));
     }
@@ -281,14 +352,30 @@ Deno.serve(async (req) => {
     );
     if (!doneLines.length) {
       doneLines.push(add("completed-none", diff
-        ? "Nothing was marked complete in this period"
+        ? `Nothing was marked complete ${window}`
         : "There is no second import to compare against, so nothing can be said to have finished"));
     }
     sections.push({ title: "Finished", lines: doneLines, tone: "good" });
 
     /* ---- Moved ----------------------------------------------------- */
+    // A reason answers ONE movement. Taking the newest reason ever logged
+    // against a task and printing it beside today's slip attributes a named
+    // person's account of March to a move that happened in August — a dated,
+    // attributed statement of cause that nobody made. It would also suppress
+    // the "no reason logged" line and the "not inferred here" line, which are
+    // the two things on this page that must never be suppressed wrongly.
+    //
+    // So a reason must clear both bars: it is the same task by identity, and
+    // it was logged after the snapshot this move is measured from.
+    const since = prior ? +new Date(prior.taken_at) : 0;
     const reasonFor = (uid?: string, name?: string) =>
-      reasons.find((r: Row) => (uid && r.task_uid === uid) || r.task_name === name) ?? null;
+      reasons.find((r: Row) => {
+        // Names collide across floors; a UID on both sides is decisive, and
+        // when it disagrees the name must not be allowed to override it.
+        const sameTask =
+          uid != null && r.task_uid != null ? r.task_uid === uid : r.task_name === name;
+        return sameTask && +new Date(r.at) >= since;
+      }) ?? null;
 
     const movedLines: string[] = [];
     const unexplained: string[] = [];
@@ -315,10 +402,10 @@ Deno.serve(async (req) => {
     if (diff?.added?.length) movedLines.push(add("added", `${diff.added.length} ${plural(diff.added.length, "activity", "activities")} appeared in the programme that ${plural(diff.added.length, "was", "were")} not there before`));
     if (diff?.removed?.length) movedLines.push(add("removed", `${diff.removed.length} ${plural(diff.removed.length, "activity", "activities")} that ${plural(diff.removed.length, "was", "were")} in the programme ${plural(diff.removed.length, "is", "are")} no longer in it`));
     if (diff?.depChanged?.length) movedLines.push(add("dep", `${diff.depChanged.length} ${plural(diff.depChanged.length, "dependency", "dependencies")} changed`));
-    if (!movedLines.length) movedLines.push(add("moved-none", diff ? "No dates moved in this period" : "No comparison is possible yet"));
+    if (!movedLines.length) movedLines.push(add("moved-none", diff ? `No dates moved ${window}` : "No comparison is possible yet"));
     if (unexplained.length) {
       // Unsuppressible, and the point of the whole page.
-      movedLines.push(add("no-inference", `Whether ${plural(unexplained.length, "this move", "these moves")} is anyone's responsibility is not recorded, and is not inferred here`));
+      movedLines.push(add("no-inference", `${plural(unexplained.length, "Whether this move is", "Whether these moves are")} anyone's responsibility is not recorded, and is not inferred here`));
     }
     sections.push({ title: "Moved", lines: movedLines, tone: "warn" });
 
@@ -354,7 +441,7 @@ Deno.serve(async (req) => {
       waiting.push(add("decision", `A decision has been open ${age} ${plural(age, "day", "days")}: "${d.body}"${d.task_name ? `, against ${d.task_name}` : ""}`));
     }
     if (questions.length) {
-      waiting.push(add("questions", `${questions.length} ${plural(questions.length, "question", "questions")} raised by the last import ${plural(questions.length, "is", "are")} still unanswered in the copilot: ${questions.map((q: Row) => q.task_name).join(", ")}`));
+      waiting.push(add("questions", `${questions.length} ${plural(questions.length, "question", "questions")} raised by a programme import ${plural(questions.length, "is", "are")} still unanswered in the copilot, the oldest from ${fmtShort(questions.map((q: Row) => q.created_at).sort()[0])}: ${questions.map((q: Row) => q.task_name).join(", ")}`));
     }
     const openRisks = risks.filter((r: Row) => r.status !== "closed");
     for (const r of openRisks.slice(0, 5)) {
@@ -468,7 +555,10 @@ Deno.serve(async (req) => {
         }
       }
     } catch (e) {
-      violations = [`model unavailable: ${String((e as Error).message ?? e)}`];
+      // Keep whatever the first attempt was already rejected for. Replacing
+      // it with the transport error loses the only record of what the model
+      // actually tried to say, which is the point of storing it.
+      violations = [...violations, `model unavailable: ${String((e as Error).message ?? e)}`];
     }
 
     const stats = {
