@@ -16,21 +16,29 @@ function brain(q, state) {
   const s = q.toLowerCase();
   const { project, lookahead, payments, risks, diary, visits, owner } = state;
 
+  // Every branch below reads the record. On a project whose record is still
+  // empty, an unguarded read crashed the whole screen rather than saying the
+  // one honest thing: it has not been set yet.
   if (/(this week|happening|now|current)/.test(s)) {
-    const w = lookahead.weeks[0];
+    const w = lookahead.weeks?.[0];
+    if (!w?.items?.length) return "The three-week plan has not been published yet, so there is nothing recorded for this week.";
     return `This week (${w.range}): ${w.items.map((i) => i.t.toLowerCase()).join("; ")}. From the site programme, updated ${lookahead.updated}.`;
   }
   if (/(next week|coming|after)/.test(s)) {
-    const w = lookahead.weeks[1];
+    const w = lookahead.weeks?.[1];
+    if (!w?.items?.length) return "Nothing is recorded for next week yet.";
     return `Next week (${w.range}): ${w.items.map((i) => i.t.toLowerCase()).join("; ")}.${w.items.some((i) => i.s === "blocked") ? " One item is waiting on a supplier — it's flagged on the plan." : ""}`;
   }
   if (/(progress|far|status|%)/.test(s)) {
-    const st = project.phases.find((p) => p.name === "Structure");
-    return `Overall progress is ${project.overall}%. Structure is at ${st.pct}%, and the next milestone is structure top-out in Nov 2026. Delivery holds at ${project.delivery}.`;
+    const st = (project.phases ?? []).find((p) => p.name === "Structure");
+    const next = (project.milestones ?? []).find((m) => m.next || !m.done);
+    return `Overall progress is ${project.overall}%.${st ? ` Structure is at ${st.pct}%.` : ""}${next ? ` The next milestone is ${next.name}, ${next.date}.` : ""} Delivery holds at ${project.delivery}.`;
   }
   if (/(pay|money|installment|due|owe)/.test(s)) {
     const next = payments.find((p) => p.state !== "paid");
     const paid = payments.filter((p) => p.state === "paid").reduce((a, p) => a + p.amount, 0);
+    if (!payments.length) return "No payment schedule has been recorded against your unit yet.";
+    if (!next) return `You've paid ${usd(paid)} to date, and nothing further is outstanding.`;
     return `You've paid ${usd(paid)} to date. Your next installment is "${next.name}" — ${usd(next.amount)}, tied to ${next.link}. Nothing is due until that milestone is built.`;
   }
   if (/(deliver|handover|finish|move in|when)/.test(s)) {
@@ -48,24 +56,33 @@ function brain(q, state) {
   }
   if (/(photo|picture|update|diary)/.test(s)) {
     const d = diary[0];
+    if (!d) return "No site updates have been published yet. They appear in the diary as soon as the team posts one.";
     return `The latest diary entry is from ${d.date} (${d.phase}): ${d.text}`;
   }
   if (/(grace|compensat|penalt|late deliver)/.test(s)) {
-    return `From your contract: ${owner.contract.deliveryClause}`;
+    return owner.contract?.deliveryClause
+      ? `From your contract: ${owner.contract.deliveryClause}`
+      : "Your contract has not been indexed yet, so I cannot quote a clause. Ask the team and they will confirm it.";
   }
+  // An un-indexed contract is an empty object, and reading a clause off it
+  // used to print the word "undefined" as though it were a contract term.
+  const NOT_INDEXED = "Your contract has not been indexed into the app yet, so I cannot quote it. The team can confirm the wording.";
   if (/(contract|agreement|signed|clause|terms|warranty|guarantee)/.test(s)) {
-    const c = owner.contract;
-    if (/(warrant|guarantee|defect)/.test(s)) return `From your contract: ${c.warrantyClause}`;
-    if (/(pay|installment)/.test(s)) return `From your contract: ${c.paymentClause}`;
-    if (/(change|variation)/.test(s)) return `From your contract: ${c.variationClause}`;
-    if (/(unit|include|parking|storage)/.test(s)) return `From your contract: ${c.unitClause}`;
+    const c = owner.contract ?? {};
+    const quote = (v) => (v ? `From your contract: ${v}` : NOT_INDEXED);
+    if (/(warrant|guarantee|defect)/.test(s)) return quote(c.warrantyClause);
+    if (/(pay|installment)/.test(s)) return quote(c.paymentClause);
+    if (/(change|variation)/.test(s)) return quote(c.variationClause);
+    if (/(unit|include|parking|storage)/.test(s)) return quote(c.unitClause);
+    if (!c.signedOn && !c.parties) return NOT_INDEXED;
     return `Your contract was signed on ${c.signedOn} between ${c.parties}. It covers: ${c.unitClause} Ask me about payment terms, delivery and grace period, variations, or warranty — I answer from the indexed contract.`;
   }
   if (/(parking|storage|bay)/.test(s)) {
-    return `From your contract: ${owner.contract.unitClause}`;
+    return owner.contract?.unitClause ? `From your contract: ${owner.contract.unitClause}` : NOT_INDEXED;
   }
   if (/(terrace|roof|my (floor|unit|apartment)|residence)/.test(s)) {
-    return `${owner.unit}: ${owner.area}, ${owner.extras.toLowerCase()}. Your floor plan is in Documents, and your two terraces come off the reception and the master suite.`;
+    const bits = [owner.area, owner.extras?.toLowerCase()].filter(Boolean).join(", ");
+    return `${owner.unit}${bits ? `: ${bits}` : ""}. Your floor plan is in Documents when the team uploads it.`;
   }
   return null;
 }

@@ -31,17 +31,21 @@ import { markDiaryRead } from "../../live/sync";
 export function Home() {
   const { state } = useStore();
   const { project, owner, diary, lookahead } = state;
-  const latest = diary[0];
-  const thisWeek = lookahead.weeks[0];
-  const nextMilestone = project.milestones.find((m) => m.next);
+  // A project on its first day has no diary, no look-ahead and no owner
+  // name yet. Every one of these was read straight through, so the owner's
+  // very first visit crashed the screen to nothing.
+  const latest = diary[0] ?? null;
+  const thisWeek = lookahead.weeks?.[0] ?? null;
+  const nextMilestone = (project.milestones ?? []).find((m) => m.next);
   const hour = new Date().getHours();
   const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const firstName = (owner.name ?? "").trim().split(" ")[0];
 
   return (
     <Screen>
       <TopBar
         eyebrow={project.name}
-        title={`${greet}, ${owner.name.split(" ")[0]}`}
+        title={firstName ? `${greet}, ${firstName}` : greet}
         right={
           <Link to="/more" aria-label="Notifications" className="flex h-10 w-10 items-center justify-center border border-seam text-stone">
             <Icon.bell className="h-[18px] w-[18px]" />
@@ -100,31 +104,52 @@ export function Home() {
         <Card className="p-5">
           <div className="flex items-baseline justify-between">
             <p className="type-eyebrow text-smoke">On site this week</p>
-            <span className="font-sans text-xs text-stone">{thisWeek.range} →</span>
+            {thisWeek?.range && thisWeek.range !== "—" && (
+              <span className="font-sans text-xs text-stone">{thisWeek.range} →</span>
+            )}
           </div>
-          <ul className="mt-3 space-y-2">
-            {thisWeek.items.slice(0, 3).map((it) => (
-              <li key={it.t} className="flex items-start gap-3 font-sans text-sm text-bone/90">
-                <StateDot s={it.s} />
-                {it.t}
-              </li>
-            ))}
-          </ul>
+          {thisWeek?.items?.length ? (
+            <ul className="mt-3 space-y-2">
+              {thisWeek.items.slice(0, 3).map((it) => (
+                <li key={it.t} className="flex items-start gap-3 font-sans text-sm text-bone/90">
+                  <StateDot s={it.s} />
+                  {it.t}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 font-sans text-sm leading-relaxed text-smoke">
+              The three-week plan has not been published yet. It appears here as soon as the site
+              team sets it.
+            </p>
+          )}
         </Card>
       </Link>
 
       {/* Latest from the diary */}
       <Link to="/diary" className="rise rise-4 mt-4 block">
         <Card>
-          <img src={latest.photo} alt="" className="aspect-[16/10] w-full object-cover" />
-          <div className="p-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="type-eyebrow text-stone">{latest.date}</p>
-              <Stamp tone="stone">{latest.phase}</Stamp>
+          {latest ? (
+            <>
+              {latest.photo && <img src={latest.photo} alt="" className="aspect-[16/10] w-full object-cover" />}
+              <div className="p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="type-eyebrow text-stone">{latest.date}</p>
+                  {latest.phase && <Stamp tone="stone">{latest.phase}</Stamp>}
+                </div>
+                <p className="mt-2 line-clamp-2 font-sans text-sm leading-relaxed text-bone/90">{latest.text}</p>
+                <p className="mt-3 font-sans text-xs font-semibold text-pmcc">Open the diary →</p>
+              </div>
+            </>
+          ) : (
+            <div className="p-5">
+              <p className="type-eyebrow text-stone">Site diary</p>
+              <p className="mt-2 font-sans text-sm leading-relaxed text-smoke">
+                No updates have been published yet. Every one the team publishes is timestamped and
+                kept, and they all appear here.
+              </p>
             </div>
-            <p className="mt-2 line-clamp-2 font-sans text-sm leading-relaxed text-bone/90">{latest.text}</p>
-            <p className="mt-3 font-sans text-xs font-semibold text-pmcc">Open the diary →</p>
-          </div>
+          )}
         </Card>
       </Link>
     </Screen>
@@ -142,11 +167,21 @@ export function Diary() {
   return (
     <Screen>
       <TopBar eyebrow="The record of your build" title="Site diary" />
+      {!state.diary.length && (
+        <Card className="mb-5 p-5">
+          <p className="font-sans text-sm leading-relaxed text-smoke">
+            Nothing has been published yet. When the site team posts an update it appears here, with
+            the date it was taken.
+          </p>
+        </Card>
+      )}
       {state.diary.map((d, i) => (
         <Card key={d.id} className={`mb-5 ${i < 4 ? `rise rise-${i + 1}` : ""}`}>
-          <button type="button" onClick={() => setOpen(d)} className="block w-full">
-            <img src={d.photo} alt="" className="aspect-[16/10] w-full object-cover" />
-          </button>
+          {d.photo && (
+            <button type="button" onClick={() => setOpen(d)} className="block w-full">
+              <img src={d.photo} alt="" className="aspect-[16/10] w-full object-cover" />
+            </button>
+          )}
           <div className="p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="type-eyebrow text-stone">{d.date}</p>
