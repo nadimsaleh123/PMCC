@@ -367,30 +367,50 @@ async function ingestOne(admin: any, project: Row) {
   const threshold = project.threshold_days ?? 3;
   const diff = last ? diffProgramme(last.tasks, parsed.snapshot, threshold) : null;
 
-  await admin
-    .from("projects")
-    .update({
-      milestones: parsed.milestones,
+  // Every write is checked. A silent failure here would report "ingested"
+  // over a database that never changed — the worst possible lie for a
+  // system whose whole job is to be the record.
+  const must = async (label: string, p: Promise<{ error: unknown }>) => {
+    const { error } = await p;
+    if (error) throw new Error(`${label}: ${(error as Row).message ?? JSON.stringify(error)}`);
+  };
+
+  await must(
+    "projects update",
+    admin
+      .from("projects")
+      .update({
+        milestones: parsed.milestones,
+        overall: parsed.overall,
+        phases: parsed.phases.length ? parsed.phases : project.phases,
+        programme: { importedAt: new Date().toISOString(), tasks: parsed.snapshot },
+      })
+      .eq("id", project.id),
+  );
+
+  await must(
+    "lookahead upsert",
+    admin.from("lookahead").upsert(
+      {
+        project_id: project.id,
+        weeks: parsed.weeks,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "project_id" },
+    ),
+  );
+
+  await must(
+    "snapshot insert",
+    admin.from("programme_snapshots").insert({
+      project_id: project.id,
+      source: "auto",
+      is_baseline: !last,
+      task_count: parsed.taskCount,
       overall: parsed.overall,
-      phases: parsed.phases.length ? parsed.phases : project.phases,
-      programme: { importedAt: new Date().toISOString(), tasks: parsed.snapshot },
-    })
-    .eq("id", project.id);
-
-  await admin.from("lookahead").upsert({
-    project_id: project.id,
-    weeks: parsed.weeks,
-    updated_at: new Date().toISOString(),
-  });
-
-  await admin.from("programme_snapshots").insert({
-    project_id: project.id,
-    source: "auto",
-    is_baseline: !last,
-    task_count: parsed.taskCount,
-    overall: parsed.overall,
-    tasks: parsed.snapshot,
-  });
+      tasks: parsed.snapshot,
+    }),
+  );
 
   let queued = 0;
   if (diff) {
