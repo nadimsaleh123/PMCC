@@ -183,11 +183,33 @@ export async function loadOwner(profile) {
   };
 }
 
+// Which project the console is pointed at, remembered across reloads and
+// across the token refreshes that re-boot the app. Without this, any
+// re-boot silently snapped back to the oldest project — and a programme
+// link typed into the card then filed itself against the wrong building.
+const ACTIVE_KEY = "pmcc.activeProject";
+const remembered = () => {
+  try {
+    return localStorage.getItem(ACTIVE_KEY);
+  } catch {
+    return null;
+  }
+};
+const remember = (id) => {
+  try {
+    localStorage.setItem(ACTIVE_KEY, id);
+  } catch {
+    /* private browsing — falling back to the first project is fine */
+  }
+};
+
 /** Everything the team console needs for one project. */
 export async function loadTeam(projectId) {
   const { data: projects } = await sb.from("projects").select("id, name").order("created_at");
   if (!projects?.length) throw new Error("no-projects");
-  const active = projects.find((p) => p.id === projectId) ?? projects[0];
+  const want = projectId ?? remembered();
+  const active = projects.find((p) => p.id === want) ?? projects[0];
+  remember(active.id);
   const [{ data: proj }, { data: units }, content] = await Promise.all([
     sb.from("projects").select("*").eq("id", active.id).single(),
     sb.from("units").select("*, users:profiles!owner_id(full_name, email, last_seen)").eq("project_id", active.id),

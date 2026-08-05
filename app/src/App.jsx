@@ -84,9 +84,18 @@ export default function App() {
         setLive("noaccess");
       }
     };
+    // supabase-js re-fires SIGNED_IN on every token refresh and on tab
+    // focus. Booting again there threw away whatever the console was
+    // pointed at mid-task. Boot once per signed-in user, no more.
+    let bootedFor = null;
     const { data } = sb.auth.onAuthStateChange((event, session) => {
-      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") boot(session);
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        if (session?.user?.id && bootedFor === session.user.id) return;
+        bootedFor = session?.user?.id ?? null;
+        boot(session);
+      }
       if (event === "SIGNED_OUT") {
+        bootedFor = null;
         dispatch({ type: "signout" });
         setLive("anon");
       }
