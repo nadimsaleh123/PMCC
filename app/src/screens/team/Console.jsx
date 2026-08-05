@@ -5,7 +5,7 @@
  * without a human pressing Publish after seeing exactly what the owner
  * will see.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore, usd } from "../../store";
 import { Screen, TopBar, Card, Row, Stamp, Btn, Icon, StateDot, StateLegend, Back } from "../../ui";
@@ -944,6 +944,13 @@ export function ProjectDesk() {
   const [syncUrl, setSyncUrl] = useState(state.project.programmeUrl ?? "");
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
+  // Switching project must re-read the field. Left stale, the box still
+  // holds the previous project's link and Save link writes it onto the
+  // one now open — a programme filed against the wrong building.
+  useEffect(() => {
+    setSyncUrl(state.project.programmeUrl ?? "");
+    setSyncMsg("");
+  }, [projectId, state.project.programmeUrl]);
   const [applying, setApplying] = useState(false);
 
   // document upload
@@ -1370,6 +1377,12 @@ export function ProjectDesk() {
 
       <Card className="mt-4 p-5">
         <p className="type-eyebrow text-smoke">Automatic sync</p>
+        {/* The building is named on the card, not just in the header far
+            above it. A programme filed against the wrong project corrupts
+            the record this whole system exists to keep. */}
+        <p className="mt-1 font-sans text-sm text-bone">
+          Programme for <span className="text-rust">{state.project.name}</span>
+        </p>
         <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
           Paste the share link of the programme file in your Drive. From then on, saving over
           that file is the import: the app checks it on a schedule, and only acts when the
@@ -1392,11 +1405,18 @@ export function ProjectDesk() {
                 .from("projects")
                 .update({ programme_url: syncUrl.trim() || null })
                 .eq("id", projectId);
-              setSyncMsg(error ? `Could not save: ${error.message}` : "Link saved.");
+              setSyncMsg(
+                error
+                  ? `Could not save: ${error.message}`
+                  : syncUrl.trim()
+                    ? `Link saved against ${state.project.name}.`
+                    : `Link cleared from ${state.project.name}. It will no longer be checked.`,
+              );
+              if (!error) dispatch({ type: "boot", slices: await loadTeam(projectId) });
               setSyncBusy(false);
             }}
           >
-            Save link
+            {syncUrl.trim() ? "Save link" : "Clear link"}
           </Btn>
           <Btn
             disabled={syncBusy || !syncUrl.trim()}
@@ -1409,12 +1429,16 @@ export function ProjectDesk() {
                 });
                 if (error) throw error;
                 const r = data.results?.[0];
-                if (!r) setSyncMsg("No link saved for this project yet — save it first.");
-                else if (r.status === "unchanged") setSyncMsg("Checked: the file has not changed since the last snapshot.");
-                else if (r.status === "error") setSyncMsg(`Could not read the file — ${r.error}`);
+                if (!r)
+                  setSyncMsg(
+                    `No link is saved against ${state.project.name} yet — press Save link first.`,
+                  );
+                else if (r.status === "unchanged")
+                  setSyncMsg(`${r.project}: the file has not changed since the last snapshot.`);
+                else if (r.status === "error") setSyncMsg(`${r.project} — could not read the file: ${r.error}`);
                 else {
                   setSyncMsg(
-                    `Ingested: ${r.tasks} activities, overall ${r.overall}%${
+                    `Ingested into ${r.project}: ${r.tasks} activities, overall ${r.overall}%${
                       r.questions ? `, ${r.questions} question${r.questions > 1 ? "s" : ""} queued in the copilot` : ""
                     }.`,
                   );
