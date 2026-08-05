@@ -14,11 +14,20 @@ import Copilot from "./screens/team/Copilot";
 import Report from "./screens/team/Report";
 import Brief from "./screens/team/Brief";
 
+const ROLES = ["team", "owner"];
+
 function Guard({ role, children }) {
   const { state } = useStore();
   if (!state.session) return <Navigate to="/signin" replace />;
-  if (role && state.session.role !== role)
-    return <Navigate to={state.session.role === "team" ? "/team" : "/"} replace />;
+  const mine = state.session.role;
+  // A role that is neither team nor owner has no home to be sent to, and
+  // the old line sent it to the very owner route it had just been refused
+  // from. That is an infinite redirect, and React Router answers it by
+  // tearing down the tree — a black screen with no message, which is the
+  // one failure that leaves nobody anything to report. Boot refuses such a
+  // session before it gets here; this is the second line of defence.
+  if (!ROLES.includes(mine)) return <Navigate to="/signin" replace />;
+  if (role && mine !== role) return <Navigate to={mine === "team" ? "/team" : "/"} replace />;
   return children;
 }
 
@@ -56,6 +65,7 @@ export default function App() {
   const onAsk = pathname === "/ask";
   // live: checking → ready | anon | noaccess
   const [live, setLive] = useState(IS_LIVE ? "checking" : "off");
+  const [bootError, setBootError] = useState("");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -63,6 +73,10 @@ export default function App() {
 
   useEffect(() => {
     if (!IS_LIVE) return undefined;
+    // supabase-js re-fires SIGNED_IN on every token refresh and on tab
+    // focus. Booting again there threw away whatever the console was
+    // pointed at mid-task. Boot once per signed-in user, no more.
+    let bootedFor = null;
     const boot = async (session) => {
       if (!session) {
         dispatch({ type: "signout" });
@@ -75,20 +89,34 @@ export default function App() {
           setLive("noaccess");
           return;
         }
+        // Refuse an unroutable session at the door. Everything downstream
+        // assumes the role is one of two values, and a profile row whose
+        // role is null or misspelled satisfies neither.
+        if (!ROLES.includes(profile.role)) {
+          setBootError(
+            `This account's profile has role ${JSON.stringify(profile.role)}. It must be "team" or "owner".`,
+          );
+          setLive("broken");
+          return;
+        }
         const slices = profile.role === "team" ? await loadTeam() : await loadOwner(profile);
         dispatch({ type: "boot", slices });
         dispatch({ type: "signin", session: { role: profile.role, name: profile.full_name } });
         touchPresence();
         setLive("ready");
       } catch (e) {
+        // "No residence is linked to this email" is true for a missing unit
+        // and a lie for anything else. Saying it over a crash sends the
+        // person chasing their contract instead of reporting the fault.
         console.error("[live-boot]", e);
-        setLive("noaccess");
+        bootedFor = null; // a failed boot must be retryable
+        if (String(e?.message) === "no-unit") setLive("noaccess");
+        else {
+          setBootError(String(e?.message ?? e));
+          setLive("broken");
+        }
       }
     };
-    // supabase-js re-fires SIGNED_IN on every token refresh and on tab
-    // focus. Booting again there threw away whatever the console was
-    // pointed at mid-task. Boot once per signed-in user, no more.
-    let bootedFor = null;
     const { data } = sb.auth.onAuthStateChange((event, session) => {
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
         if (session?.user?.id && bootedFor === session.user.id) return;
@@ -111,6 +139,32 @@ export default function App() {
         <p className="type-eyebrow text-smoke">Opening your record…</p>
       </Splash>
     );
+  if (live === "broken")
+    return (
+      <Splash>
+        <p className="type-display text-2xl text-bone">This did not load.</p>
+        <p className="max-w-xs font-sans text-sm leading-relaxed text-smoke">
+          Your sign-in worked. Reading your project did not, and the app would
+          rather say so than show you a half-empty screen. Nothing is lost.
+        </p>
+        <p className="max-w-xs break-words font-mono text-[0.7rem] leading-relaxed text-pmcc">{bootError}</p>
+        <Btn tone="ghost" onClick={() => window.location.reload()}>Try again</Btn>
+        <button
+          type="button"
+          onClick={() => {
+            try {
+              localStorage.clear();
+            } catch {
+              /* private browsing */
+            }
+            window.location.reload();
+          }}
+          className="font-sans text-xs text-smoke underline underline-offset-4"
+        >
+          Reset this device and try again
+        </button>
+      </Splash>
+    );
   if (live === "noaccess")
     return (
       <Splash>
@@ -127,7 +181,20 @@ export default function App() {
     <>
       <div className="grain" />
       <Routes>
-        <Route path="/signin" element={state.session ? <Navigate to={role === "team" ? "/team" : "/"} replace /> : <SignIn />} />
+        {/* Only bounce a signed-in visitor onward if there is somewhere to
+            bounce them TO. A session whose role is neither team nor owner is
+            refused by every Guard, so sending it on from here is half of an
+            infinite redirect — and an infinite redirect is the black screen. */}
+        <Route
+          path="/signin"
+          element={
+            state.session && ROLES.includes(role) ? (
+              <Navigate to={role === "team" ? "/team" : "/"} replace />
+            ) : (
+              <SignIn />
+            )
+          }
+        />
 
         <Route path="/" element={<Guard role="owner"><Home /></Guard>} />
         <Route path="/diary" element={<Guard role="owner"><Diary /></Guard>} />

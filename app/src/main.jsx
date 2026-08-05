@@ -6,11 +6,14 @@ import "@fontsource-variable/fraunces/full-italic.css";
 import "./index.css";
 import { StoreProvider } from "./store";
 import App from "./App";
+import ErrorBoundary from "./ErrorBoundary";
 
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter basename="/app">
-    <StoreProvider>
-      <App />
-    </StoreProvider>
-  </BrowserRouter>,
+  <ErrorBoundary>
+    <BrowserRouter basename="/app">
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </BrowserRouter>
+  </ErrorBoundary>,
 );
