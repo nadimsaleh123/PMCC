@@ -93,6 +93,120 @@ function matchActivity(msg, weeks) {
   return best && best.score >= 1 ? best : null;
 }
 
+/**
+ * Is this a question about the project, or a report of something that
+ * happened on site? Getting this wrong is what produced "I couldn't map that
+ * to the plan" in answer to "what is left for the week" — advice to rename an
+ * activity, given to someone who was not naming one.
+ */
+function isQuestion(msg) {
+  const s = msg.trim().toLowerCase();
+  if (s.endsWith("?")) return true;
+  return /^(what|what's|whats|when|where|who|which|how|why|is|are|was|were|do|does|did|can|could|should|will|any|show|list|tell|give)\b/.test(s);
+}
+
+const STATE_WORD = { done: "completed", ready: "on track", blocked: "delayed", todo: "not started" };
+const listOf = (items) => items.map((i) => `${i.t} (${STATE_WORD[i.s] ?? i.s})`).join("; ");
+
+/**
+ * Answer a question from what is already on the device: the look-ahead, the
+ * programme, the risks and the log. Used when the server brain is unreachable
+ * or declines to answer, and it is often the better answer anyway — it is
+ * instant, and it cannot invent anything, because it only reads fields.
+ *
+ * Returns null when it genuinely has nothing to say, so the caller can fall
+ * through rather than pretend.
+ */
+function answerLocally(msg, state) {
+  const s = msg.toLowerCase();
+  const weeks = state.lookahead?.weeks ?? [];
+  const wk = (i) => weeks[i] ?? null;
+  const named = (w) => (w?.range && w.range !== "—" ? ` (${w.range})` : "");
+
+  const openIn = (w) => (w?.items ?? []).filter((i) => i.s !== "done");
+  const doneIn = (w) => (w?.items ?? []).filter((i) => i.s === "done");
+
+  // "When did X happen" wants a date, not a list. The log is the permanent
+  // history and the only place that date exists, so it is read FIRST — before
+  // the generic "what is done" branch, which would otherwise swallow the
+  // question and answer something adjacent to it.
+  if (/^(when|who)\b/.test(s.trim()) || /\bwhen (was|did|is)\b/.test(s)) {
+    // Question words are not evidence of a match.
+    const ASKING = new Set(["when", "who", "what", "did", "does", "we", "the", "it", "this", "that", "there", "start", "started", "happen", "happened", "get", "got", "go"]);
+    const mt = new Set(tokens(msg).filter((t) => !ASKING.has(t)));
+    const scored = (state.log ?? [])
+      .map((l) => ({ l, shared: [...new Set(tokens(l.body).filter((tk) => mt.has(tk)))] }))
+      // Two shared words is a match. One is a match only if it is a
+      // distinctive word — "waterproofing" identifies an activity, "slab"
+      // on its own does not, and answering the wrong activity with a
+      // confident timestamp is worse than not answering.
+      .filter((x) => x.shared.length >= 2 || (x.shared.length === 1 && x.shared[0].length >= 6))
+      .sort((a, b) => b.shared.length - a.shared.length);
+    if (scored.length) {
+      const { l } = scored[0];
+      return `${l.at}${l.author ? `, ${l.author}` : ""}: ${l.body}`;
+    }
+  }
+
+  // What is left / pending / remaining — the question that started this.
+  if (/(left|remaining|pending|outstanding|still|to do|todo|open)/.test(s) && !/risk|decision/.test(s)) {
+    const which = /next week/.test(s) ? 1 : 0;
+    const w = wk(which);
+    if (!w?.items?.length) return "The look-ahead has nothing recorded for that week yet. Import the programme or add activities in Plan, and they will show here.";
+    const open = openIn(w);
+    if (!open.length) return `Everything in ${which ? "next week" : "this week"}${named(w)} is marked completed: ${doneIn(w).map((i) => i.t).join("; ")}.`;
+    return `${open.length} of ${w.items.length} still open ${which ? "next week" : "this week"}${named(w)}: ${listOf(open)}.`;
+  }
+
+  // What is on this week / next week.
+  if (/(this week|next week|week after|coming up|on site|scheduled|planned)/.test(s)) {
+    const which = /week after/.test(s) ? 2 : /next week/.test(s) ? 1 : 0;
+    const w = wk(which);
+    if (!w?.items?.length) return "Nothing is recorded in the look-ahead for that week yet.";
+    return `${w.label}${named(w)}: ${listOf(w.items)}.`;
+  }
+
+  // What is done.
+  if (/(done|completed|finished|ticked|built)/.test(s)) {
+    const all = weeks.flatMap((w) => doneIn(w));
+    if (!all.length) return "Nothing in the look-ahead is marked completed yet.";
+    return `Marked completed in the look-ahead: ${all.map((i) => i.t).join("; ")}.`;
+  }
+
+  // What is delayed / behind.
+  if (/(delay|late|behind|slip|blocked|stuck|problem)/.test(s)) {
+    const blocked = weeks.flatMap((w) => (w.items ?? []).filter((i) => i.s === "blocked"));
+    const open = (state.risks ?? []).filter((r) => r.status !== "closed");
+    if (!blocked.length && !open.length) return "Nothing is marked delayed in the look-ahead, and there are no open risks.";
+    return [
+      blocked.length ? `Marked delayed: ${blocked.map((i) => `${i.t}${i.note ? ` — ${i.note}` : ""}`).join("; ")}.` : "Nothing is marked delayed in the look-ahead.",
+      open.length ? `Open risks: ${open.map((r) => r.title).join("; ")}.` : "No open risks.",
+    ].join(" ");
+  }
+
+  // Risks on their own.
+  if (/risk|notice|warning/.test(s)) {
+    const open = (state.risks ?? []).filter((r) => r.status !== "closed");
+    return open.length ? `${open.length} open: ${open.map((r) => `${r.title} (${r.status})`).join("; ")}.` : "No open risks.";
+  }
+
+  // Progress and delivery.
+  if (/(progress|how far|percent|%|overall|status of the project)/.test(s)) {
+    const ph = (state.project?.phases ?? []).filter((p) => p.pct > 0);
+    return `Overall ${state.project?.overall ?? 0}%.${ph.length ? ` By phase: ${ph.map((p) => `${p.name} ${p.pct}%`).join("; ")}.` : " No phase breakdown has been imported yet."}`;
+  }
+  if (/(deliver|handover|finish date|completion date|when.*(done|ready|finished))/.test(s)) {
+    const next = (state.project?.milestones ?? []).find((m) => m.next || !m.done);
+    return `Delivery reads ${state.project?.delivery ?? "not set"}.${next ? ` The next milestone on the programme is ${next.name}, ${next.date}.` : ""}${state.project?.outlook?.note ? ` Outlook: ${state.project.outlook.note}` : ""}`;
+  }
+  if (/milestone/.test(s)) {
+    const ms = state.project?.milestones ?? [];
+    return ms.length ? ms.map((m) => `${m.name} — ${m.date}${m.done ? " (done)" : ""}`).join("; ") : "No milestones have been imported yet.";
+  }
+
+  return null;
+}
+
 /** Turn one site report into a list of proposed, structured actions. */
 function propose(msg, state) {
   const s = msg.toLowerCase();
@@ -307,35 +421,50 @@ export default function Copilot() {
     });
     setThinking(true);
 
-    let actions;
+    const say = (text, extra = {}) => {
+      dispatch({ type: "copilot", messages: [{ role: "ai", text, ...extra }] });
+      setThinking(false);
+    };
+
+    const asked = isQuestion(q);
+    let actions = [];
+    let serverErr = null;
+
     if (IS_LIVE) {
       try {
         const data = await copilotLive(q, state.project.id);
-        if (data.answer) {
-          // A question, not a report — answered from the record.
-          dispatch({ type: "copilot", messages: [{ role: "ai", text: data.answer }] });
-          setThinking(false);
-          return;
-        }
+        if (data.answer) return say(data.answer);
         actions = (data.actions ?? []).map(fromAI);
       } catch (e) {
         console.error(e);
-        actions = propose(q, state); // local parser as the fallback brain
+        serverErr = String(e.message ?? e);
       }
     } else {
       await new Promise((r) => setTimeout(r, 700));
-      actions = propose(q, state);
     }
 
-    dispatch({
-      type: "copilot",
-      messages: [
-        actions.length
-          ? { role: "ai", text: "Here's what I'd do with that — apply what's right:", actions, applied: [] }
-          : { role: "ai", text: "I couldn't map that to the plan. Name the activity closer to how it's written in the look-ahead — or add it there first, then report against it." },
-      ],
-    });
-    setThinking(false);
+    // A question deserves an answer, not advice about naming activities. If
+    // the server did not answer it — offline, out of quota, or it read the
+    // message as a report — answer from what is already on the device.
+    if (asked && !actions.length) {
+      const local = answerLocally(q, state);
+      if (local) return say(serverErr ? `${local}\n\n(Answered from this device: the copilot service did not respond.)` : local);
+    }
+
+    if (!actions.length && !IS_LIVE) actions = propose(q, state);
+    if (!actions.length && serverErr) actions = propose(q, state);
+
+    if (actions.length) {
+      return say("Here's what I'd do with that — apply what's right:", { actions, applied: [] });
+    }
+    // Three genuinely different failures, three different things to say.
+    if (serverErr) {
+      return say(`I couldn't reach the copilot: ${serverErr}. Nothing has been lost — say it again in a moment, or set the state directly in Plan.`);
+    }
+    if (asked) {
+      return say("I don't have that in the record yet. I can answer on what's in the look-ahead, what's completed or delayed, progress, milestones, delivery, risks, and when something was logged.");
+    }
+    say("I couldn't map that to the plan. Name the activity closer to how it's written in the look-ahead — or add it there first, then report against it.");
   }
 
   /**
