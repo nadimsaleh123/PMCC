@@ -131,7 +131,7 @@ export default function Brief() {
           ))}
         </div>
         <Btn disabled={busy} onClick={generate}>
-          {busy ? "Reading the record…" : "Write today's brief"}
+          {busy ? "Reading the record…" : period === "week" ? "Write this week's brief" : "Write today's brief"}
         </Btn>
         {briefs.length > 1 && (
           <select
@@ -167,9 +167,10 @@ export default function Brief() {
             No brief has been written for {state.project?.name} yet.
           </p>
           <p className="mt-2 font-sans text-sm leading-relaxed text-smoke">
-            Press Write today&apos;s brief. It reads the programme snapshots, the reasons logged
-            against moved dates, the risks, the open decisions and the site log, and puts them in
-            one page of plain sentences. It writes nothing back except the brief itself.
+            Press Write {period === "week" ? "this week" : "today"}&apos;s brief. It reads the
+            programme snapshots, the reasons logged against moved dates, the risks, the open
+            decisions and the site log, and puts them in one page of plain sentences. It writes
+            nothing back except the brief itself.
           </p>
         </Card>
       ) : (
