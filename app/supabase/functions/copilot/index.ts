@@ -13,6 +13,51 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 // reading the log and understanding intent than llama-3.3-70b.
 const MODEL = "openai/gpt-oss-120b";
 
+/**
+ * Ask Groq for one JSON object.
+ *
+ * gpt-oss-120b is a reasoning model: it thinks before it answers, and strict
+ * response_format json_object can reject that whole response with "Failed to
+ * validate JSON". When the provider's validator refuses, ask again in plain
+ * text and lift the object out ourselves rather than losing the answer.
+ */
+async function groqObject(messages: Array<Record<string, unknown>>, maxTokens = 1600) {
+  let lastText = "";
+  for (const strict of [true, false]) {
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${Deno.env.get("GROQ_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        temperature: 0.1,
+        max_tokens: maxTokens,
+        reasoning_effort: "low",
+        ...(strict ? { response_format: { type: "json_object" } } : {}),
+        messages,
+      }),
+    });
+    const out = await res.json();
+    if (out.error) {
+      const m = String(out.error.message ?? "");
+      if (strict && /json/i.test(m)) continue;
+      throw new Error(m || "Groq error");
+    }
+    lastText = out.choices?.[0]?.message?.content ?? "";
+    const brace = lastText.match(/\{[\s\S]*\}/);
+    if (brace) {
+      try {
+        return JSON.parse(brace[0]);
+      } catch {
+        /* fall through to the looser call */
+      }
+    }
+  }
+  throw new Error(`the model returned no usable JSON: ${lastText.slice(0, 160) || "(empty)"}`);
+}
+
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -76,40 +121,14 @@ Deno.serve(async (req) => {
       "6. Return {\"actions\":[]} only when the message is a REPORT and is not about the site at all. A question must never return actions — it returns \"answer\".",
     ].join("\n");
 
-    const res = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("GROQ_API_KEY")}`,
-        "Content-Type": "application/json",
+    const messages = [
+      { role: "system", content: system },
+      {
+        role: "user",
+        content: `TODAY: ${today}\nLOOKAHEAD: ${JSON.stringify(look.data?.weeks ?? [])}\nRISKS: ${JSON.stringify(risks.data ?? [])}\nMILESTONES: ${JSON.stringify(project.data?.milestones ?? [])}\nDELIVERY: ${project.data?.delivery}\nOUTLOOK: ${JSON.stringify(project.data?.outlook ?? null)}\nLOG (newest first, timestamps are real):\n${logLines}\n\nMESSAGE: ${report}`,
       },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.1,
-        max_tokens: 1200,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: system },
-          {
-            role: "user",
-            content: `TODAY: ${today}\nLOOKAHEAD: ${JSON.stringify(look.data?.weeks ?? [])}\nRISKS: ${JSON.stringify(risks.data ?? [])}\nMILESTONES: ${JSON.stringify(project.data?.milestones ?? [])}\nDELIVERY: ${project.data?.delivery}\nOUTLOOK: ${JSON.stringify(project.data?.outlook ?? null)}\nLOG (newest first, timestamps are real):\n${logLines}\n\nMESSAGE: ${report}`,
-          },
-        ],
-      }),
-    });
-    const out = await res.json();
-    if (out.error) throw new Error(out.error.message ?? "Groq error");
-    const raw = out.choices?.[0]?.message?.content ?? "{}";
-    let parsed: { actions?: unknown[]; answer?: string } = {};
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      const m = raw.match(/\{[\s\S]*\}/); // salvage JSON if the model wrapped it in prose
-      try {
-        parsed = m ? JSON.parse(m[0]) : {};
-      } catch {
-        parsed = {};
-      }
-    }
+    ];
+    const parsed = (await groqObject(messages)) as { actions?: unknown[]; answer?: string };
 
     return new Response(JSON.stringify({ actions: parsed.actions ?? [], answer: parsed.answer }), {
       headers: { ...cors, "Content-Type": "application/json" },

@@ -248,6 +248,58 @@ const render = (line: string, facts: Fact[]) =>
 
 /* ------------------------------------------------------------------ */
 
+/**
+ * Ask Groq for one JSON object.
+ *
+ * gpt-oss-120b is a reasoning model: it thinks before it answers. Strict
+ * response_format json_object rejects that whole response — "Failed to
+ * validate JSON" — and a small max_tokens makes it certain, because the
+ * budget is spent thinking and the object is never finished.
+ *
+ * So: give it room, keep the reasoning short, and if the provider's
+ * validator refuses the response anyway, ask again in plain text and lift
+ * the object out ourselves. The verifier downstream does not care how the
+ * JSON arrived; it checks the line either way.
+ */
+async function groqObject(messages: Row[], maxTokens = 1200): Promise<Row> {
+  let lastText = "";
+  for (const strict of [true, false]) {
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${Deno.env.get("GROQ_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        temperature: 0.2,
+        max_tokens: maxTokens,
+        reasoning_effort: "low",
+        ...(strict ? { response_format: { type: "json_object" } } : {}),
+        messages,
+      }),
+    });
+    const out = await res.json();
+    if (out.error) {
+      const m = String(out.error.message ?? "");
+      if (strict && /json/i.test(m)) continue; // try again without the validator
+      throw new Error(m || "Groq error");
+    }
+    lastText = out.choices?.[0]?.message?.content ?? "";
+    const brace = lastText.match(/\{[\s\S]*\}/);
+    if (brace) {
+      try {
+        return JSON.parse(brace[0]);
+      } catch {
+        /* fall through and try the looser call */
+      }
+    }
+  }
+  throw new Error(`the model returned no usable JSON: ${lastText.slice(0, 160) || "(empty)"}`);
+}
+
+/* ------------------------------------------------------------------ */
+
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -512,30 +564,7 @@ Deno.serve(async (req) => {
       // verbatim, converts most of those into a usable line. Two strikes and
       // the deterministic line stands — the page never waits on the model.
       for (let attempt = 0; attempt < 2; attempt++) {
-        const res = await fetch(GROQ_URL, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${Deno.env.get("GROQ_API_KEY")}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: MODEL,
-            temperature: 0.2,
-            max_tokens: 300,
-            response_format: { type: "json_object" },
-            messages,
-          }),
-        });
-        const out = await res.json();
-        if (out.error) throw new Error(out.error.message ?? "Groq error");
-        const raw = out.choices?.[0]?.message?.content ?? "{}";
-        let parsed: { line?: string } = {};
-        try {
-          parsed = JSON.parse(raw);
-        } catch {
-          const m = raw.match(/\{[\s\S]*\}/);
-          parsed = m ? JSON.parse(m[0]) : {};
-        }
+        const parsed = await groqObject(messages);
         draft = String(parsed.line ?? "");
         violations = verifyLine(draft, facts).violations;
         if (!violations.length) {
@@ -544,7 +573,7 @@ Deno.serve(async (req) => {
           break;
         }
         if (attempt === 0) {
-          messages.push({ role: "assistant", content: raw });
+          messages.push({ role: "assistant", content: JSON.stringify({ line: draft }) });
           messages.push({
             role: "user",
             content:
