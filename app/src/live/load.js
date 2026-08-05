@@ -28,6 +28,7 @@ function mapProject(row) {
         outlook: row.outlook ?? null,
         programme: row.programme ?? null,
         thresholdDays: row.threshold_days ?? 3,
+        programmeUrl: row.programme_url ?? "",
       }
     : null;
 }

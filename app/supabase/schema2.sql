@@ -81,3 +81,6 @@ create policy "team all decisions" on decisions          for all using (is_team(
 
 -- Diary entries can point at a specific look-ahead activity (or stay general).
 alter table diary add column if not exists activity text;
+
+-- PASTE 9 — automatic ingest from a shared programme link (Drive/OneDrive).
+alter table projects add column if not exists programme_url text;

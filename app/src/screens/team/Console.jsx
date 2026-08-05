@@ -940,6 +940,10 @@ export function ProjectDesk() {
   const [pErr, setPErr] = useState("");
   // manual risks that look like a slipping task — offered for linking
   const [riskLinks, setRiskLinks] = useState([]);
+  // automatic sync from a shared Drive/OneDrive link
+  const [syncUrl, setSyncUrl] = useState(state.project.programmeUrl ?? "");
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
   const [applying, setApplying] = useState(false);
 
   // document upload
@@ -1362,6 +1366,70 @@ export function ProjectDesk() {
             </button>
           </div>
         )}
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <p className="type-eyebrow text-smoke">Automatic sync</p>
+        <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
+          Paste the share link of the programme file in your Drive. From then on, saving over
+          that file is the import: the app checks it on a schedule, and only acts when the
+          contents actually changed.
+        </p>
+        <input
+          value={syncUrl}
+          onChange={(e) => setSyncUrl(e.target.value)}
+          placeholder="https://drive.google.com/file/d/…/view"
+          className="mt-3 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-xs text-bone outline-none placeholder:text-smoke/40 focus:border-stone"
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Btn
+            tone="ghost"
+            disabled={syncBusy}
+            onClick={async () => {
+              setSyncBusy(true);
+              setSyncMsg("");
+              const { error } = await sb
+                .from("projects")
+                .update({ programme_url: syncUrl.trim() || null })
+                .eq("id", projectId);
+              setSyncMsg(error ? `Could not save: ${error.message}` : "Link saved.");
+              setSyncBusy(false);
+            }}
+          >
+            Save link
+          </Btn>
+          <Btn
+            disabled={syncBusy || !syncUrl.trim()}
+            onClick={async () => {
+              setSyncBusy(true);
+              setSyncMsg("Checking the file…");
+              try {
+                const { data, error } = await sb.functions.invoke("ingest-programme", {
+                  body: { project_id: projectId },
+                });
+                if (error) throw error;
+                const r = data.results?.[0];
+                if (!r) setSyncMsg("No link saved for this project yet — save it first.");
+                else if (r.status === "unchanged") setSyncMsg("Checked: the file has not changed since the last snapshot.");
+                else if (r.status === "error") setSyncMsg(`Could not read the file — ${r.error}`);
+                else {
+                  setSyncMsg(
+                    `Ingested: ${r.tasks} activities, overall ${r.overall}%${
+                      r.questions ? `, ${r.questions} question${r.questions > 1 ? "s" : ""} queued in the copilot` : ""
+                    }.`,
+                  );
+                  dispatch({ type: "boot", slices: await loadTeam(projectId) });
+                }
+              } catch (e) {
+                setSyncMsg(`Check failed: ${e.message ?? e}`);
+              }
+              setSyncBusy(false);
+            }}
+          >
+            {syncBusy ? "Working…" : "Check now"}
+          </Btn>
+        </div>
+        {syncMsg && <p className="mt-2 font-sans text-xs leading-relaxed text-bone/85">{syncMsg}</p>}
       </Card>
 
       <Card className="mt-4 p-5">
