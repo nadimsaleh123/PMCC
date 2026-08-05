@@ -276,30 +276,80 @@ function learnedOptions(reasons: Row[], taskUid?: string, taskName?: string) {
 /* ------------------------------------------------------------------ */
 /* Google Drive / OneDrive share links → a direct download URL.        */
 
-function directUrl(url: string) {
-  // Google Drive: .../file/d/<ID>/view  or  ...?id=<ID>
-  const g = url.match(/drive\.google\.com\/file\/d\/([^/]+)/) ?? url.match(/drive\.google\.com\/.*[?&]id=([^&]+)/);
-  if (g) return `https://drive.google.com/uc?export=download&id=${g[1]}`;
+function driveId(url: string): string | null {
+  const m =
+    url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/) ??
+    url.match(/drive\.usercontent\.google\.com\/.*[?&]id=([^&]+)/) ??
+    url.match(/drive\.google\.com\/.*[?&]id=([^&]+)/);
+  return m ? m[1] : null;
+}
+
+function otherHost(url: string) {
   // OneDrive / SharePoint share links serve the file with download=1.
   if (/1drv\.ms|sharepoint\.com|onedrive\.live\.com/.test(url)) {
     return url.includes("?") ? `${url}&download=1` : `${url}?download=1`;
   }
-  // Dropbox
   if (/dropbox\.com/.test(url)) return url.replace(/[?&]dl=0/, "").concat(url.includes("?") ? "&dl=1" : "?dl=1");
   return url;
+}
+
+const isHtml = (s: string) => /^\s*(<!DOCTYPE html|<html)/i.test(s);
+
+/**
+ * Get the file itself, not a page about the file. Google has moved public
+ * downloads to drive.usercontent.google.com; the old drive.google.com/uc
+ * address now often answers with an interstitial, so try the current one
+ * first, fall back to the old one, and follow the confirm form if Google
+ * shows it. Any HTML that survives all that is reported verbatim — a
+ * sign-in page and a quota page need different fixes, so the message says
+ * which one arrived.
+ */
+async function fetchProgramme(url: string): Promise<string> {
+  const id = driveId(url);
+  const candidates = id
+    ? [
+        `https://drive.usercontent.google.com/download?id=${id}&export=download`,
+        `https://drive.google.com/uc?export=download&id=${id}`,
+      ]
+    : [otherHost(url)];
+
+  let snippet = "";
+  for (const u of candidates) {
+    const res = await fetch(u, { redirect: "follow" });
+    if (!res.ok) {
+      snippet = `HTTP ${res.status}`;
+      continue;
+    }
+    const text = await res.text();
+    if (!isHtml(text)) return text;
+
+    // Google's "can't scan this file" / large-file form: resend with its token.
+    const conf = text.match(/name="confirm"\s+value="([^"]+)"/) ?? text.match(/[?&]confirm=([\w-]+)/);
+    const uuid = text.match(/name="uuid"\s+value="([^"]+)"/);
+    if (id && conf) {
+      const retry =
+        `https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=${conf[1]}` +
+        (uuid ? `&uuid=${uuid[1]}` : "");
+      const r2 = await fetch(retry, { redirect: "follow" });
+      const t2 = await r2.text();
+      if (!isHtml(t2)) return t2;
+      snippet = t2;
+    } else {
+      snippet = text;
+    }
+  }
+
+  const title = snippet.match(/<title>([^<]*)<\/title>/i)?.[1]?.trim();
+  throw new Error(
+    `the link returned a web page, not the file${title ? ` — Google said: "${title}"` : ""}. ` +
+      `Open the file in Drive → Share → General access → "Anyone with the link".`,
+  );
 }
 
 /* ------------------------------------------------------------------ */
 
 async function ingestOne(admin: any, project: Row) {
-  const url = directUrl(project.programme_url);
-  const res = await fetch(url, { redirect: "follow" });
-  if (!res.ok) throw new Error(`fetch failed (${res.status})`);
-  const text = await res.text();
-  if (/^\s*<!DOCTYPE html|<html/i.test(text)) {
-    throw new Error("the link returned a web page, not the file — set sharing to 'Anyone with the link'");
-  }
-
+  const text = await fetchProgramme(project.programme_url);
   const parsed = parseMSPDI(text);
 
   // Nothing to do if the file's content is identical to the last snapshot.
