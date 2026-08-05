@@ -158,6 +158,47 @@ export async function copilotLive(report, projectId) {
 }
 
 /* ------------------------------------------------------------------ */
+/* The Brief: the morning read, written once and kept.                 */
+
+/**
+ * Ask the server to assemble a brief. The body is rendered there, from the
+ * record, and stored as read — so a brief still reads in December exactly
+ * as it read this morning, whatever the programme did in between.
+ */
+export async function writeBrief(projectId, period = "day") {
+  const { data, error } = await sb.functions.invoke("brief", {
+    body: { project_id: projectId, period },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+/** The briefs already on record, newest first. */
+export async function fetchBriefs(projectId, limit = 30) {
+  const { data, error } = await sb
+    .from("briefs")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("generated_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** The newest brief only — for the line on Today. Never generates one. */
+export async function latestBrief(projectId) {
+  const { data } = await sb
+    .from("briefs")
+    .select("id, generated_at, period, headline, headline_source, stats")
+    .eq("project_id", projectId)
+    .order("generated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
+}
+
+/* ------------------------------------------------------------------ */
 /* The programme engine: snapshots, questions, reasons, decisions.     */
 
 /** Append this ingest's full parsed state to the permanent history. */

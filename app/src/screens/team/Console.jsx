@@ -18,6 +18,7 @@ import {
   learnedOptions,
   fetchReasons,
   linkRiskToTask,
+  latestBrief,
 } from "../../live/sync";
 import { loadTeam } from "../../live/load";
 import { uploadPhoto, uploadDoc, openDoc } from "../../lib/storage";
@@ -35,6 +36,20 @@ export function Today() {
   const openRisks = state.risks.filter((r) => r.status !== "closed").length;
   const meta = state.projectsMeta ?? [{ id: "d563", name: "Daher el Souane 563" }];
   const activeId = state.activeProjectId ?? "d563";
+  // The one line off the latest brief. It sits above everything because it
+  // is the only thing on this screen that says what is actually happening;
+  // the counts below it say how much of something there is.
+  const [line, setLine] = useState(null);
+  useEffect(() => {
+    if (!IS_LIVE || !state.project?.id) return;
+    let live = true;
+    latestBrief(state.project.id).then((b) => {
+      if (live) setLine(b);
+    });
+    return () => {
+      live = false;
+    };
+  }, [state.project?.id]);
 
   return (
     <Screen>
@@ -69,6 +84,18 @@ export function Today() {
         </Btn>
       </div>
 
+      {/* The brief's opening line, or an invitation to write one. */}
+      <Card className="rise rise-2 mt-4 p-5" onClick={() => nav("/team/brief")}>
+        <p className="type-eyebrow text-smoke">
+          {line
+            ? `Brief · ${new Date(line.generated_at).toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" })}`
+            : "Brief"}
+        </p>
+        <p className="mt-2 font-sans text-sm leading-relaxed text-bone/90">
+          {line?.headline ?? "No brief written yet. Open to read where this project stands, in plain sentences."}
+        </p>
+      </Card>
+
       <div className="rise rise-2 mt-4 grid grid-cols-3 gap-3">
         {[
           [String(state.diary.length), "updates published"],
@@ -92,6 +119,7 @@ export function Today() {
       </div>
 
       <div className="rise rise-4 mt-6">
+        <Row icon={Icon.doc} title="Brief" meta="Where the project stands today, in plain sentences" onClick={() => nav("/team/brief")} />
         <Row icon={Icon.plan} title="Look-ahead" meta={`Updated ${state.lookahead.updated} — tick as built`} onClick={() => nav("/team/plan")} />
         <Row icon={Icon.inbox} title="Inbox" meta="Owner questions & chatbot escalations" badge={unanswered} onClick={() => nav("/team/inbox")} />
         <Row icon={Icon.money} title="Payments" meta="Record receipts against milestones" onClick={() => nav("/team/money")} />
@@ -99,7 +127,7 @@ export function Today() {
         <Row icon={Icon.compass} title="Variations" meta={!hasOwners ? "No owners yet" : offered ? `${offered} awaiting owner decision` : "All settled"} badge={offered} onClick={() => nav("/team/owners")} />
         <Row icon={Icon.home} title="Owners & access" meta="Accounts, read receipts" onClick={() => nav("/team/owners")} />
         <Row icon={Icon.doc} title="Project & programme" meta="Contract, milestones, MS Project / P6 import" onClick={() => nav("/team/project")} />
-        <Row icon={Icon.doc} title="Report" meta="Period roll-up — internal & client flavours" onClick={() => nav("/team/report")} />
+        <Row icon={Icon.doc} title="Report" meta="The document you hand over — internal & client flavours" onClick={() => nav("/team/report")} />
         <Row icon={Icon.diary} title="Site log" meta="Every report and action, permanently" onClick={() => nav("/team/log")} />
       </div>
 
