@@ -103,6 +103,52 @@ export function syncAction(action, nextState) {
 }
 
 /**
+ * What deleting a project would destroy, counted before anyone is asked to
+ * confirm it. Nobody should have to agree to "everything" — they should see
+ * the ledger they are about to burn.
+ */
+export async function countProjectRecord(projectId) {
+  const byProject = ["diary", "risks", "documents", "visits", "project_log", "programme_snapshots", "task_reasons", "decisions"];
+  const counts = {};
+  await Promise.all(
+    byProject.map(async (t) => {
+      const { count, error } = await sb
+        .from(t)
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", projectId);
+      // A table that has not been created yet (briefs before PASTE 10) is a
+      // zero, not a failure — the count is a courtesy, not the delete.
+      counts[t] = error ? 0 : (count ?? 0);
+    }),
+  );
+  const { data: units } = await sb.from("units").select("id, name, owner_id").eq("project_id", projectId);
+  counts.units = units?.length ?? 0;
+  counts.owners = (units ?? []).filter((u) => u.owner_id).length;
+  return counts;
+}
+
+/**
+ * Delete a project and everything filed under it. Every child table declares
+ * `on delete cascade` on project_id, so this one statement takes the lot.
+ *
+ * Two things it deliberately does NOT take, because they are not the
+ * project's to destroy: the owner's sign-in (their profile and auth account
+ * survive, they simply no longer have a residence), and anything already
+ * uploaded to storage. Both are stated to the person before they confirm.
+ */
+export async function deleteProjectLive(projectId) {
+  const { error } = await sb.from("projects").delete().eq("id", projectId);
+  if (error) throw error;
+  try {
+    if (localStorage.getItem("pmcc.activeProject") === projectId) {
+      localStorage.removeItem("pmcc.activeProject");
+    }
+  } catch {
+    /* private browsing */
+  }
+}
+
+/**
  * Create a project server-side. Every project gets its residence (one unit —
  * the common villa case; more can be added later), and when the client's
  * name/email are given, their sign-in is pre-authorized and linked to that

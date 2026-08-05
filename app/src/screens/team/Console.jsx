@@ -19,6 +19,8 @@ import {
   fetchReasons,
   linkRiskToTask,
   latestBrief,
+  countProjectRecord,
+  deleteProjectLive,
 } from "../../live/sync";
 import { loadTeam } from "../../live/load";
 import { uploadPhoto, uploadDoc, openDoc } from "../../lib/storage";
@@ -1620,9 +1622,156 @@ export function ProjectDesk() {
           ))}
         </ul>
       </Card>
+      {IS_LIVE && <DeleteProject />}
+
       <p className="mt-4 px-1 pb-4 font-sans text-xs text-smoke">
         New project, blocks, units and owner invitations live here in the wired version.
       </p>
     </Screen>
+  );
+}
+
+/* ------------------------------------------------ Delete a project */
+/**
+ * Deleting a project destroys the contemporaneous record this whole system
+ * exists to keep, so it is deliberately awkward: it shows exactly what will
+ * go, it names what will NOT go, and it will not act until the project's own
+ * name has been typed. There is no undo, and it says so.
+ */
+function DeleteProject() {
+  const { state, dispatch } = useStore();
+  const nav = useNavigate();
+  const project = state.project;
+  const [open, setOpen] = useState(false);
+  const [counts, setCounts] = useState(null);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const others = (state.projectsMeta ?? []).filter((p) => p.id !== project.id);
+  const armed = typed.trim() === project.name;
+
+  async function reveal() {
+    setOpen(true);
+    setErr("");
+    try {
+      setCounts(await countProjectRecord(project.id));
+    } catch (e) {
+      setErr(`Could not read what is filed here: ${e.message ?? e}`);
+    }
+  }
+
+  const LINES = counts
+    ? [
+        [counts.programme_snapshots, "programme import", "programme imports"],
+        [counts.diary, "published site update", "published site updates"],
+        [counts.project_log, "log entry", "log entries"],
+        [counts.risks, "risk", "risks"],
+        [counts.task_reasons, "logged reason for a moved date", "logged reasons for moved dates"],
+        [counts.decisions, "recorded decision", "recorded decisions"],
+        [counts.documents, "document", "documents"],
+        [counts.visits, "site visit", "site visits"],
+        [counts.units, "residence", "residences"],
+      ].filter(([n]) => n > 0)
+    : [];
+
+  return (
+    <Card className="mt-6 border-pmcc/40 p-5">
+      <p className="type-eyebrow text-pmcc">Delete this project</p>
+      {!open ? (
+        <>
+          <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
+            Removes {project.name} and everything filed under it. There is no undo, and no copy is
+            kept anywhere else.
+          </p>
+          <div className="mt-3">
+            <Btn tone="ghost" onClick={reveal}>
+              Show me what this would delete
+            </Btn>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
+            Deleting {project.name} destroys the record below permanently. It cannot be recovered,
+            by you or by us.
+          </p>
+
+          {counts === null && !err ? (
+            <p className="mt-3 font-sans text-sm text-smoke">Counting what is filed here…</p>
+          ) : LINES.length ? (
+            <ul className="mt-3 space-y-1">
+              {LINES.map(([n, one, many]) => (
+                <li key={one} className="font-sans text-sm text-bone/85">
+                  {n} {n === 1 ? one : many}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 font-sans text-sm text-smoke">
+              Nothing has been filed against this project yet.
+            </p>
+          )}
+
+          <p className="mt-3 font-sans text-xs leading-relaxed text-smoke">
+            {counts?.owners
+              ? `${counts.owners} owner ${counts.owners === 1 ? "account keeps" : "accounts keep"} their sign-in, but will no longer have a residence and will be told so. `
+              : ""}
+            Photographs and documents already uploaded stay in storage and are not reachable from
+            the app afterwards.
+          </p>
+
+          <label className="mt-4 block font-sans text-xs text-smoke">
+            Type <span className="text-bone">{project.name}</span> to confirm
+          </label>
+          <input
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder={project.name}
+            className="mt-1 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-sm text-bone outline-none placeholder:text-smoke/30 focus:border-pmcc"
+          />
+
+          {err && <p className="mt-2 font-sans text-xs leading-relaxed text-pmcc">{err}</p>}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Btn
+              disabled={!armed || busy}
+              onClick={async () => {
+                setBusy(true);
+                setErr("");
+                try {
+                  const gone = project.name;
+                  await deleteProjectLive(project.id);
+                  if (others.length) {
+                    dispatch({ type: "boot", slices: await loadTeam(others[0].id) });
+                    nav("/team");
+                  } else {
+                    // Nothing left to show. Sign the console back to a clean
+                    // state rather than render a screen with no project.
+                    window.location.replace("/app/team");
+                  }
+                  console.info(`[project] deleted ${gone}`);
+                } catch (e) {
+                  setErr(`Could not delete: ${e.message ?? e}`);
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "Deleting…" : "Delete permanently"}
+            </Btn>
+            <Btn
+              tone="ghost"
+              onClick={() => {
+                setOpen(false);
+                setTyped("");
+                setErr("");
+              }}
+            >
+              Keep it
+            </Btn>
+          </div>
+        </>
+      )}
+    </Card>
   );
 }
