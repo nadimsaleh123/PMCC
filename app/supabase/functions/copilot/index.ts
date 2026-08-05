@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     const [look, risks, project, logQ] = await Promise.all([
       supabase.from("lookahead").select("weeks").eq("project_id", project_id).maybeSingle(),
       supabase.from("risks").select("title, status, shared_on").eq("project_id", project_id),
-      supabase.from("projects").select("milestones, delivery, outlook").eq("id", project_id).single(),
+      supabase.from("projects").select("milestones, delivery").eq("id", project_id).single(),
       supabase.from("project_log").select("at, author, kind, body").eq("project_id", project_id)
         .order("at", { ascending: false }).limit(150),
     ]);
@@ -106,7 +106,6 @@ Deno.serve(async (req) => {
       "- Answer strictly from the provided data. If the exact fact is not in it, say what IS known (e.g. the item's current state in the LOOKAHEAD) and state plainly that the exact date was not logged. Never guess a date, number, or name.",
       'If the message is a REPORT, return ONLY a JSON object: {"actions": [...]}. Action shapes:',
       '{"kind":"risk","label":"Share a risk: <short title>","detail":"<one line>","title":"<short title>","body":"<what happened, its impact, and mitigation if stated — faithful to the report>"}',
-      '{"kind":"outlook","label":"Update the delivery outlook","detail":"<one line>","state":"ontrack|watch|atrisk","note":"<ONE sentence the OWNER reads about delivery impact, keeping any number of days the engineer stated>"}',
       '{"kind":"activity","label":"Mark \\"<exact activity name>\\" as delayed|completed","detail":"<one line>","name":"<the item\'s EXACT name copied from the lookahead>","week":<0|1|2>,"item":<index>,"s":"done|ready|blocked","note":"<days + reason, e.g. Delayed 5 days — supplier failure>","moveTo":<0|1|2, ONLY if the work shifts to a different week>}',
       '{"kind":"decision","label":"Log a decision needed: <short>","detail":"<one line>","body":"<exactly what the owner/client must decide or approve>","task":"<related activity name, or empty>"}',
       '{"kind":"note","label":"...","detail":"..."} (informational only, nothing published)',
@@ -114,8 +113,8 @@ Deno.serve(async (req) => {
       "1. ANY delay, failure, shortage or problem reported => ALWAYS include a risk action, even when no lookahead activity matches.",
       "2. Include an activity action ONLY when the report clearly refers to one of the provided lookahead items (match by meaning; copy the item's exact name into \"name\" and \"label\", plus its indices). s=blocked means delayed. Never force a weak match.",
       "2b. When the engineer says the work is pushed/moved to another week ('pushed to next week'), set moveTo to that week's index (weeks are 0=this week, 1=next week, 2=week after) and keep s=blocked with the note explaining why. Omit moveTo when the item stays in its week. Say the move in the label, e.g. 'Move \"<name>\" to next week — delayed'.",
-      "3. If the report states or implies impact on project delivery (e.g. 'will delay delivery by 5 days') => ALWAYS include an outlook action: state=atrisk if delivery moves, watch if float may absorb it; repeat the engineer's number of days plainly.",
-      "4. Good news works the same: completed work => activity s=done; if it recovers the programme, an outlook update.",
+      "3. If the report states or implies impact on project delivery (e.g. 'will delay delivery by 5 days'), say so in the risk action's body, repeating the engineer's number of days plainly.",
+      "4. Good news works the same: completed work => activity s=done.",
       "4b. If the report says the site is waiting on the owner/client to choose or approve something (a selection, a variation, a sample sign-off, a payment) => include a decision action so it lands in the decision log.",
       "5. Never invent activities, dates or figures not in the report or the provided data. Never move milestone dates.",
       "6. Return {\"actions\":[]} only when the message is a REPORT and is not about the site at all. A question must never return actions — it returns \"answer\".",
@@ -125,7 +124,7 @@ Deno.serve(async (req) => {
       { role: "system", content: system },
       {
         role: "user",
-        content: `TODAY: ${today}\nLOOKAHEAD: ${JSON.stringify(look.data?.weeks ?? [])}\nRISKS: ${JSON.stringify(risks.data ?? [])}\nMILESTONES: ${JSON.stringify(project.data?.milestones ?? [])}\nDELIVERY: ${project.data?.delivery}\nOUTLOOK: ${JSON.stringify(project.data?.outlook ?? null)}\nLOG (newest first, timestamps are real):\n${logLines}\n\nMESSAGE: ${report}`,
+        content: `TODAY: ${today}\nLOOKAHEAD: ${JSON.stringify(look.data?.weeks ?? [])}\nRISKS: ${JSON.stringify(risks.data ?? [])}\nMILESTONES: ${JSON.stringify(project.data?.milestones ?? [])}\nDELIVERY: ${project.data?.delivery}\nLOG (newest first, timestamps are real):\n${logLines}\n\nMESSAGE: ${report}`,
       },
     ];
     const parsed = (await groqObject(messages)) as { actions?: unknown[]; answer?: string };

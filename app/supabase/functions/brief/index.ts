@@ -193,7 +193,7 @@ delayed delaying slipping failing failure failed missed missing
 // is deliberately NOT lent to the model: it may place the whole quoted
 // sentence as a token, but it may not borrow the words and speak them in
 // its own voice.
-const HUMAN_TEXT_KINDS = new Set(["reason", "outlook", "decision", "risk"]);
+const HUMAN_TEXT_KINDS = new Set(["reason", "decision", "risk"]);
 
 const wordsIn = (s: string) => s.toLowerCase().match(/[a-z']+/g) ?? [];
 
@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
     const from = new Date(now.getTime() - (span === "week" ? 7 : 1) * 86400000);
 
     const [projQ, snapQ, reasonQ, riskQ, decQ, diaryQ, lookQ, qQ, logQ] = await Promise.all([
-      supabase.from("projects").select("name, delivery, overall, outlook, milestones, threshold_days").eq("id", project_id).single(),
+      supabase.from("projects").select("name, delivery, overall, milestones, threshold_days").eq("id", project_id).single(),
       supabase.from("programme_snapshots").select("id, taken_at, is_baseline, overall, task_count, tasks")
         .eq("project_id", project_id).order("taken_at", { ascending: false }).limit(12),
       supabase.from("task_reasons").select("*").eq("project_id", project_id).order("at", { ascending: false }).limit(400),
@@ -389,9 +389,6 @@ Deno.serve(async (req) => {
       standing.push(add("overall", "No programme has been imported yet, so there is no measured progress"));
     }
     if (project.delivery) standing.push(add("delivery", `Delivery reads ${project.delivery}`));
-    if (project.outlook?.note) {
-      standing.push(add("outlook", `The delivery outlook was set to "${project.outlook.state}" with the note: "${project.outlook.note}"`));
-    }
     const nextMs = (project.milestones ?? []).find((m: Row) => m.next || !m.done);
     if (nextMs) standing.push(add("milestone", `The next milestone on the file is ${nextMs.name}, dated ${nextMs.date}`));
     sections.push({ title: "Where it stands", lines: standing });

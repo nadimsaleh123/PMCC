@@ -57,13 +57,6 @@ function fromAI(a) {
         risk: { id: crypto.randomUUID(), title: a.title, body: a.body, status: "watching", shared: "Today" },
       },
     };
-  if (a.kind === "outlook")
-    return {
-      kind: "outlook",
-      label: a.label,
-      detail: a.detail,
-      payload: { type: "setOutlook", outlook: { state: a.state ?? "watch", note: a.note ?? a.detail, updated: "today" } },
-    };
   if (a.kind === "decision")
     return {
       kind: "decision",
@@ -197,7 +190,7 @@ function answerLocally(msg, state) {
   }
   if (/(deliver|handover|finish date|completion date|when.*(done|ready|finished))/.test(s)) {
     const next = (state.project?.milestones ?? []).find((m) => m.next || !m.done);
-    return `Delivery reads ${state.project?.delivery ?? "not set"}.${next ? ` The next milestone on the programme is ${next.name}, ${next.date}.` : ""}${state.project?.outlook?.note ? ` Outlook: ${state.project.outlook.note}` : ""}`;
+    return `Delivery reads ${state.project?.delivery ?? "not set"}.${next ? ` The next milestone on the programme is ${next.name}, ${next.date}.` : ""}`;
   }
   if (/milestone/.test(s)) {
     const ms = state.project?.milestones ?? [];
@@ -256,15 +249,6 @@ function propose(msg, state) {
       },
     });
   }
-  if (delay && delayDays) {
-    const note = `A ${delayDays}-day slip is being absorbed in programme float — delivery ${state.project.delivery} unchanged.`;
-    acts.push({
-      kind: "outlook",
-      label: "Update the delivery outlook",
-      detail: `Owners will see: "${note}"`,
-      payload: { type: "setOutlook", outlook: { state: "watch", note, updated: "today" } },
-    });
-  }
   return acts;
 }
 
@@ -272,7 +256,6 @@ function propose(msg, state) {
 const KIND_INFO = {
   activity: { tag: "Plan update", tone: "stone", dest: "Owner sees it on their Plan tab" },
   risk: { tag: "Risk", tone: "red", dest: "Owner sees it under More → Risks & notices" },
-  outlook: { tag: "Delivery outlook", tone: "stone", dest: "Owner sees it on Home and the Plan" },
   decision: { tag: "Decision needed", tone: "red", dest: "Logged — feeds the Report's decisions list" },
   note: { tag: "FYI", tone: "smoke", dest: "Only for you — owners see nothing" },
 };

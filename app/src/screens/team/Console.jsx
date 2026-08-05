@@ -1021,9 +1021,6 @@ export function ProjectDesk() {
   const [dUnit, setDUnit] = useState("shared");
   const [dBusy, setDBusy] = useState(false);
 
-  // delivery outlook
-  const [outlookState, setOutlookState] = useState(state.project.outlook?.state ?? "ontrack");
-  const [outlookNote, setOutlookNote] = useState(state.project.outlook?.note ?? "");
 
   async function indexContract(text, unitId = cUnit || single?.unitId) {
     setCBusy(true);
@@ -1313,10 +1310,6 @@ export function ProjectDesk() {
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 font-sans text-[0.65rem] leading-relaxed text-smoke">
-                  If delivery is affected, update the Delivery outlook below after applying —
-                  owners hear it from you, never from a silent date change.
-                </p>
               </div>
             )}
             {parsed.changes?.length === 0 && (
@@ -1563,43 +1556,6 @@ export function ProjectDesk() {
               : " No payment schedule was found in the text — the Money tab is untouched."}
           </p>
         )}
-      </Card>
-
-      <Card className="mt-4 p-5">
-        <p className="type-eyebrow text-smoke">Delivery outlook — the line owners see</p>
-        <div className="mt-3 flex gap-2">
-          {[["ontrack", "On track"], ["watch", "Watching"], ["atrisk", "At risk"]].map(([k, l]) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setOutlookState(k)}
-              className={`flex-1 border px-2 py-2 font-sans text-xs uppercase tracking-wideish ${outlookState === k ? "border-stone text-bone" : "border-seam text-smoke"}`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-        <textarea
-          rows={2}
-          value={outlookNote}
-          onChange={(e) => setOutlookNote(e.target.value)}
-          placeholder={`e.g. On track — delivery ${state.project.delivery}. Two weeks of float in hand.`}
-          className="mt-2 w-full border border-seam bg-transparent px-3 py-2.5 font-sans text-sm text-bone outline-none focus:border-stone"
-        />
-        <Btn
-          className="mt-2"
-          disabled={!outlookNote.trim()}
-          onClick={() => {
-            dispatch({ type: "setOutlook", outlook: { state: outlookState, note: outlookNote.trim(), updated: "today" } });
-            dispatch({
-              type: "log",
-              entry: { id: crypto.randomUUID(), at: "Just now", author: state.session?.name ?? "", kind: "note", body: `Delivery outlook set (${outlookState}): ${outlookNote.trim()}` },
-            });
-            alert("Outlook updated — owners see it on Home and the Plan.");
-          }}
-        >
-          Publish outlook
-        </Btn>
       </Card>
 
       <Card className="mt-4 p-5">

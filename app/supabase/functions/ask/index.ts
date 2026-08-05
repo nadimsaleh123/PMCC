@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
     const record = {
       unit: unit.data,
-      project: project.data, // includes the delivery outlook the team publishes
+      project: project.data,
       diary: diaryQ.data,
       lookahead: look.data,
       risks: risksQ.data,

@@ -25,7 +25,6 @@ function mapProject(row) {
         overall: row.overall ?? 0,
         phases: row.phases ?? [],
         milestones: row.milestones ?? [],
-        outlook: row.outlook ?? null,
         programme: row.programme ?? null,
         thresholdDays: row.threshold_days ?? 3,
         programmeUrl: row.programme_url ?? "",

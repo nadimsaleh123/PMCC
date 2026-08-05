@@ -90,8 +90,6 @@ export function syncAction(action, nextState) {
           kind: action.entry.kind,
           body: action.entry.body,
         });
-      case "setOutlook":
-        return sb.from("projects").update({ outlook: action.outlook }).eq("id", projectId);
       default:
         return null;
     }

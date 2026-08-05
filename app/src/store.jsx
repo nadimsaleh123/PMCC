@@ -254,8 +254,6 @@ function reducer(state, action) {
       return { ...state, copilot: action.feed };
     case "log":
       return { ...state, log: [action.entry, ...(state.log ?? [])] };
-    case "setOutlook":
-      return { ...state, project: { ...state.project, outlook: action.outlook } };
     case "reset":
       return { ...structuredClone(seed), session: state.session, chat: [] };
     default:

@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../../store";
-import { Screen, TopBar, Card, Btn, Stamp, Back } from "../../ui";
+import { Screen, TopBar, Card, Btn, Back } from "../../ui";
 import { IS_LIVE, sb } from "../../lib/supabase";
 import { diffProgramme } from "../../lib/mspdi";
 import { decideDecision } from "../../live/sync";
@@ -147,7 +147,6 @@ export default function Report() {
             </p>
             <p className="mt-2 font-sans text-sm leading-relaxed text-bone/85">
               Overall {since.overall}% → {latest.overall}%
-              {state.project.outlook?.note ? ` · ${state.project.outlook.note}` : ""}
             </p>
           </Card>
 
