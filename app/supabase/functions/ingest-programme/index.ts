@@ -414,7 +414,7 @@ async function ingestOne(admin: any, project: Row) {
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, content-type, x-ingest-key",
+    "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info, x-ingest-key",
   };
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 

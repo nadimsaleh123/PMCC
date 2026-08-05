@@ -1421,7 +1421,11 @@ export function ProjectDesk() {
                   dispatch({ type: "boot", slices: await loadTeam(projectId) });
                 }
               } catch (e) {
-                setSyncMsg(`Check failed: ${e.message ?? e}`);
+                // The commonest cause by far is the function not being
+                // deployed yet — say so rather than leaving a bare error.
+                setSyncMsg(
+                  `Check failed: ${e.message ?? e}. If this says "Failed to send a request", the ingest-programme function isn't deployed yet — Supabase → Edge Functions.`,
+                );
               }
               setSyncBusy(false);
             }}
