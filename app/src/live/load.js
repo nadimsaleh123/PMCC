@@ -203,6 +203,14 @@ const remember = (id) => {
   }
 };
 
+/**
+ * Record the choice the moment it is made, before the load that follows it.
+ * If that load is slow, fails, or the app re-boots underneath it, the choice
+ * still stands — the person picked a project and the app should not quietly
+ * disagree with them.
+ */
+export const rememberProject = remember;
+
 /** Everything the team console needs for one project. */
 export async function loadTeam(projectId) {
   const { data: projects } = await sb.from("projects").select("id, name").order("created_at");

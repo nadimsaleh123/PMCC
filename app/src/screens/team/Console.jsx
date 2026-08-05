@@ -22,7 +22,7 @@ import {
   countProjectRecord,
   deleteProjectLive,
 } from "../../live/sync";
-import { loadTeam } from "../../live/load";
+import { loadTeam, rememberProject } from "../../live/load";
 import { uploadPhoto, uploadDoc, openDoc } from "../../lib/storage";
 import { parseMSPDI, diffProgramme } from "../../lib/mspdi";
 import { extractPdfText } from "../../lib/pdf";
@@ -37,7 +37,19 @@ export function Today() {
   const offered = hasOwners ? state.variations.filter((v) => v.state === "offered").length : 0;
   const openRisks = state.risks.filter((r) => r.status !== "closed").length;
   const meta = state.projectsMeta ?? [{ id: "d563", name: "Daher el Souane 563" }];
-  const activeId = state.activeProjectId ?? "d563";
+  // The select is controlled, and the store only catches up once the new
+  // project has come back over the network. Without holding the choice
+  // locally, React redraws the dropdown with the OLD value for the whole
+  // round trip — the project visibly snaps back to the oldest one, and stays
+  // there if the load is slow or fails. `picked` is what the person chose;
+  // it wins until the store agrees or the load errors.
+  const [picked, setPicked] = useState(null);
+  const storeId = state.activeProjectId ?? "d563";
+  const activeId = picked ?? storeId;
+  useEffect(() => {
+    if (picked && storeId === picked) setPicked(null);
+  }, [storeId, picked]);
+  const [switchErr, setSwitchErr] = useState("");
   // The one line off the latest brief. It sits above everything because it
   // is the only thing on this screen that says what is actually happening;
   // the counts below it say how much of something there is.
@@ -69,10 +81,21 @@ export function Today() {
             value={activeId}
             onChange={async (e) => {
               const id = e.target.value;
-              if (IS_LIVE) {
-                dispatch({ type: "boot", slices: await loadTeam(id) });
-              } else {
+              setPicked(id);
+              setSwitchErr("");
+              // Durable before the network call, not after it.
+              rememberProject(id);
+              if (!IS_LIVE) {
                 dispatch({ type: "switchProject", id });
+                return;
+              }
+              try {
+                dispatch({ type: "boot", slices: await loadTeam(id) });
+              } catch (err) {
+                // Say so rather than silently sitting on the old project.
+                setPicked(null);
+                rememberProject(storeId);
+                setSwitchErr(`Could not open that project: ${err.message ?? err}`);
               }
             }}
             aria-label="Active project"
@@ -90,6 +113,7 @@ export function Today() {
           <Icon.plus className="h-4 w-4" /> New
         </Btn>
       </div>
+      {switchErr && <p className="mt-2 px-1 font-sans text-xs leading-relaxed text-pmcc">{switchErr}</p>}
 
       {/* The brief's opening line, or an invitation to write one. */}
       <Card className="rise rise-2 mt-4 p-5" onClick={() => nav("/team/brief")}>
